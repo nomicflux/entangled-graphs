@@ -181,11 +181,18 @@ export function measurement_distribution(state: QubitState): BasisProbability[] 
 }
 
 export function sample_distribution(distribution: BasisProbability[], randomValue: number = Math.random()): MeasurementSample {
+  const total = distribution.reduce((acc, entry) => acc + entry.probability, 0);
+  if (total <= 0) {
+    const fallback = distribution[distribution.length - 1]!;
+    return { basis: fallback.basis, probability: 0 };
+  }
+
+  const threshold = randomValue * total;
   let running = 0;
 
   for (const entry of distribution) {
     running += entry.probability;
-    if (randomValue <= running) {
+    if (threshold <= running) {
       return { basis: entry.basis, probability: entry.probability };
     }
   }

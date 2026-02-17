@@ -1,8 +1,8 @@
-import type { GateId, GateInstance, Operator, QubitRow, SingleGateRef } from "../types";
+import type { GateId, GateInstance, Operator } from "../types";
 import { MAX_QUBITS, MIN_QUBITS } from "./constants";
 import { normalizeOperator, persistCustomOperators } from "./custom-operator-storage";
 import { enforceDisjoint, gateTouchesRow, gateWires, mapGateAfterQubitRemoval, removeOverlaps } from "./gate-instance-utils";
-import { qubitCount } from "./selectors";
+import type { CellRef, CnotPlacement, SingleGatePlacement, ToffoliPlacement } from "./placements";
 import { emptyColumn, nextGateInstanceId, state } from "./store";
 import { zeroBloch } from "./qubit-helpers";
 
@@ -103,73 +103,49 @@ export const deleteCustomOperator = (id: string): void => {
   persistCustomOperators(state.customOperators);
 };
 
-export const placeCnot = (columnIndex: number, control: QubitRow, target: QubitRow): void => {
-  const column = state.columns[columnIndex];
-  if (!column || qubitCount.value < 2) {
-    return;
-  }
-  if (control === target) {
-    return;
-  }
-  if (control < 0 || control >= qubitCount.value || target < 0 || target >= qubitCount.value) {
-    return;
-  }
+export const placeCnot = (placement: CnotPlacement): void => {
+  const column = state.columns[placement.column]!;
 
-  removeOverlaps(column, [control, target]);
-  column.gates.push({ id: nextGateInstanceId(), kind: "cnot", control, target });
+  removeOverlaps(column, [placement.control, placement.target]);
+  column.gates.push({
+    id: nextGateInstanceId(),
+    kind: "cnot",
+    control: placement.control,
+    target: placement.target,
+  });
   enforceDisjoint(column);
 };
 
-export const placeToffoli = (columnIndex: number, controlA: QubitRow, controlB: QubitRow, target: QubitRow): void => {
-  const column = state.columns[columnIndex];
-  if (!column || qubitCount.value < 3) {
-    return;
-  }
+export const placeToffoli = (placement: ToffoliPlacement): void => {
+  const column = state.columns[placement.column]!;
 
-  const unique = new Set([controlA, controlB, target]);
-  if (unique.size !== 3) {
-    return;
-  }
-
-  if (
-    controlA < 0 ||
-    controlA >= qubitCount.value ||
-    controlB < 0 ||
-    controlB >= qubitCount.value ||
-    target < 0 ||
-    target >= qubitCount.value
-  ) {
-    return;
-  }
-
-  removeOverlaps(column, [controlA, controlB, target]);
-  column.gates.push({ id: nextGateInstanceId(), kind: "toffoli", controlA, controlB, target });
+  removeOverlaps(column, [placement.controlA, placement.controlB, placement.target]);
+  column.gates.push({
+    id: nextGateInstanceId(),
+    kind: "toffoli",
+    controlA: placement.controlA,
+    controlB: placement.controlB,
+    target: placement.target,
+  });
   enforceDisjoint(column);
 };
 
-export const setGateAt = (columnIndex: number, row: QubitRow, gate: SingleGateRef | null): void => {
-  const column = state.columns[columnIndex];
-  if (!column || row < 0 || row >= qubitCount.value) {
-    return;
-  }
+export const setGateAt = (placement: SingleGatePlacement): void => {
+  const column = state.columns[placement.cell.column]!;
 
-  if (gate === null) {
-    clearGateAt(columnIndex, row);
-    return;
-  }
-
-  removeOverlaps(column, [row]);
-  column.gates.push({ id: nextGateInstanceId(), kind: "single", gate, target: row });
+  removeOverlaps(column, [placement.cell.wire]);
+  column.gates.push({
+    id: nextGateInstanceId(),
+    kind: "single",
+    gate: placement.gate,
+    target: placement.cell.wire,
+  });
   enforceDisjoint(column);
 };
 
-export const clearGateAt = (columnIndex: number, row: QubitRow): void => {
-  const column = state.columns[columnIndex];
-  if (!column) {
-    return;
-  }
-
-  column.gates = column.gates.filter((gate) => !gateTouchesRow(gate, row));
+export const clearGateAt = (cell: CellRef): void => {
+  const column = state.columns[cell.column]!;
+  column.gates = column.gates.filter((gate) => !gateTouchesRow(gate, cell.wire));
 };
 
 export const appendColumn = (): void => {

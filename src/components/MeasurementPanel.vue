@@ -8,11 +8,11 @@
     <div class="measurement-card">
       <button class="measure-btn" @click="takeMeasurement">Measure</button>
       <p class="measurement-context">Last measured from stage: final</p>
-      <p class="measurement-outcome">{{ latestSample ? `|${latestSample.basis}>` : "Awaiting sample" }}</p>
+      <p class="measurement-outcome">{{ latestBasis ? `|${latestBasis}>` : "Awaiting sample" }}</p>
       <div class="measurement-readout">
         <div class="readout-row">
           <span class="label">Probability</span>
-          <span class="value">{{ latestSample ? formatPercent(latestSample.probability) : "--" }}</span>
+          <span class="value">{{ latestProbability === null ? "--" : formatPercent(latestProbability) }}</span>
         </div>
       </div>
       <div class="measurement-visual">
@@ -40,9 +40,9 @@
       <h3>Recent Samples</h3>
       <p v-if="history.length === 0" class="muted">No samples yet.</p>
       <ul v-else class="history-list">
-        <li v-for="(sample, index) in history" :key="index">
-          <span>|{{ sample.basis }}></span>
-          <span>{{ formatPercent(sample.probability) }}</span>
+        <li v-for="(basis, index) in history" :key="index">
+          <span>|{{ basis }}></span>
+          <span>{{ formatPercent(probabilityForBasis(basis)) }}</span>
         </li>
       </ul>
     </div>
@@ -50,29 +50,44 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onUnmounted, ref } from "vue";
+import { computed, onUnmounted, ref, watch } from "vue";
 import { finalDistribution, stageViews } from "../state";
-import { basis_to_bloch_pair, sample_distribution, type MeasurementSample } from "../quantum";
+import { basis_to_bloch_pair, sample_distribution } from "../quantum";
 import type { BasisLabel } from "../types";
 import BlochPairView from "./BlochPairView.vue";
 
-const latestSample = ref<MeasurementSample | null>(null);
-const history = ref<MeasurementSample[]>([]);
+const latestBasis = ref<BasisLabel | null>(null);
+const history = ref<BasisLabel[]>([]);
 const highlightBasis = ref<BasisLabel | null>(null);
 const maxHistory = 10;
 let highlightTimer: ReturnType<typeof setTimeout> | undefined;
 
 const finalStage = computed(() => stageViews.value[stageViews.value.length - 1]!);
+const probabilityByBasis = computed(() => {
+  const table = new Map<BasisLabel, number>();
+  for (const entry of finalDistribution.value) {
+    table.set(entry.basis, entry.probability);
+  }
+  return table;
+});
+const latestProbability = computed(() => {
+  if (latestBasis.value === null) {
+    return null;
+  }
+  const value = probabilityByBasis.value.get(latestBasis.value);
+  return value ?? null;
+});
 const measurementBlochPair = computed(() =>
-  latestSample.value ? basis_to_bloch_pair(latestSample.value.basis) : finalStage.value.blochPair,
+  latestBasis.value ? basis_to_bloch_pair(latestBasis.value) : finalStage.value.blochPair,
 );
 
 const formatPercent = (value: number): string => `${(value * 100).toFixed(1)}%`;
+const probabilityForBasis = (basis: BasisLabel): number => probabilityByBasis.value.get(basis) ?? 0;
 
 const takeMeasurement = () => {
   const sampled = sample_distribution(finalDistribution.value);
-  latestSample.value = sampled;
-  history.value = [sampled, ...history.value].slice(0, maxHistory);
+  latestBasis.value = sampled.basis;
+  history.value = [sampled.basis, ...history.value].slice(0, maxHistory);
   highlightBasis.value = sampled.basis;
 
   if (highlightTimer) {
@@ -82,6 +97,16 @@ const takeMeasurement = () => {
     highlightBasis.value = null;
   }, 850);
 };
+
+watch(
+  finalDistribution,
+  () => {
+    latestBasis.value = null;
+    history.value = [];
+    highlightBasis.value = null;
+  },
+  { deep: true },
+);
 
 onUnmounted(() => {
   if (highlightTimer) {

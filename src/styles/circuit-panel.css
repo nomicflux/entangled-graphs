@@ -325,6 +325,10 @@
   font-size: 0.78rem;
 }
 
+.snapshot-row.snapshot-row-muted {
+  color: var(--muted);
+}
+
 .stage-inspector {
   margin-top: 14px;
   background: rgba(7, 12, 26, 0.58);

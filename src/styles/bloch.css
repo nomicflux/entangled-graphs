@@ -1,20 +1,16 @@
 .bloch-pair {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 10px;
 }
 
 .bloch-card {
   display: grid;
-  justify-items: center;
-  gap: 6px;
 }
 
-.bloch-card-title {
-  margin: 0;
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 0.75rem;
-  color: var(--muted);
+.bloch-composite {
+  display: grid;
+  place-items: center;
 }
 
 .bloch-orb {
@@ -39,6 +35,38 @@
   background: rgba(255, 255, 255, 0.22);
 }
 
+.bloch-sector-fills {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.bloch-sector-divider {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 1px;
+  height: 50%;
+  transform-origin: 50% 100%;
+  background: rgba(255, 255, 255, 0.2);
+  pointer-events: none;
+}
+
+.bloch-sector-label {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  color: rgba(240, 242, 255, 0.9);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.58rem;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  text-transform: lowercase;
+  pointer-events: none;
+  user-select: none;
+}
+
 .bloch-zero-cloud,
 .bloch-one-cloud,
 .bloch-uncertainty-cloud {
@@ -46,6 +74,7 @@
   left: 50%;
   top: 50%;
   border-radius: 999px;
+  pointer-events: none;
 }
 
 .bloch-zero-cloud {
@@ -57,15 +86,17 @@
 }
 
 .bloch-uncertainty-cloud {
-  width: 34px;
-  height: 34px;
   transform: translate(-50%, -50%);
   border: 1px solid rgba(255, 255, 255, 0.2);
   background: radial-gradient(circle, rgba(255, 255, 255, 0.14), transparent 72%);
 }
 
-.bloch-pair.compact .bloch-card {
-  gap: 4px;
+.bloch-pair.compact .bloch-composite {
+  gap: 6px;
+}
+
+.bloch-pair.size-sm .bloch-sector-label {
+  font-size: 0.52rem;
 }
 
 .bloch-pair.animated .bloch-uncertainty-cloud {

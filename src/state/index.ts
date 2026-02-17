@@ -1,5 +1,7 @@
 export { state, emptyColumn } from "./store";
 export type { CircuitState } from "./store";
+export type { CellRef, CnotPlacement, ColumnIndex, SingleGatePlacement, ToffoliPlacement, WireIndex } from "./placements";
+export { toCellRef, toCnotPlacement, toSingleGatePlacement, toToffoliPlacement } from "./placements";
 
 export {
   qubitCount,
