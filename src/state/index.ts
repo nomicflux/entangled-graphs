@@ -4,10 +4,10 @@ export type { CircuitState } from "./store";
 export {
   qubitCount,
   preparedQubits,
-  preparedTwoQubitState,
+  preparedState,
   preparedDistribution,
   stateSnapshots,
-  finalTwoQubitState,
+  finalState,
   finalDistribution,
   stageViews,
   selectedStage,

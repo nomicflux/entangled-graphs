@@ -65,7 +65,7 @@ export type CustomOperator = {
 };
 
 export type BasisLabel = string;
-export type TwoQubitState = [Complex, Complex, Complex, Complex];
+export type QubitState = Complex[];
 
 export type BasisProbability = {
     basis: BasisLabel;
@@ -82,7 +82,7 @@ export type BlochVector = {
     uncertainty: number;
 };
 
-export type BlochPair = [BlochVector, BlochVector];
+export type BlochPair = BlochVector[];
 
 export type StageView = {
     id: string;

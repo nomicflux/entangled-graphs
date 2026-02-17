@@ -4,7 +4,7 @@
       <div>
         <p class="kicker">Entangled Graphs</p>
         <h1>Qubit Workshop</h1>
-        <p class="subtitle">Prepare a two-qubit state, build a circuit, then measure.</p>
+        <p class="subtitle">Prepare an N-qubit state, build a circuit, then measure.</p>
       </div>
     </header>
 

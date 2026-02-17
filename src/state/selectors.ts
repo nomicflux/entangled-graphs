@@ -4,26 +4,22 @@ import type {
   GateCell,
   GateInstance,
   Operator,
+  QubitState,
   Qubit,
   SingleGateRef,
   StageView,
-  TwoQubitState,
 } from "../types";
 import { bloch_pair_from_state, measurement_distribution, simulate_columns, tensor_product_qubits } from "../quantum";
 import { gateTouchesRow } from "./gate-instance-utils";
 import { isBuiltinSingleGate, builtinOperatorMap } from "./operators";
-import { preparedDistributionForQubits, qubitFromBloch, zeroQubit } from "./qubit-helpers";
+import { preparedDistributionForQubits, qubitFromBloch } from "./qubit-helpers";
 import { state } from "./store";
 
 export const qubitCount = computed(() => state.preparedBloch.length);
 
 export const preparedQubits = computed<Qubit[]>(() => state.preparedBloch.map(qubitFromBloch));
 
-const simulationPair = computed<[Qubit, Qubit]>(() => [preparedQubits.value[0] ?? zeroQubit(), preparedQubits.value[1] ?? zeroQubit()]);
-
-export const preparedTwoQubitState = computed<TwoQubitState>(() =>
-  tensor_product_qubits(simulationPair.value[0], simulationPair.value[1]),
-);
+export const preparedState = computed<QubitState>(() => tensor_product_qubits(preparedQubits.value));
 
 export const preparedDistribution = computed(() => preparedDistributionForQubits(preparedQubits.value));
 
@@ -36,13 +32,13 @@ const resolveSingleGate = (gate: SingleGateRef): Operator | null => {
   return custom ? custom.operator : null;
 };
 
-export const stateSnapshots = computed<TwoQubitState[]>(() =>
-  simulate_columns(preparedTwoQubitState.value, state.columns, resolveSingleGate),
+export const stateSnapshots = computed<QubitState[]>(() =>
+  simulate_columns(preparedState.value, state.columns, resolveSingleGate, qubitCount.value),
 );
 
-export const finalTwoQubitState = computed<TwoQubitState>(() => stateSnapshots.value[stateSnapshots.value.length - 1]);
+export const finalState = computed<QubitState>(() => stateSnapshots.value[stateSnapshots.value.length - 1]!);
 
-export const finalDistribution = computed(() => measurement_distribution(finalTwoQubitState.value));
+export const finalDistribution = computed(() => measurement_distribution(finalState.value));
 
 export const stageViews = computed<StageView[]>(() => {
   const lastIndex = stateSnapshots.value.length - 1;
