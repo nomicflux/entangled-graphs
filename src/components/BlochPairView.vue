@@ -84,20 +84,27 @@ const sectorFillStyle = (totalSectors: number) => {
 
 const cloudStyle = (probability: number, poleDirection: -1 | 1, index: number, totalSectors: number) => {
   const centerAngle = sectorAngle(index, totalSectors);
-  const spread = Math.PI / totalSectors;
-  const cloudAngle = centerAngle + (poleDirection * spread * 0.2);
-  const radius = (orbDiameter.value * 0.12) + (probability * orbDiameter.value * 0.24);
-  const x = Math.cos(cloudAngle) * radius;
-  const y = Math.sin(cloudAngle) * radius;
+  const emphasis = Math.pow(probability, 0.65);
+  const contrast = Math.pow(probability, 1.35);
+  const radius = (orbDiameter.value * 0.12) + (emphasis * orbDiameter.value * 0.27);
+  const tangentOffset = poleDirection * ((orbDiameter.value * 0.11) / Math.sqrt(totalSectors));
+  const radialX = Math.cos(centerAngle) * radius;
+  const radialY = Math.sin(centerAngle) * radius;
+  const tangentX = -Math.sin(centerAngle) * tangentOffset;
+  const tangentY = Math.cos(centerAngle) * tangentOffset;
+  const x = radialX + tangentX;
+  const y = radialY + tangentY;
   const sizeScale = orbDiameter.value / totalSectors;
-  const diameter = (sizeScale * 0.28) + (probability * sizeScale * 0.36);
-  const blur = 3 + ((1 - probability) * 8);
+  const minDiameter = Math.max(3.5, sizeScale * 0.42);
+  const maxDiameterBoost = Math.min(16, Math.max(7, (orbDiameter.value * 0.52) / Math.sqrt(totalSectors)));
+  const diameter = minDiameter + (contrast * maxDiameterBoost);
+  const blur = 0.8 + ((1 - emphasis) * 3.2);
 
   return {
     width: `${diameter}px`,
     height: `${diameter}px`,
     transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
-    opacity: `${0.18 + (probability * 0.82)}`,
+    opacity: `${0.16 + (emphasis * 0.84)}`,
     filter: `blur(${blur}px)`,
   };
 };
@@ -114,7 +121,7 @@ const uncertaintyStyle = (vector: BlochVector, index: number, totalSectors: numb
   return {
     width: `${diameter}px`,
     height: `${diameter}px`,
-    opacity: `${0.08 + (vector.uncertainty * 0.3)}`,
+    opacity: `${0.05 + (vector.uncertainty * 0.16)}`,
     transform: `translate(-50%, -50%) translate(${x}px, ${y}px) scale(${scale})`,
   };
 };

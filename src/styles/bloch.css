@@ -78,11 +78,27 @@
 }
 
 .bloch-zero-cloud {
-  background: radial-gradient(circle, rgba(102, 245, 214, 0.92) 0%, rgba(102, 245, 214, 0.25) 58%, transparent 100%);
+  background: radial-gradient(
+    circle,
+    rgba(102, 245, 214, 1) 0%,
+    rgba(102, 245, 214, 0.74) 36%,
+    rgba(102, 245, 214, 0.32) 68%,
+    transparent 100%
+  );
+  box-shadow: 0 0 10px rgba(102, 245, 214, 0.44);
+  mix-blend-mode: screen;
 }
 
 .bloch-one-cloud {
-  background: radial-gradient(circle, rgba(252, 165, 255, 0.92) 0%, rgba(252, 165, 255, 0.25) 58%, transparent 100%);
+  background: radial-gradient(
+    circle,
+    rgba(252, 165, 255, 1) 0%,
+    rgba(252, 165, 255, 0.74) 36%,
+    rgba(252, 165, 255, 0.32) 68%,
+    transparent 100%
+  );
+  box-shadow: 0 0 10px rgba(252, 165, 255, 0.44);
+  mix-blend-mode: screen;
 }
 
 .bloch-uncertainty-cloud {
