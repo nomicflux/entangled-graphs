@@ -1,0 +1,71 @@
+.qubit-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.qubit-card {
+  background: var(--panel-strong);
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.qubit-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.qubit-top h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.amp-row {
+  display: grid;
+  grid-template-columns: 68px repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.amp-label {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.amp-derived {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: grid;
+  gap: 4px;
+}
+
+.bloch-preview {
+  position: relative;
+  width: 70px;
+  height: 70px;
+  display: grid;
+  place-items: center;
+}
+
+.bloch-circle {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow: inset 0 0 18px rgba(102, 245, 214, 0.25);
+}
+
+.bloch-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 16px rgba(102, 245, 214, 0.6);
+  transform: translate(0, 0);
+  transition: transform 0.3s ease;
+}

@@ -48,3 +48,10 @@ export function mult_op(op1: Operator, op2: Operator): Operator {
 
 export const X: Operator = mk_real_op(0,1,1,0);
 export const H: Operator = scale(mk_real_op(1,1,1,-1), 1/Math.sqrt(2));
+export const I: Operator = mk_real_op(1,0,0,1);
+export const S: Operator = mk_op(
+    complex.from_real(1), 
+    complex.from_real(0), 
+    complex.from_real(0), 
+    complex.complex(0, 1)
+);

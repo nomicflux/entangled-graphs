@@ -1,0 +1,32 @@
+.status-pill {
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(102, 245, 214, 0.15);
+  border: 1px solid rgba(102, 245, 214, 0.4);
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 20px;
+  padding: 22px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(14px);
+}
+
+.panel-center {
+  min-height: 540px;
+}
+
+.panel-header h2 {
+  margin: 0 0 6px;
+  font-size: 1.3rem;
+}
+
+.panel-header p {
+  margin: 0 0 18px;
+  color: var(--muted);
+}
