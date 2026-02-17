@@ -36,6 +36,12 @@
           <output>{{ q.phi.toFixed(2) }}</output>
         </div>
 
+        <div class="preset-row">
+          <button type="button" class="preset-btn" @click="applyPreset(index, 'zero')">100% |0></button>
+          <button type="button" class="preset-btn" @click="applyPreset(index, 'one')">100% |1></button>
+          <button type="button" class="preset-btn" @click="applyPreset(index, 'half')">50/50</button>
+        </div>
+
         <div class="amp-derived">
           <p class="amp-label">|0⟩ a = {{ formatComplex(amplitudes[index].a.real, amplitudes[index].a.imag) }}</p>
           <p class="amp-label">|1⟩ b = {{ formatComplex(amplitudes[index].b.real, amplitudes[index].b.imag) }}</p>
@@ -77,6 +83,30 @@ const dotStyle = (q: BlochParams) => {
 const formatComplex = (real: number, imag: number): string => {
   const sign = imag < 0 ? "-" : "+";
   return `${real.toFixed(3)} ${sign} ${Math.abs(imag).toFixed(3)}i`;
+};
+
+type Preset = "zero" | "one" | "half";
+
+const applyPreset = (index: number, preset: Preset) => {
+  const entry = state.preparedBloch[index];
+  if (!entry) {
+    return;
+  }
+
+  if (preset === "zero") {
+    entry.theta = 0;
+    entry.phi = 0;
+    return;
+  }
+
+  if (preset === "one") {
+    entry.theta = Math.PI;
+    entry.phi = 0;
+    return;
+  }
+
+  entry.theta = Math.PI / 2;
+  entry.phi = 0;
 };
 
 const formatPercent = (value: number): string => `${(value * 100).toFixed(1)}%`;

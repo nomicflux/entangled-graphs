@@ -2,13 +2,13 @@
   <section class="panel panel-center">
     <div class="panel-header">
       <h2>Quantum Circuit</h2>
-      <p>Drag gates into the grid. For CNOT, the row you place on becomes control. Alt+Click clears.</p>
+      <p>Drag gates into the grid. CNOT control is whichever row you place on. Alt+Click clears or deletes custom gates.</p>
     </div>
 
     <div class="circuit-tools">
       <div class="gate-palette">
         <button
-          v-for="gate in gates"
+          v-for="gate in builtinAndCnotGates"
           :key="gate"
           class="gate-chip"
           :class="{ selected: state.selectedGate === gate }"
@@ -20,6 +20,23 @@
         >
           {{ gate }}
         </button>
+
+        <button
+          v-for="custom in state.customOperators"
+          :key="custom.id"
+          class="gate-chip custom-chip"
+          :class="{ selected: state.selectedGate === custom.id }"
+          :title="`Alt+Click to delete ${custom.label}`"
+          type="button"
+          draggable="true"
+          @click="handleCustomChipClick(custom.id, $event)"
+          @dragstart="startPaletteDrag(custom.id, $event)"
+          @dragend="endDrag"
+        >
+          {{ custom.label }}
+        </button>
+
+        <button class="gate-chip custom-new" type="button" @click="openCustomModal">Custom</button>
       </div>
 
       <div class="column-controls">
@@ -89,15 +106,98 @@
 
     <StageInspector :stage="selectedStage" :animated="false" />
   </section>
+
+  <div v-if="isCustomModalOpen" class="custom-modal-backdrop" @click.self="closeCustomModal">
+    <section class="custom-modal">
+      <h3>Create Custom Operator</h3>
+      <p class="custom-modal-note">
+        Define a 2x2 complex matrix U. Each entry is a complex number (real + imaginary i). Values are normalized on
+        submit.
+      </p>
+
+      <label class="custom-label">
+        Operator label
+        <input v-model="customLabel" type="text" placeholder="U" />
+      </label>
+
+      <div class="matrix-help">
+        <span>Row 0: [U[0,0] U[0,1]]</span>
+        <span>Row 1: [U[1,0] U[1,1]]</span>
+      </div>
+
+      <div class="operator-grid">
+        <div class="operator-cell">
+          <p>U[0,0] (Row 0, Column 0)</p>
+          <div class="operator-inputs">
+            <label>
+              Real part
+              <input v-model="draft.o00r" type="text" placeholder="e.g. 0.7071" />
+            </label>
+            <label>
+              Imaginary part
+              <input v-model="draft.o00i" type="text" placeholder="e.g. 0" />
+            </label>
+          </div>
+        </div>
+        <div class="operator-cell">
+          <p>U[0,1] (Row 0, Column 1)</p>
+          <div class="operator-inputs">
+            <label>
+              Real part
+              <input v-model="draft.o01r" type="text" placeholder="e.g. 0" />
+            </label>
+            <label>
+              Imaginary part
+              <input v-model="draft.o01i" type="text" placeholder="e.g. -0.7071" />
+            </label>
+          </div>
+        </div>
+        <div class="operator-cell">
+          <p>U[1,0] (Row 1, Column 0)</p>
+          <div class="operator-inputs">
+            <label>
+              Real part
+              <input v-model="draft.o10r" type="text" placeholder="e.g. 0" />
+            </label>
+            <label>
+              Imaginary part
+              <input v-model="draft.o10i" type="text" placeholder="e.g. 0.7071" />
+            </label>
+          </div>
+        </div>
+        <div class="operator-cell">
+          <p>U[1,1] (Row 1, Column 1)</p>
+          <div class="operator-inputs">
+            <label>
+              Real part
+              <input v-model="draft.o11r" type="text" placeholder="e.g. 0.7071" />
+            </label>
+            <label>
+              Imaginary part
+              <input v-model="draft.o11i" type="text" placeholder="e.g. 0" />
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="custom-modal-actions">
+        <button type="button" class="column-btn" @click="closeCustomModal">Cancel</button>
+        <button type="button" class="column-btn primary" @click="submitCustomOperator">Save Operator</button>
+      </div>
+    </section>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import type { CircuitColumn, GateCell, GateId, QubitRow } from "../types";
+import { reactive, ref } from "vue";
+import type { CircuitColumn, GateCell, GateId, Operator, QubitRow } from "../types";
 import {
   appendColumn,
   clearGateAt,
+  createCustomOperator,
+  deleteCustomOperator,
   gateAt,
+  gateLabel,
   removeLastColumn,
   selectedStage,
   setGateAt,
@@ -106,11 +206,26 @@ import {
   stageViews,
   state,
 } from "../state";
+import * as complex from "../complex";
 import BlochPairView from "./BlochPairView.vue";
 import StageInspector from "./StageInspector.vue";
 
-const gates: GateId[] = ["I", "X", "H", "S", "CNOT"];
+const builtinAndCnotGates: GateId[] = ["I", "X", "H", "S", "CNOT"];
 const rows: QubitRow[] = [0, 1];
+
+const isCustomModalOpen = ref(false);
+const customLabel = ref("");
+
+const draft = reactive({
+  o00r: "1",
+  o00i: "0",
+  o01r: "0",
+  o01i: "0",
+  o10r: "0",
+  o10i: "0",
+  o11r: "1",
+  o11i: "0",
+});
 
 type DragSource = {
   col: number;
@@ -132,10 +247,11 @@ const selectGate = (gate: GateId) => {
 const slotGate = (column: CircuitColumn, row: QubitRow): GateCell => gateAt(column, row);
 
 const tokenFor = (column: CircuitColumn, row: QubitRow): string => {
-  if (column.kind === "cnot") {
+  const gate = slotGate(column, row);
+  if (gate === "CNOT") {
     return "";
   }
-  return (row === 0 ? column.q0 : column.q1) ?? "";
+  return gateLabel(gate);
 };
 
 const isCnotControl = (column: CircuitColumn, row: QubitRow): boolean => column.kind === "cnot" && row === column.control;
@@ -201,6 +317,53 @@ const handleSlotClick = (col: number, row: QubitRow, event: MouseEvent) => {
   }
 
   setGateAt(col, row, state.selectedGate);
+};
+
+const handleCustomChipClick = (customId: string, event: MouseEvent) => {
+  if (event.altKey) {
+    deleteCustomOperator(customId);
+    return;
+  }
+  selectGate(customId);
+};
+
+const resetDraft = () => {
+  customLabel.value = "";
+  draft.o00r = "1";
+  draft.o00i = "0";
+  draft.o01r = "0";
+  draft.o01i = "0";
+  draft.o10r = "0";
+  draft.o10i = "0";
+  draft.o11r = "1";
+  draft.o11i = "0";
+};
+
+const openCustomModal = () => {
+  resetDraft();
+  isCustomModalOpen.value = true;
+};
+
+const closeCustomModal = () => {
+  isCustomModalOpen.value = false;
+};
+
+const parseNumber = (input: string): number => {
+  const parsed = Number.parseFloat(input);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const submitCustomOperator = () => {
+  const operator: Operator = {
+    o00: complex.complex(parseNumber(draft.o00r), parseNumber(draft.o00i)),
+    o01: complex.complex(parseNumber(draft.o01r), parseNumber(draft.o01i)),
+    o10: complex.complex(parseNumber(draft.o10r), parseNumber(draft.o10i)),
+    o11: complex.complex(parseNumber(draft.o11r), parseNumber(draft.o11i)),
+  };
+
+  const createdId = createCustomOperator(customLabel.value, operator);
+  setSelectedGate(createdId);
+  closeCustomModal();
 };
 
 const isDropTarget = (col: number, row: QubitRow): boolean =>

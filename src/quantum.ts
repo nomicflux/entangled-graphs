@@ -6,23 +6,16 @@ import type {
   CircuitColumn,
   Operator,
   Qubit,
-  SingleGateId,
+  SingleGateRef,
   TwoQubitState,
 } from "./types";
 import * as complex from "./complex";
-import { H, I, S, X } from "./operator";
 
 export type MeasurementSample = {
   basis: BasisProbability["basis"];
   probability: number;
 };
-
-const gateMap: Record<SingleGateId, Operator> = {
-  I,
-  X,
-  H,
-  S,
-};
+export type SingleGateResolver = (gate: SingleGateRef) => Operator | null;
 
 const basisLabels: BasisProbability["basis"][] = ["00", "01", "10", "11"];
 
@@ -60,7 +53,7 @@ export function apply_single_qubit_gate(state: TwoQubitState, gate: Operator, ta
   return next;
 }
 
-export function apply_column(state: TwoQubitState, column: CircuitColumn): TwoQubitState {
+export function apply_column(state: TwoQubitState, column: CircuitColumn, resolveSingleGate: SingleGateResolver): TwoQubitState {
   if (column.kind === "cnot") {
     const [a00, a01, a10, a11] = state;
     if (column.control === 0 && column.target === 1) {
@@ -72,22 +65,32 @@ export function apply_column(state: TwoQubitState, column: CircuitColumn): TwoQu
   let next = state;
 
   if (column.q0 !== null) {
-    next = apply_single_qubit_gate(next, gateMap[column.q0], 0);
+    const op = resolveSingleGate(column.q0);
+    if (op !== null) {
+      next = apply_single_qubit_gate(next, op, 0);
+    }
   }
 
   if (column.q1 !== null) {
-    next = apply_single_qubit_gate(next, gateMap[column.q1], 1);
+    const op = resolveSingleGate(column.q1);
+    if (op !== null) {
+      next = apply_single_qubit_gate(next, op, 1);
+    }
   }
 
   return next;
 }
 
-export function simulate_columns(prepared: TwoQubitState, columns: CircuitColumn[]): TwoQubitState[] {
+export function simulate_columns(
+  prepared: TwoQubitState,
+  columns: CircuitColumn[],
+  resolveSingleGate: SingleGateResolver,
+): TwoQubitState[] {
   const snapshots: TwoQubitState[] = [prepared];
   let current = prepared;
 
   for (const column of columns) {
-    current = apply_column(current, column);
+    current = apply_column(current, column, resolveSingleGate);
     snapshots.push(current);
   }
 

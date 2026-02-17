@@ -22,15 +22,18 @@ export type BlochParams = {
 
 export type QubitRow = 0 | 1;
 
-export type SingleGateId = "I" | "X" | "H" | "S";
+export type BuiltinSingleGateId = "I" | "X" | "H" | "S";
+export type CustomGateId = string;
+export type SingleGateId = BuiltinSingleGateId;
+export type SingleGateRef = BuiltinSingleGateId | CustomGateId;
 export type MultiGateId = "CNOT";
-export type GateId = SingleGateId | MultiGateId;
+export type GateId = SingleGateRef | MultiGateId;
 export type GateCell = GateId | null;
 
 export type SingleGateColumn = {
     kind: "single";
-    q0: SingleGateId | null;
-    q1: SingleGateId | null;
+    q0: SingleGateRef | null;
+    q1: SingleGateRef | null;
 };
 
 export type CnotColumn = {
@@ -40,6 +43,12 @@ export type CnotColumn = {
 };
 
 export type CircuitColumn = SingleGateColumn | CnotColumn;
+
+export type CustomOperator = {
+    id: CustomGateId;
+    label: string;
+    operator: Operator;
+};
 
 export type BasisLabel = "00" | "01" | "10" | "11";
 export type TwoQubitState = [Complex, Complex, Complex, Complex];
