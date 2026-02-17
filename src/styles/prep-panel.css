@@ -69,3 +69,16 @@
   transform: translate(0, 0);
   transition: transform 0.3s ease;
 }
+
+.prepared-distribution {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  display: grid;
+  gap: 10px;
+}
+
+.prepared-distribution h3 {
+  margin: 0;
+  font-size: 1rem;
+}

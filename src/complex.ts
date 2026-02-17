@@ -23,3 +23,7 @@ export function add(a: Complex, b: Complex): Complex {
 export function mult(a: Complex, b: Complex): Complex {
     return complex(a.real * b.real - a.imag * b.imag, a.imag * b.real + a.real * b.imag );
 }
+
+export function magnitude_squared(c: Complex): number {
+    return c.real * c.real + c.imag * c.imag;
+}

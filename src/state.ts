@@ -1,28 +1,24 @@
 import { computed, reactive } from "vue";
-import type { Qubit } from "./types";
+import type { BlochParams, CircuitColumn, Qubit, TwoQubitState } from "./types";
 import * as complex from "./complex";
-
-export type GateId = "I" | "X" | "H" | "S";
-export type GateCell = GateId | null;
-export type CircuitColumn = [GateCell, GateCell];
-export type BlochParams = {
-  theta: number;
-  phi: number;
-};
+import { measurement_distribution, simulate_columns, tensor_product_qubits } from "./quantum";
 
 export type CircuitState = {
   preparedBloch: [BlochParams, BlochParams];
   columns: CircuitColumn[];
 };
 
-const emptyColumn = (): CircuitColumn => [null, null];
-
 export const state = reactive<CircuitState>({
   preparedBloch: [
     { theta: 0, phi: 0 },
     { theta: 0, phi: 0 },
   ],
-  columns: [emptyColumn(), emptyColumn(), emptyColumn(), emptyColumn()],
+  columns: [
+    ["H", null],
+    [null, "X"],
+    ["S", "H"],
+    [null, null],
+  ],
 });
 
 export function qubitFromBloch(params: BlochParams): Qubit {
@@ -38,3 +34,15 @@ export const preparedQubits = computed<[Qubit, Qubit]>(() => [
   qubitFromBloch(state.preparedBloch[0]),
   qubitFromBloch(state.preparedBloch[1]),
 ]);
+
+export const preparedTwoQubitState = computed<TwoQubitState>(() =>
+  tensor_product_qubits(preparedQubits.value[0], preparedQubits.value[1]),
+);
+
+export const stateSnapshots = computed<TwoQubitState[]>(() =>
+  simulate_columns(preparedTwoQubitState.value, state.columns),
+);
+
+export const finalTwoQubitState = computed<TwoQubitState>(() => stateSnapshots.value[stateSnapshots.value.length - 1]);
+
+export const finalDistribution = computed(() => measurement_distribution(finalTwoQubitState.value));

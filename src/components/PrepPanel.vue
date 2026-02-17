@@ -42,14 +42,28 @@
         </div>
       </div>
     </div>
+
+    <div class="prepared-distribution">
+      <h3>Prepared 2-Qubit Distribution</h3>
+      <div v-for="entry in preparedDistribution" :key="entry.basis" class="prob-row">
+        <span>|{{ entry.basis }}></span>
+        <div class="prob-bar-wrap">
+          <div class="prob-bar" :style="{ width: `${entry.probability * 100}%` }"></div>
+        </div>
+        <span>{{ formatPercent(entry.probability) }}</span>
+      </div>
+    </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import type { BlochParams } from "../state";
-import { preparedQubits, state } from "../state";
+import { computed } from "vue";
+import type { BlochParams } from "../types";
+import { preparedQubits, preparedTwoQubitState, state } from "../state";
+import { measurement_distribution } from "../quantum";
 
 const amplitudes = preparedQubits;
+const preparedDistribution = computed(() => measurement_distribution(preparedTwoQubitState.value));
 const previewRadius = 26;
 
 const dotStyle = (q: BlochParams) => {
@@ -64,4 +78,6 @@ const formatComplex = (real: number, imag: number): string => {
   const sign = imag < 0 ? "-" : "+";
   return `${real.toFixed(3)} ${sign} ${Math.abs(imag).toFixed(3)}i`;
 };
+
+const formatPercent = (value: number): string => `${(value * 100).toFixed(1)}%`;
 </script>

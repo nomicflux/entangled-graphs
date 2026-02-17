@@ -7,7 +7,7 @@
         <p class="subtitle">Prepare a two-qubit state, build a circuit, then measure.</p>
       </div>
       <div class="status">
-        <span class="status-pill">Phase 1: Layout</span>
+        <span class="status-pill">Phase 2: Simulation</span>
       </div>
     </header>
 

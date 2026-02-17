@@ -86,3 +86,33 @@
   display: flex;
   justify-content: flex-end;
 }
+
+.snapshot-grid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.snapshot-card {
+  background: rgba(7, 12, 26, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.snapshot-title {
+  margin: 0 0 8px;
+  font-size: 0.76rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.snapshot-row {
+  margin: 0 0 5px;
+  display: flex;
+  justify-content: space-between;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.78rem;
+}
