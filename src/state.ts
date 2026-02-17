@@ -1,12 +1,15 @@
 import { computed, reactive } from "vue";
-import type { BlochParams, CircuitColumn, Qubit, TwoQubitState } from "./types";
+import type { BlochParams, CircuitColumn, GateCell, GateId, Qubit, QubitRow, TwoQubitState } from "./types";
 import * as complex from "./complex";
 import { measurement_distribution, simulate_columns, tensor_product_qubits } from "./quantum";
 
 export type CircuitState = {
   preparedBloch: [BlochParams, BlochParams];
   columns: CircuitColumn[];
+  selectedGate: GateId | null;
 };
+
+const emptyColumn = (): CircuitColumn => [null, null];
 
 export const state = reactive<CircuitState>({
   preparedBloch: [
@@ -19,6 +22,7 @@ export const state = reactive<CircuitState>({
     ["S", "H"],
     [null, null],
   ],
+  selectedGate: "H",
 });
 
 export function qubitFromBloch(params: BlochParams): Qubit {
@@ -46,3 +50,30 @@ export const stateSnapshots = computed<TwoQubitState[]>(() =>
 export const finalTwoQubitState = computed<TwoQubitState>(() => stateSnapshots.value[stateSnapshots.value.length - 1]);
 
 export const finalDistribution = computed(() => measurement_distribution(finalTwoQubitState.value));
+
+export function setSelectedGate(gate: GateId | null): void {
+  state.selectedGate = gate;
+}
+
+export function setGateAt(columnIndex: number, row: QubitRow, gate: GateCell): void {
+  const column = state.columns[columnIndex];
+  if (!column) {
+    return;
+  }
+  column[row] = gate;
+}
+
+export function clearGateAt(columnIndex: number, row: QubitRow): void {
+  setGateAt(columnIndex, row, null);
+}
+
+export function appendColumn(): void {
+  state.columns.push(emptyColumn());
+}
+
+export function removeLastColumn(): void {
+  if (state.columns.length === 0) {
+    return;
+  }
+  state.columns.pop();
+}

@@ -23,6 +23,7 @@ export type BlochParams = {
 export type GateId = "I" | "X" | "H" | "S";
 export type GateCell = GateId | null;
 export type CircuitColumn = [GateCell, GateCell];
+export type QubitRow = 0 | 1;
 
 export type BasisLabel = "00" | "01" | "10" | "11";
 export type TwoQubitState = [Complex, Complex, Complex, Complex];
