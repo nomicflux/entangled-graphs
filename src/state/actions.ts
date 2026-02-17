@@ -1,12 +1,10 @@
-import type { GateCell, GateId, GateInstance, Operator, QubitRow, SingleGateRef } from "../types";
+import type { GateId, GateInstance, Operator, QubitRow, SingleGateRef } from "../types";
 import { MAX_QUBITS, MIN_QUBITS } from "./constants";
 import { normalizeOperator, persistCustomOperators } from "./custom-operator-storage";
 import { enforceDisjoint, gateTouchesRow, gateWires, mapGateAfterQubitRemoval, removeOverlaps } from "./gate-instance-utils";
 import { qubitCount } from "./selectors";
 import { emptyColumn, nextGateInstanceId, state } from "./store";
 import { zeroBloch } from "./qubit-helpers";
-
-const isSingleGate = (gate: GateCell): gate is SingleGateRef => gate !== null && gate !== "CNOT" && gate !== "TOFFOLI";
 
 const sanitizeColumnsForQubitCount = (count: number): void => {
   for (const column of state.columns) {
@@ -149,7 +147,7 @@ export const placeToffoli = (columnIndex: number, controlA: QubitRow, controlB: 
   enforceDisjoint(column);
 };
 
-export const setGateAt = (columnIndex: number, row: QubitRow, gate: GateCell): void => {
+export const setGateAt = (columnIndex: number, row: QubitRow, gate: SingleGateRef | null): void => {
   const column = state.columns[columnIndex];
   if (!column || row < 0 || row >= qubitCount.value) {
     return;
@@ -157,28 +155,6 @@ export const setGateAt = (columnIndex: number, row: QubitRow, gate: GateCell): v
 
   if (gate === null) {
     clearGateAt(columnIndex, row);
-    return;
-  }
-
-  if (gate === "CNOT") {
-    const target = row === qubitCount.value - 1 ? row - 1 : row + 1;
-    placeCnot(columnIndex, row, target);
-    return;
-  }
-
-  if (gate === "TOFFOLI") {
-    const controls = Array.from({ length: qubitCount.value }, (_, wire) => wire)
-      .filter((wire) => wire !== row)
-      .sort((a, b) => Math.abs(a - row) - Math.abs(b - row) || a - b)
-      .slice(0, 2);
-
-    if (controls.length === 2) {
-      placeToffoli(columnIndex, controls[0], controls[1], row);
-    }
-    return;
-  }
-
-  if (!isSingleGate(gate)) {
     return;
   }
 

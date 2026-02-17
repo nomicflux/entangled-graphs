@@ -13,7 +13,7 @@
           class="gate-chip"
           :class="{ selected: state.selectedGate === gate }"
           type="button"
-          draggable="true"
+          :draggable="isPaletteDraggable(gate)"
           @click="selectGate(gate)"
           @dragstart="startPaletteDrag(gate, $event)"
           @dragend="endDrag"
@@ -47,6 +47,8 @@
       </div>
     </div>
 
+    <p v-if="placementHint" class="placement-hint">{{ placementHint }}</p>
+
     <div class="circuit-shell">
       <div class="circuit-columns">
         <div
@@ -57,9 +59,10 @@
         >
           <div class="column-connectors">
             <div
-              v-for="connector in connectorSegments(column)"
+              v-for="connector in connectorSegments(column, colIndex)"
               :key="connector.id"
               class="column-connector"
+              :class="[connector.kind, { preview: connector.preview }]"
               :style="connectorStyle(connector)"
             ></div>
           </div>
@@ -72,6 +75,9 @@
             @dragover.prevent="handleDragOver(colIndex, row)"
             @dragleave="handleDragLeave(colIndex, row)"
             @drop.prevent="handleDrop(colIndex, row)"
+            @mouseenter="handleSlotHover(colIndex, row)"
+            @mousemove="handleSlotHover(colIndex, row)"
+            @mouseleave="handleSlotLeave(colIndex, row)"
             @click="handleSlotClick(colIndex, row, $event)"
           >
             <span class="gate-slot-label">q{{ row }}</span>
@@ -81,10 +87,10 @@
                 empty: slotInstance(column, row) === null,
                 draggable: isDraggableToken(column, row),
                 'is-drag-source': isDragSource(colIndex, row),
-                'is-cnot-control': isCnotControl(column, row),
-                'is-cnot-target': isCnotTarget(column, row),
-                'is-toffoli-control': isToffoliControl(column, row),
-                'is-toffoli-target': isToffoliTarget(column, row),
+                'is-cnot-control': isCnotControl(column, row) || isPendingCnotControl(colIndex, row),
+                'is-cnot-target': isCnotTarget(column, row) || isPendingCnotTarget(colIndex, row),
+                'is-toffoli-control': isToffoliControl(column, row) || isPendingToffoliControl(colIndex, row),
+                'is-toffoli-target': isToffoliTarget(column, row) || isPendingToffoliTarget(colIndex, row),
               }"
               :draggable="isDraggableToken(column, row)"
               @dragstart="startCellDrag(colIndex, row, $event)"
@@ -203,7 +209,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from "vue";
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import type { CircuitColumn, GateId, Operator, QubitRow } from "../types";
 import {
   appendColumn,
@@ -213,6 +219,8 @@ import {
   gateAt,
   gateInstanceAt,
   gateLabel,
+  placeCnot,
+  placeToffoli,
   qubitCount,
   removeLastColumn,
   selectedStage,
@@ -263,11 +271,63 @@ type DragPayload = {
   from?: DragSource;
 };
 
+type PendingCnotPlacement = {
+  kind: "cnot";
+  column: number;
+  control: QubitRow;
+  hoverRow: QubitRow | null;
+};
+
+type PendingToffoliPlacement = {
+  kind: "toffoli";
+  column: number;
+  controlA: QubitRow;
+  controlB: QubitRow | null;
+  hoverRow: QubitRow | null;
+};
+
+type PendingPlacement = PendingCnotPlacement | PendingToffoliPlacement;
+
 const dragging = ref<DragPayload | null>(null);
 const dropTarget = ref<DragSource | null>(null);
+const pendingPlacement = ref<PendingPlacement | null>(null);
+const placementError = ref<string | null>(null);
+
+const placementHint = computed<string | null>(() => {
+  if (placementError.value) {
+    return placementError.value;
+  }
+
+  const pending = pendingPlacement.value;
+  if (pending?.kind === "cnot") {
+    return `CNOT in t${pending.column + 1}: click target wire (Esc to cancel).`;
+  }
+  if (pending?.kind === "toffoli" && pending.controlB === null) {
+    return `Toffoli in t${pending.column + 1}: click second control wire (Esc to cancel).`;
+  }
+  if (pending?.kind === "toffoli") {
+    return `Toffoli in t${pending.column + 1}: click target wire (Esc to cancel).`;
+  }
+  if (state.selectedGate === "CNOT") {
+    return "CNOT: click a control wire to start placement.";
+  }
+  if (state.selectedGate === "TOFFOLI") {
+    return "Toffoli: click the first control wire to start placement.";
+  }
+  return null;
+});
+
+const clearPendingPlacement = () => {
+  pendingPlacement.value = null;
+  placementError.value = null;
+};
+
+const isPaletteDraggable = (gate: GateId): boolean => gate !== "CNOT" && gate !== "TOFFOLI";
 
 const selectGate = (gate: GateId) => {
-  setSelectedGate(state.selectedGate === gate ? null : gate);
+  const next = state.selectedGate === gate ? null : gate;
+  setSelectedGate(next);
+  clearPendingPlacement();
 };
 
 const slotInstance = (column: CircuitColumn, row: QubitRow) => gateInstanceAt(column, row);
@@ -302,26 +362,109 @@ const isToffoliTarget = (column: CircuitColumn, row: QubitRow): boolean => {
   return gate?.kind === "toffoli" && gate.target === row;
 };
 
-type ConnectorSegment = {
-  id: string;
-  fromRow: number;
-  toRow: number;
+const isPendingCnotControl = (columnIndex: number, row: QubitRow): boolean => {
+  const pending = pendingPlacement.value;
+  return pending?.kind === "cnot" && pending.column === columnIndex && pending.control === row;
 };
 
-const connectorSegments = (column: CircuitColumn): ConnectorSegment[] =>
-  column.gates.flatMap((gate): ConnectorSegment[] => {
+const isPendingCnotTarget = (columnIndex: number, row: QubitRow): boolean => {
+  const pending = pendingPlacement.value;
+  return (
+    pending?.kind === "cnot" &&
+    pending.column === columnIndex &&
+    pending.hoverRow !== null &&
+    pending.hoverRow !== pending.control &&
+    pending.hoverRow === row
+  );
+};
+
+const isPendingToffoliControl = (columnIndex: number, row: QubitRow): boolean => {
+  const pending = pendingPlacement.value;
+  if (pending?.kind !== "toffoli" || pending.column !== columnIndex) {
+    return false;
+  }
+  return pending.controlA === row || pending.controlB === row;
+};
+
+const isPendingToffoliTarget = (columnIndex: number, row: QubitRow): boolean => {
+  const pending = pendingPlacement.value;
+  if (pending?.kind !== "toffoli" || pending.column !== columnIndex || pending.controlB === null || pending.hoverRow === null) {
+    return false;
+  }
+  if (pending.hoverRow === pending.controlA || pending.hoverRow === pending.controlB) {
+    return false;
+  }
+  return pending.hoverRow === row;
+};
+
+type ConnectorSegment = {
+  id: string;
+  kind: "cnot" | "toffoli";
+  fromRow: number;
+  toRow: number;
+  preview: boolean;
+};
+
+const connectorSegments = (column: CircuitColumn, columnIndex: number): ConnectorSegment[] => {
+  const committedSegments = column.gates.flatMap((gate): ConnectorSegment[] => {
     if (gate.kind === "single") {
       return [];
     }
 
     if (gate.kind === "cnot") {
-      return [{ id: gate.id, fromRow: gate.control, toRow: gate.target }];
+      return [{ id: gate.id, kind: "cnot", fromRow: gate.control, toRow: gate.target, preview: false }];
     }
 
     const minRow = Math.min(gate.controlA, gate.controlB, gate.target);
     const maxRow = Math.max(gate.controlA, gate.controlB, gate.target);
-    return [{ id: gate.id, fromRow: minRow, toRow: maxRow }];
+    return [{ id: gate.id, kind: "toffoli", fromRow: minRow, toRow: maxRow, preview: false }];
   });
+
+  const pending = pendingPlacement.value;
+  if (!pending || pending.column !== columnIndex) {
+    return committedSegments;
+  }
+
+  if (pending.kind === "cnot") {
+    const hover = pending.hoverRow ?? pending.control;
+    return [
+      ...committedSegments,
+      {
+        id: `pending-cnot-${columnIndex}`,
+        kind: "cnot",
+        fromRow: pending.control,
+        toRow: hover,
+        preview: true,
+      },
+    ];
+  }
+
+  if (pending.controlB === null) {
+    const hover = pending.hoverRow ?? pending.controlA;
+    return [
+      ...committedSegments,
+      {
+        id: `pending-toffoli-c2-${columnIndex}`,
+        kind: "toffoli",
+        fromRow: pending.controlA,
+        toRow: hover,
+        preview: true,
+      },
+    ];
+  }
+
+  const hoverTarget = pending.hoverRow ?? pending.controlB;
+  return [
+    ...committedSegments,
+    {
+      id: `pending-toffoli-target-${columnIndex}`,
+      kind: "toffoli",
+      fromRow: Math.min(pending.controlA, pending.controlB, hoverTarget),
+      toRow: Math.max(pending.controlA, pending.controlB, hoverTarget),
+      preview: true,
+    },
+  ];
+};
 
 const rowCenterPercent = (row: number): number => ((row + 0.5) / rows.value.length) * 100;
 
@@ -336,6 +479,11 @@ const connectorStyle = (segment: ConnectorSegment): Record<string, string> => {
 };
 
 const startPaletteDrag = (gate: GateId, event: DragEvent) => {
+  if (!isPaletteDraggable(gate)) {
+    event.preventDefault();
+    return;
+  }
+
   dragging.value = { gate };
   event.dataTransfer?.setData("text/plain", gate);
 };
@@ -368,6 +516,14 @@ const handleDrop = (col: number, row: QubitRow) => {
   }
 
   const { gate, from } = dragging.value;
+  if (gate === "CNOT" || gate === "TOFFOLI") {
+    placementError.value = `${gate} placement uses click flow on the grid.`;
+    dragging.value = null;
+    dropTarget.value = null;
+    return;
+  }
+
+  clearPendingPlacement();
   setGateAt(col, row, gate);
 
   if (from && (from.col !== col || from.row !== row)) {
@@ -384,9 +540,94 @@ const endDrag = () => {
   dropTarget.value = null;
 };
 
+const handleSlotHover = (col: number, row: QubitRow) => {
+  const pending = pendingPlacement.value;
+  if (!pending || pending.column !== col) {
+    return;
+  }
+
+  pending.hoverRow = row;
+};
+
+const handleSlotLeave = (col: number, row: QubitRow) => {
+  const pending = pendingPlacement.value;
+  if (!pending || pending.column !== col || pending.hoverRow !== row) {
+    return;
+  }
+
+  pending.hoverRow = null;
+};
+
+const beginCnotPlacement = (column: number, control: QubitRow) => {
+  pendingPlacement.value = { kind: "cnot", column, control, hoverRow: control };
+  placementError.value = null;
+};
+
+const beginToffoliPlacement = (column: number, controlA: QubitRow) => {
+  pendingPlacement.value = { kind: "toffoli", column, controlA, controlB: null, hoverRow: controlA };
+  placementError.value = null;
+};
+
+const handleCnotSlotClick = (col: number, row: QubitRow) => {
+  if (qubitCount.value < 2) {
+    return;
+  }
+
+  const pending = pendingPlacement.value;
+  if (!pending || pending.kind !== "cnot" || pending.column !== col) {
+    beginCnotPlacement(col, row);
+    return;
+  }
+
+  if (row === pending.control) {
+    placementError.value = "CNOT target must be on a different wire.";
+    pending.hoverRow = row;
+    return;
+  }
+
+  placeCnot(col, pending.control, row);
+  clearPendingPlacement();
+};
+
+const handleToffoliSlotClick = (col: number, row: QubitRow) => {
+  if (qubitCount.value < 3) {
+    return;
+  }
+
+  const pending = pendingPlacement.value;
+  if (!pending || pending.kind !== "toffoli" || pending.column !== col) {
+    beginToffoliPlacement(col, row);
+    return;
+  }
+
+  if (pending.controlB === null) {
+    if (row === pending.controlA) {
+      placementError.value = "Second Toffoli control must be on a different wire.";
+      pending.hoverRow = row;
+      return;
+    }
+
+    pendingPlacement.value = { ...pending, controlB: row, hoverRow: row };
+    placementError.value = null;
+    return;
+  }
+
+  if (row === pending.controlA || row === pending.controlB) {
+    placementError.value = "Toffoli target must be different from both controls.";
+    pending.hoverRow = row;
+    return;
+  }
+
+  placeToffoli(col, pending.controlA, pending.controlB, row);
+  clearPendingPlacement();
+};
+
 const handleSlotClick = (col: number, row: QubitRow, event: MouseEvent) => {
   if (event.altKey) {
     clearGateAt(col, row);
+    if (pendingPlacement.value?.column === col) {
+      clearPendingPlacement();
+    }
     return;
   }
 
@@ -394,6 +635,17 @@ const handleSlotClick = (col: number, row: QubitRow, event: MouseEvent) => {
     return;
   }
 
+  if (state.selectedGate === "CNOT") {
+    handleCnotSlotClick(col, row);
+    return;
+  }
+
+  if (state.selectedGate === "TOFFOLI") {
+    handleToffoliSlotClick(col, row);
+    return;
+  }
+
+  clearPendingPlacement();
   setGateAt(col, row, state.selectedGate);
 };
 
@@ -441,6 +693,7 @@ const submitCustomOperator = () => {
 
   const createdId = createCustomOperator(customLabel.value, operator);
   setSelectedGate(createdId);
+  clearPendingPlacement();
   closeCustomModal();
 };
 
@@ -458,4 +711,81 @@ const isDragSource = (col: number, row: QubitRow): boolean => {
 };
 
 const formatPercent = (value: number): string => `${(value * 100).toFixed(1)}%`;
+
+const validatePendingPlacement = () => {
+  const pending = pendingPlacement.value;
+  if (!pending) {
+    return;
+  }
+
+  if (pending.column >= state.columns.length) {
+    clearPendingPlacement();
+    return;
+  }
+
+  if (pending.kind === "cnot") {
+    if (qubitCount.value < 2 || pending.control >= qubitCount.value || (pending.hoverRow ?? 0) >= qubitCount.value) {
+      clearPendingPlacement();
+    }
+    return;
+  }
+
+  if (qubitCount.value < 3 || pending.controlA >= qubitCount.value) {
+    clearPendingPlacement();
+    return;
+  }
+
+  if (pending.controlB !== null && pending.controlB >= qubitCount.value) {
+    clearPendingPlacement();
+    return;
+  }
+
+  if (pending.hoverRow !== null && pending.hoverRow >= qubitCount.value) {
+    pending.hoverRow = null;
+  }
+};
+
+watch(
+  () => state.selectedGate,
+  (gate) => {
+    if (gate !== "CNOT" && gate !== "TOFFOLI") {
+      clearPendingPlacement();
+      return;
+    }
+
+    const pending = pendingPlacement.value;
+    if (!pending) {
+      placementError.value = null;
+      return;
+    }
+
+    if ((gate === "CNOT" && pending.kind !== "cnot") || (gate === "TOFFOLI" && pending.kind !== "toffoli")) {
+      clearPendingPlacement();
+    }
+  },
+);
+
+watch(
+  [() => qubitCount.value, () => state.columns.length],
+  () => {
+    validatePendingPlacement();
+  },
+);
+
+const onWindowKeyDown = (event: KeyboardEvent) => {
+  if (event.key !== "Escape") {
+    return;
+  }
+  if (pendingPlacement.value) {
+    clearPendingPlacement();
+  }
+};
+
+onMounted(() => {
+  window.addEventListener("keydown", onWindowKeyDown);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("keydown", onWindowKeyDown);
+});
 </script>

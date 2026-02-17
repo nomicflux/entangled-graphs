@@ -5,7 +5,8 @@
       <p>Edit Bloch angles for each qubit. Amplitudes are derived from those angles.</p>
     </div>
 
-    <div class="qubit-controls">
+    <div class="qubit-controls" data-testid="prep-qubit-controls">
+      <span class="qubit-controls-label">Qubit Controls</span>
       <button type="button" class="qubit-count-btn" @click="removeQubit()" :disabled="qubitCount <= 1">- Qubit</button>
       <label class="qubit-count-field">
         Qubit Count
