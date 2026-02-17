@@ -3,6 +3,41 @@
   gap: 16px;
 }
 
+.qubit-controls {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.qubit-count-field {
+  display: grid;
+  gap: 4px;
+  min-width: 120px;
+  font-size: 0.74rem;
+}
+
+.qubit-count-field input {
+  width: 100%;
+}
+
+.qubit-count-btn {
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 7px 10px;
+  font-size: 0.74rem;
+  font-family: "IBM Plex Mono", monospace;
+  cursor: pointer;
+}
+
+.qubit-count-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .qubit-card {
   background: var(--panel-strong);
   border-radius: 16px;

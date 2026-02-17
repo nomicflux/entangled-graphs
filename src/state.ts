@@ -1,5 +1,6 @@
 import { computed, reactive } from "vue";
 import type {
+  BasisProbability,
   BlochParams,
   BuiltinSingleGateId,
   CircuitColumn,
@@ -15,9 +16,12 @@ import type {
 } from "./types";
 import * as complex from "./complex";
 import { H, I, S, X } from "./operator";
+import { basisLabels } from "./basis";
 import { bloch_pair_from_state, measurement_distribution, simulate_columns, tensor_product_qubits } from "./quantum";
 
 const CUSTOM_OPERATOR_STORAGE_KEY = "entangled.custom-operators.v1";
+const MIN_QUBITS = 1;
+const MAX_QUBITS = 8;
 
 const builtinOperatorMap: Record<BuiltinSingleGateId, Operator> = {
   I,
@@ -27,7 +31,7 @@ const builtinOperatorMap: Record<BuiltinSingleGateId, Operator> = {
 };
 
 export type CircuitState = {
-  preparedBloch: [BlochParams, BlochParams];
+  preparedBloch: BlochParams[];
   columns: CircuitColumn[];
   customOperators: CustomOperator[];
   selectedGate: GateId | null;
@@ -38,6 +42,7 @@ export const emptyColumn = (): CircuitColumn => ({ kind: "single", q0: null, q1:
 
 const isBuiltinSingleGate = (gate: string): gate is BuiltinSingleGateId => gate === "I" || gate === "X" || gate === "H" || gate === "S";
 const isSingleGate = (gate: GateCell): gate is SingleGateRef => gate !== null && gate !== "CNOT";
+const zeroBloch: BlochParams = { theta: 0, phi: 0 };
 
 const normalizeOperator = (operator: Operator): Operator => {
   const values = [operator.o00, operator.o01, operator.o10, operator.o11];
@@ -88,10 +93,7 @@ const persistCustomOperators = (customOperators: CustomOperator[]) => {
 };
 
 export const state = reactive<CircuitState>({
-  preparedBloch: [
-    { theta: 0, phi: 0 },
-    { theta: 0, phi: 0 },
-  ],
+  preparedBloch: [{ ...zeroBloch }, { ...zeroBloch }],
   columns: [
     { kind: "single", q0: "H", q1: null },
     { kind: "single", q0: null, q1: "X" },
@@ -110,6 +112,86 @@ export function qubitFromBloch(params: BlochParams): Qubit {
     a: complex.complex(Math.cos(halfTheta), 0),
     b: complex.complex(Math.cos(params.phi) * magnitude, Math.sin(params.phi) * magnitude),
   };
+}
+
+function zeroQubit(): Qubit {
+  return {
+    a: complex.complex(1, 0),
+    b: complex.complex(0, 0),
+  };
+}
+
+function sanitizeColumnsForQubitCount(count: number): void {
+  if (count >= 2) {
+    return;
+  }
+
+  for (let index = 0; index < state.columns.length; index += 1) {
+    const column = state.columns[index];
+    if (column.kind === "cnot") {
+      state.columns[index] = emptyColumn();
+      continue;
+    }
+    column.q1 = null;
+  }
+
+  if (state.selectedGate === "CNOT") {
+    state.selectedGate = null;
+  }
+}
+
+export const qubitCount = computed(() => state.preparedBloch.length);
+
+export function addQubit(): void {
+  if (state.preparedBloch.length >= MAX_QUBITS) {
+    return;
+  }
+  state.preparedBloch.push({ ...zeroBloch });
+}
+
+export function removeQubit(index: number = state.preparedBloch.length - 1): void {
+  if (state.preparedBloch.length <= MIN_QUBITS) {
+    return;
+  }
+
+  const target = Math.max(0, Math.min(index, state.preparedBloch.length - 1));
+  state.preparedBloch.splice(target, 1);
+
+  if (target === 0) {
+    for (let col = 0; col < state.columns.length; col += 1) {
+      const column = state.columns[col];
+      if (column.kind === "cnot") {
+        state.columns[col] = emptyColumn();
+        continue;
+      }
+      column.q0 = column.q1;
+      column.q1 = null;
+    }
+  } else if (target === 1) {
+    for (let col = 0; col < state.columns.length; col += 1) {
+      const column = state.columns[col];
+      if (column.kind === "cnot") {
+        state.columns[col] = emptyColumn();
+      } else {
+        column.q1 = null;
+      }
+    }
+  }
+
+  sanitizeColumnsForQubitCount(state.preparedBloch.length);
+}
+
+export function setQubitCount(nextCount: number): void {
+  const parsed = Number.isFinite(nextCount) ? Math.trunc(nextCount) : state.preparedBloch.length;
+  const clamped = Math.max(MIN_QUBITS, Math.min(MAX_QUBITS, parsed));
+
+  while (state.preparedBloch.length < clamped) {
+    addQubit();
+  }
+
+  while (state.preparedBloch.length > clamped) {
+    removeQubit(state.preparedBloch.length - 1);
+  }
 }
 
 export function gateAt(column: CircuitColumn, row: QubitRow): GateCell {
@@ -141,14 +223,31 @@ const resolveSingleGate = (gate: SingleGateRef): Operator | null => {
   return custom ? custom.operator : null;
 };
 
-export const preparedQubits = computed<[Qubit, Qubit]>(() => [
-  qubitFromBloch(state.preparedBloch[0]),
-  qubitFromBloch(state.preparedBloch[1]),
-]);
+export const preparedQubits = computed<Qubit[]>(() => state.preparedBloch.map(qubitFromBloch));
+
+const simulationPair = computed<[Qubit, Qubit]>(() => [preparedQubits.value[0] ?? zeroQubit(), preparedQubits.value[1] ?? zeroQubit()]);
 
 export const preparedTwoQubitState = computed<TwoQubitState>(() =>
-  tensor_product_qubits(preparedQubits.value[0], preparedQubits.value[1]),
+  tensor_product_qubits(simulationPair.value[0], simulationPair.value[1]),
 );
+
+export const preparedDistribution = computed<BasisProbability[]>(() => {
+  const labels = basisLabels(state.preparedBloch.length);
+
+  return labels.map((basis) => {
+    let probability = 1;
+
+    for (let bitIndex = 0; bitIndex < basis.length; bitIndex += 1) {
+      const qubit = preparedQubits.value[bitIndex] ?? zeroQubit();
+      const bit = basis[bitIndex];
+      const p0 = complex.magnitude_squared(qubit.a);
+      const p1 = complex.magnitude_squared(qubit.b);
+      probability *= bit === "0" ? p0 : p1;
+    }
+
+    return { basis, probability };
+  });
+});
 
 export const stateSnapshots = computed<TwoQubitState[]>(() =>
   simulate_columns(preparedTwoQubitState.value, state.columns, resolveSingleGate),
@@ -223,6 +322,9 @@ export function setGateAt(columnIndex: number, row: QubitRow, gate: GateCell): v
   }
 
   if (gate === "CNOT") {
+    if (state.preparedBloch.length < 2) {
+      return;
+    }
     state.columns[columnIndex] = { kind: "cnot", control: row, target: row === 0 ? 1 : 0 };
     return;
   }

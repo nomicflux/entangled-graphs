@@ -50,7 +50,7 @@ export type CustomOperator = {
     operator: Operator;
 };
 
-export type BasisLabel = "00" | "01" | "10" | "11";
+export type BasisLabel = string;
 export type TwoQubitState = [Complex, Complex, Complex, Complex];
 
 export type BasisProbability = {

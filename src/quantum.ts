@@ -10,6 +10,7 @@ import type {
   TwoQubitState,
 } from "./types";
 import * as complex from "./complex";
+import { basisLabels } from "./basis";
 
 export type MeasurementSample = {
   basis: BasisProbability["basis"];
@@ -17,7 +18,7 @@ export type MeasurementSample = {
 };
 export type SingleGateResolver = (gate: SingleGateRef) => Operator | null;
 
-const basisLabels: BasisProbability["basis"][] = ["00", "01", "10", "11"];
+const twoQubitBasisLabels: BasisProbability["basis"][] = basisLabels(2);
 
 export function tensor_product_qubits(q0: Qubit, q1: Qubit): TwoQubitState {
   return [
@@ -102,7 +103,7 @@ export function measurement_distribution(state: TwoQubitState): BasisProbability
   const total = raw.reduce((acc, value) => acc + value, 0);
   const normalized = total > 0 ? raw.map((value) => value / total) : [0, 0, 0, 0];
 
-  return basisLabels.map((basis, index) => ({
+  return twoQubitBasisLabels.map((basis, index) => ({
     basis,
     probability: normalized[index],
   }));

@@ -189,7 +189,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from "vue";
+import { computed, reactive, ref } from "vue";
 import type { CircuitColumn, GateCell, GateId, Operator, QubitRow } from "../types";
 import {
   appendColumn,
@@ -198,6 +198,7 @@ import {
   deleteCustomOperator,
   gateAt,
   gateLabel,
+  qubitCount,
   removeLastColumn,
   selectedStage,
   setGateAt,
@@ -210,8 +211,10 @@ import * as complex from "../complex";
 import BlochPairView from "./BlochPairView.vue";
 import StageInspector from "./StageInspector.vue";
 
-const builtinAndCnotGates: GateId[] = ["I", "X", "H", "S", "CNOT"];
-const rows: QubitRow[] = [0, 1];
+const builtinAndCnotGates = computed<GateId[]>(() =>
+  qubitCount.value >= 2 ? ["I", "X", "H", "S", "CNOT"] : ["I", "X", "H", "S"],
+);
+const rows = computed<QubitRow[]>(() => (qubitCount.value >= 2 ? [0, 1] : [0]));
 
 const isCustomModalOpen = ref(false);
 const customLabel = ref("");

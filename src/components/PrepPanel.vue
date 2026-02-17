@@ -5,6 +5,15 @@
       <p>Edit Bloch angles for each qubit. Amplitudes are derived from those angles.</p>
     </div>
 
+    <div class="qubit-controls">
+      <button type="button" class="qubit-count-btn" @click="removeQubit()" :disabled="qubitCount <= 1">- Qubit</button>
+      <label class="qubit-count-field">
+        Qubit Count
+        <input :value="qubitCount" type="number" min="1" max="8" @change="handleCountInput" />
+      </label>
+      <button type="button" class="qubit-count-btn" @click="addQubit()" :disabled="qubitCount >= 8">+ Qubit</button>
+    </div>
+
     <div class="qubit-grid">
       <div v-for="(q, index) in state.preparedBloch" :key="index" class="qubit-card">
         <div class="qubit-top">
@@ -50,7 +59,7 @@
     </div>
 
     <div class="prepared-distribution">
-      <h3>Prepared 2-Qubit Distribution</h3>
+      <h3>Prepared {{ qubitCount }}-Qubit Distribution</h3>
       <div v-for="entry in preparedDistribution" :key="entry.basis" class="prob-row">
         <span>|{{ entry.basis }}></span>
         <div class="prob-bar-wrap">
@@ -63,13 +72,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
 import type { BlochParams } from "../types";
-import { preparedQubits, preparedTwoQubitState, state } from "../state";
-import { measurement_distribution } from "../quantum";
+import { addQubit, preparedDistribution, preparedQubits, qubitCount, removeQubit, setQubitCount, state } from "../state";
 
 const amplitudes = preparedQubits;
-const preparedDistribution = computed(() => measurement_distribution(preparedTwoQubitState.value));
 const previewRadius = 26;
 
 const dotStyle = (q: BlochParams) => {
@@ -107,6 +113,11 @@ const applyPreset = (index: number, preset: Preset) => {
 
   entry.theta = Math.PI / 2;
   entry.phi = 0;
+};
+
+const handleCountInput = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  setQubitCount(Number.parseInt(target.value, 10));
 };
 
 const formatPercent = (value: number): string => `${(value * 100).toFixed(1)}%`;
