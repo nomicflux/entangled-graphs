@@ -1,6 +1,6 @@
 import type { BasisLabel } from "./types";
 
-export function basisLabel(index: number, qubitCount: number): BasisLabel {
+function basisLabel(index: number, qubitCount: number): BasisLabel {
   return index.toString(2).padStart(qubitCount, "0");
 }
 

@@ -12,11 +12,11 @@ import type {
 import * as complex from "./complex";
 import { basisLabels } from "./basis";
 
-export type MeasurementSample = {
+type MeasurementSample = {
   basis: BasisProbability["basis"];
   probability: number;
 };
-export type SingleGateResolver = (gate: SingleGateRef) => Operator | null;
+type SingleGateResolver = (gate: SingleGateRef) => Operator | null;
 
 const qubitCountFromState = (state: QubitState): number => Math.log2(state.length);
 
@@ -37,7 +37,7 @@ export function tensor_product_qubits(qubits: Qubit[]): QubitState {
   return state;
 }
 
-export function apply_single_qubit_gate(state: QubitState, gate: Operator, target: number, qubitCount: number): QubitState {
+function apply_single_qubit_gate(state: QubitState, gate: Operator, target: number, qubitCount: number): QubitState {
   const targetMask = 1 << (qubitCount - 1 - target);
   const next = [...state];
 
@@ -101,7 +101,7 @@ function apply_toffoli_x(
   return next;
 }
 
-export function apply_column(
+function apply_column(
   state: QubitState,
   column: CircuitColumn,
   resolveSingleGate: SingleGateResolver,

@@ -14,7 +14,7 @@ export const qubitFromBloch = (params: BlochParams): Qubit => {
   };
 };
 
-export const zeroQubit = (): Qubit => ({
+const zeroQubit = (): Qubit => ({
   a: complex.complex(1, 0),
   b: complex.complex(0, 0),
 });
