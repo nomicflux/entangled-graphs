@@ -69,35 +69,31 @@
 
 .bloch-zero-cloud,
 .bloch-one-cloud,
+.bloch-phase-indicator,
 .bloch-uncertainty-cloud {
   position: absolute;
   left: 50%;
   top: 50%;
-  border-radius: 999px;
   pointer-events: none;
 }
 
+.bloch-phase-indicator {
+  height: 2px;
+  border-radius: 999px;
+  transform-origin: 0 50%;
+}
+
 .bloch-zero-cloud {
-  background: radial-gradient(
-    circle,
-    rgba(102, 245, 214, 1) 0%,
-    rgba(102, 245, 214, 0.74) 36%,
-    rgba(102, 245, 214, 0.32) 68%,
-    transparent 100%
-  );
-  box-shadow: 0 0 10px rgba(102, 245, 214, 0.44);
+  border-radius: 999px;
+  background: radial-gradient(circle, var(--cloud-core) 0%, var(--cloud-mid) 36%, var(--cloud-outer) 68%, transparent 100%);
+  box-shadow: 0 0 10px var(--cloud-glow);
   mix-blend-mode: screen;
 }
 
 .bloch-one-cloud {
-  background: radial-gradient(
-    circle,
-    rgba(252, 165, 255, 1) 0%,
-    rgba(252, 165, 255, 0.74) 36%,
-    rgba(252, 165, 255, 0.32) 68%,
-    transparent 100%
-  );
-  box-shadow: 0 0 10px rgba(252, 165, 255, 0.44);
+  border-radius: 999px;
+  background: radial-gradient(circle, var(--cloud-core) 0%, var(--cloud-mid) 36%, var(--cloud-outer) 68%, transparent 100%);
+  box-shadow: 0 0 10px var(--cloud-glow);
   mix-blend-mode: screen;
 }
 

@@ -117,13 +117,9 @@
       >
         <p class="snapshot-title">{{ stage.label }}</p>
         <BlochPairView :pair="stage.blochPair" size="sm" :animated="false" compact />
-        <p v-for="entry in topStageEntries(stage.distribution)" :key="entry.basis" class="snapshot-row">
+        <p v-for="entry in stage.distribution" :key="entry.basis" class="snapshot-row">
           <span>|{{ entry.basis }}></span>
           <span>{{ formatPercent(entry.probability) }}</span>
-        </p>
-        <p v-if="hiddenStageCount(stage.distribution) > 0" class="snapshot-row snapshot-row-muted">
-          <span>+{{ hiddenStageCount(stage.distribution) }} more</span>
-          <span></span>
         </p>
       </button>
     </div>
@@ -747,12 +743,6 @@ const isDragSource = (col: number, row: QubitRow): boolean => {
 };
 
 const formatPercent = (value: number): string => `${(value * 100).toFixed(1)}%`;
-
-const topStageEntries = (distribution: { basis: string; probability: number }[]) =>
-  [...distribution].sort((left, right) => right.probability - left.probability).slice(0, 4);
-
-const hiddenStageCount = (distribution: { basis: string; probability: number }[]) =>
-  Math.max(0, distribution.length - 4);
 
 const validatePendingPlacement = () => {
   const pending = pendingPlacement.value;
