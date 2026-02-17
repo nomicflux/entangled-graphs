@@ -23,6 +23,10 @@
   cursor: pointer;
 }
 
+.gate-chip:last-child {
+  min-width: 56px;
+}
+
 .gate-chip.selected {
   background: rgba(102, 245, 214, 0.24);
   border-color: rgba(102, 245, 214, 0.9);
@@ -117,6 +121,7 @@
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.3);
   background: rgba(252, 165, 255, 0.18);
+  position: relative;
   display: grid;
   place-items: center;
   font-family: "IBM Plex Mono", monospace;
@@ -134,6 +139,61 @@
 
 .gate-token.is-drag-source {
   opacity: 0.35;
+}
+
+.gate-token.is-cnot-control,
+.gate-token.is-cnot-target {
+  background: transparent;
+  border: 0;
+}
+
+.gate-token.is-cnot-control::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 0 10px rgba(102, 245, 214, 0.55);
+}
+
+.gate-token.is-cnot-control::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  width: 1px;
+  height: 38px;
+  background: rgba(102, 245, 214, 0.7);
+}
+
+.gate-token.is-cnot-control-down::after {
+  top: calc(50% + 6px);
+}
+
+.gate-token.is-cnot-control-up::after {
+  bottom: calc(50% + 6px);
+}
+
+.gate-token.is-cnot-target::before {
+  content: "";
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 2px solid rgba(252, 165, 255, 0.9);
+}
+
+.gate-token.is-cnot-target::after {
+  content: "+";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: rgba(252, 165, 255, 0.95);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.gate-token.is-cnot-target {
+  position: relative;
 }
 
 .circuit-legend {

@@ -6,6 +6,7 @@ import type {
   GateId,
   Qubit,
   QubitRow,
+  SingleGateId,
   StageView,
   TwoQubitState,
 } from "./types";
@@ -19,7 +20,9 @@ export type CircuitState = {
   selectedStageIndex: number;
 };
 
-const emptyColumn = (): CircuitColumn => [null, null];
+export const emptyColumn = (): CircuitColumn => ({ kind: "single", q0: null, q1: null });
+
+const isSingleGate = (gate: GateCell): gate is SingleGateId => gate !== null && gate !== "CNOT";
 
 export const state = reactive<CircuitState>({
   preparedBloch: [
@@ -27,10 +30,10 @@ export const state = reactive<CircuitState>({
     { theta: 0, phi: 0 },
   ],
   columns: [
-    ["H", null],
-    [null, "X"],
-    ["S", "H"],
-    [null, null],
+    { kind: "single", q0: "H", q1: null },
+    { kind: "single", q0: null, q1: "X" },
+    { kind: "single", q0: "S", q1: "H" },
+    { kind: "single", q0: null, q1: null },
   ],
   selectedGate: "H",
   selectedStageIndex: 4,
@@ -43,6 +46,13 @@ export function qubitFromBloch(params: BlochParams): Qubit {
     a: complex.complex(Math.cos(halfTheta), 0),
     b: complex.complex(Math.cos(params.phi) * magnitude, Math.sin(params.phi) * magnitude),
   };
+}
+
+export function gateAt(column: CircuitColumn, row: QubitRow): GateCell {
+  if (column.kind === "single") {
+    return row === 0 ? column.q0 : column.q1;
+  }
+  return "CNOT";
 }
 
 export const preparedQubits = computed<[Qubit, Qubit]>(() => [
@@ -86,11 +96,53 @@ export function setGateAt(columnIndex: number, row: QubitRow, gate: GateCell): v
   if (!column) {
     return;
   }
-  column[row] = gate;
+
+  if (gate === null) {
+    clearGateAt(columnIndex, row);
+    return;
+  }
+
+  if (gate === "CNOT") {
+    state.columns[columnIndex] = { kind: "cnot", control: row, target: row === 0 ? 1 : 0 };
+    return;
+  }
+
+  if (!isSingleGate(gate)) {
+    return;
+  }
+
+  if (column.kind === "cnot") {
+    state.columns[columnIndex] = emptyColumn();
+  }
+
+  const next = state.columns[columnIndex];
+  if (next.kind !== "single") {
+    return;
+  }
+
+  if (row === 0) {
+    next.q0 = gate;
+  } else {
+    next.q1 = gate;
+  }
 }
 
 export function clearGateAt(columnIndex: number, row: QubitRow): void {
-  setGateAt(columnIndex, row, null);
+  const column = state.columns[columnIndex];
+  if (!column) {
+    return;
+  }
+
+  if (column.kind === "cnot") {
+    state.columns[columnIndex] = emptyColumn();
+    return;
+  }
+
+  if (row === 0) {
+    column.q0 = null;
+  } else {
+    column.q1 = null;
+  }
 }
 
 export function appendColumn(): void {

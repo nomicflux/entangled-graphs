@@ -2,7 +2,7 @@
   <section class="panel panel-center">
     <div class="panel-header">
       <h2>Quantum Circuit</h2>
-      <p>Drag gates into the grid. Click places the selected gate. Alt+Click clears a slot.</p>
+      <p>Drag gates into the grid. For CNOT, the row you place on becomes control. Alt+Click clears.</p>
     </div>
 
     <div class="circuit-tools">
@@ -47,15 +47,19 @@
             <div
               class="gate-token"
               :class="{
-                empty: !column[row],
-                draggable: !!column[row],
+                empty: slotGate(column, row) === null,
+                draggable: slotGate(column, row) !== null,
                 'is-drag-source': isDragSource(colIndex, row),
+                'is-cnot-control': isCnotControl(column, row),
+                'is-cnot-target': isCnotTarget(column, row),
+                'is-cnot-control-up': isCnotControl(column, row) && row === 1,
+                'is-cnot-control-down': isCnotControl(column, row) && row === 0,
               }"
-              :draggable="column[row] !== null"
-              @dragstart="startCellDrag(column[row], colIndex, row, $event)"
+              :draggable="slotGate(column, row) !== null"
+              @dragstart="startCellDrag(colIndex, row, $event)"
               @dragend="endDrag"
             >
-              {{ column[row] ?? "" }}
+              {{ tokenFor(column, row) }}
             </div>
           </div>
         </div>
@@ -89,10 +93,11 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import type { GateId, QubitRow } from "../types";
+import type { CircuitColumn, GateCell, GateId, QubitRow } from "../types";
 import {
   appendColumn,
   clearGateAt,
+  gateAt,
   removeLastColumn,
   selectedStage,
   setGateAt,
@@ -104,7 +109,7 @@ import {
 import BlochPairView from "./BlochPairView.vue";
 import StageInspector from "./StageInspector.vue";
 
-const gates: GateId[] = ["I", "X", "H", "S"];
+const gates: GateId[] = ["I", "X", "H", "S", "CNOT"];
 const rows: QubitRow[] = [0, 1];
 
 type DragSource = {
@@ -124,12 +129,25 @@ const selectGate = (gate: GateId) => {
   setSelectedGate(state.selectedGate === gate ? null : gate);
 };
 
+const slotGate = (column: CircuitColumn, row: QubitRow): GateCell => gateAt(column, row);
+
+const tokenFor = (column: CircuitColumn, row: QubitRow): string => {
+  if (column.kind === "cnot") {
+    return "";
+  }
+  return (row === 0 ? column.q0 : column.q1) ?? "";
+};
+
+const isCnotControl = (column: CircuitColumn, row: QubitRow): boolean => column.kind === "cnot" && row === column.control;
+const isCnotTarget = (column: CircuitColumn, row: QubitRow): boolean => column.kind === "cnot" && row === column.target;
+
 const startPaletteDrag = (gate: GateId, event: DragEvent) => {
   dragging.value = { gate };
   event.dataTransfer?.setData("text/plain", gate);
 };
 
-const startCellDrag = (gate: GateId | null, col: number, row: QubitRow, event: DragEvent) => {
+const startCellDrag = (col: number, row: QubitRow, event: DragEvent) => {
+  const gate = slotGate(state.columns[col]!, row);
   if (gate === null) {
     return;
   }
@@ -158,7 +176,7 @@ const handleDrop = (col: number, row: QubitRow) => {
   const { gate, from } = dragging.value;
   setGateAt(col, row, gate);
 
-  if (from && (from.col !== col || from.row !== row)) {
+  if (from && (from.col !== col || (from.row !== row && gate !== "CNOT"))) {
     clearGateAt(from.col, from.row);
   }
 
@@ -188,8 +206,18 @@ const handleSlotClick = (col: number, row: QubitRow, event: MouseEvent) => {
 const isDropTarget = (col: number, row: QubitRow): boolean =>
   dropTarget.value !== null && dropTarget.value.col === col && dropTarget.value.row === row;
 
-const isDragSource = (col: number, row: QubitRow): boolean =>
-  dragging.value?.from !== undefined && dragging.value.from.col === col && dragging.value.from.row === row;
+const isDragSource = (col: number, row: QubitRow): boolean => {
+  if (!dragging.value?.from) {
+    return false;
+  }
+  if (dragging.value.from.col !== col) {
+    return false;
+  }
+  if (dragging.value.gate === "CNOT") {
+    return true;
+  }
+  return dragging.value.from.row === row;
+};
 
 const formatPercent = (value: number): string => `${(value * 100).toFixed(1)}%`;
 </script>

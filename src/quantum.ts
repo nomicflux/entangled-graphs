@@ -4,9 +4,9 @@ import type {
   BlochPair,
   BlochVector,
   CircuitColumn,
-  GateId,
   Operator,
   Qubit,
+  SingleGateId,
   TwoQubitState,
 } from "./types";
 import * as complex from "./complex";
@@ -17,7 +17,7 @@ export type MeasurementSample = {
   probability: number;
 };
 
-const gateMap: Record<GateId, Operator> = {
+const gateMap: Record<SingleGateId, Operator> = {
   I,
   X,
   H,
@@ -61,14 +61,22 @@ export function apply_single_qubit_gate(state: TwoQubitState, gate: Operator, ta
 }
 
 export function apply_column(state: TwoQubitState, column: CircuitColumn): TwoQubitState {
-  let next = state;
-
-  if (column[0] !== null) {
-    next = apply_single_qubit_gate(next, gateMap[column[0]], 0);
+  if (column.kind === "cnot") {
+    const [a00, a01, a10, a11] = state;
+    if (column.control === 0 && column.target === 1) {
+      return [a00, a01, a11, a10];
+    }
+    return [a00, a11, a10, a01];
   }
 
-  if (column[1] !== null) {
-    next = apply_single_qubit_gate(next, gateMap[column[1]], 1);
+  let next = state;
+
+  if (column.q0 !== null) {
+    next = apply_single_qubit_gate(next, gateMap[column.q0], 0);
+  }
+
+  if (column.q1 !== null) {
+    next = apply_single_qubit_gate(next, gateMap[column.q1], 1);
   }
 
   return next;

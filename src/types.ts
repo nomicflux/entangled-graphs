@@ -20,10 +20,26 @@ export type BlochParams = {
     phi: number;
 };
 
-export type GateId = "I" | "X" | "H" | "S";
-export type GateCell = GateId | null;
-export type CircuitColumn = [GateCell, GateCell];
 export type QubitRow = 0 | 1;
+
+export type SingleGateId = "I" | "X" | "H" | "S";
+export type MultiGateId = "CNOT";
+export type GateId = SingleGateId | MultiGateId;
+export type GateCell = GateId | null;
+
+export type SingleGateColumn = {
+    kind: "single";
+    q0: SingleGateId | null;
+    q1: SingleGateId | null;
+};
+
+export type CnotColumn = {
+    kind: "cnot";
+    control: QubitRow;
+    target: QubitRow;
+};
+
+export type CircuitColumn = SingleGateColumn | CnotColumn;
 
 export type BasisLabel = "00" | "01" | "10" | "11";
 export type TwoQubitState = [Complex, Complex, Complex, Complex];
