@@ -76,40 +76,58 @@
 }
 
 .circuit-columns {
-  position: relative;
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: minmax(74px, 1fr);
   gap: 16px;
   padding: 18px 8px;
-  min-height: 280px;
-  background-image: linear-gradient(
-    to bottom,
-    transparent 26%,
-    var(--wire) 26%,
-    var(--wire) 27%,
-    transparent 27%,
-    transparent 72%,
-    var(--wire) 72%,
-    var(--wire) 73%,
-    transparent 73%
-  );
+  min-height: 220px;
   border-radius: 12px;
 }
 
 .circuit-column {
+  position: relative;
   display: grid;
-  grid-template-rows: repeat(2, 1fr);
   gap: 14px;
   align-items: center;
 }
 
+.column-connectors {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  pointer-events: none;
+}
+
+.column-connector {
+  position: absolute;
+  left: 0;
+  width: 1px;
+  background: rgba(102, 245, 214, 0.7);
+}
+
 .gate-slot {
+  position: relative;
+  z-index: 1;
   display: grid;
   justify-items: center;
   gap: 6px;
   border-radius: 10px;
   padding: 4px;
+}
+
+.gate-slot::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 50%;
+  height: 1px;
+  transform: translateY(-50%);
+  background: var(--wire);
+  pointer-events: none;
 }
 
 .gate-slot.is-drop-target {
@@ -169,23 +187,6 @@
   box-shadow: 0 0 10px rgba(102, 245, 214, 0.55);
 }
 
-.gate-token.is-cnot-control::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  width: 1px;
-  height: 38px;
-  background: rgba(102, 245, 214, 0.7);
-}
-
-.gate-token.is-cnot-control-down::after {
-  top: calc(50% + 6px);
-}
-
-.gate-token.is-cnot-control-up::after {
-  bottom: calc(50% + 6px);
-}
-
 .gate-token.is-cnot-target::before {
   content: "";
   width: 20px;
@@ -207,6 +208,40 @@
 
 .gate-token.is-cnot-target {
   position: relative;
+}
+
+.gate-token.is-toffoli-control,
+.gate-token.is-toffoli-target {
+  background: transparent;
+  border: 0;
+}
+
+.gate-token.is-toffoli-control::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 220, 120, 0.95);
+  box-shadow: 0 0 10px rgba(255, 220, 120, 0.5);
+}
+
+.gate-token.is-toffoli-target::before {
+  content: "";
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 220, 120, 0.9);
+}
+
+.gate-token.is-toffoli-target::after {
+  content: "+";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: rgba(255, 220, 120, 0.95);
+  font-size: 18px;
+  line-height: 1;
 }
 
 .circuit-legend {

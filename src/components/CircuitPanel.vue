@@ -2,13 +2,13 @@
   <section class="panel panel-center">
     <div class="panel-header">
       <h2>Quantum Circuit</h2>
-      <p>Drag gates into the grid. CNOT control is whichever row you place on. Alt+Click clears or deletes custom gates.</p>
+      <p>Drag gates into the grid. Alt+Click clears or deletes custom gates.</p>
     </div>
 
     <div class="circuit-tools">
       <div class="gate-palette">
         <button
-          v-for="gate in builtinAndCnotGates"
+          v-for="gate in paletteGates"
           :key="gate"
           class="gate-chip"
           :class="{ selected: state.selectedGate === gate }"
@@ -49,7 +49,21 @@
 
     <div class="circuit-shell">
       <div class="circuit-columns">
-        <div v-for="(column, colIndex) in state.columns" :key="colIndex" class="circuit-column">
+        <div
+          v-for="(column, colIndex) in state.columns"
+          :key="colIndex"
+          class="circuit-column"
+          :style="{ gridTemplateRows: `repeat(${rows.length}, minmax(56px, 1fr))` }"
+        >
+          <div class="column-connectors">
+            <div
+              v-for="connector in connectorSegments(column)"
+              :key="connector.id"
+              class="column-connector"
+              :style="connectorStyle(connector)"
+            ></div>
+          </div>
+
           <div
             v-for="row in rows"
             :key="row"
@@ -64,15 +78,15 @@
             <div
               class="gate-token"
               :class="{
-                empty: slotGate(column, row) === null,
-                draggable: slotGate(column, row) !== null,
+                empty: slotInstance(column, row) === null,
+                draggable: isDraggableToken(column, row),
                 'is-drag-source': isDragSource(colIndex, row),
                 'is-cnot-control': isCnotControl(column, row),
                 'is-cnot-target': isCnotTarget(column, row),
-                'is-cnot-control-up': isCnotControl(column, row) && row === 1,
-                'is-cnot-control-down': isCnotControl(column, row) && row === 0,
+                'is-toffoli-control': isToffoliControl(column, row),
+                'is-toffoli-target': isToffoliTarget(column, row),
               }"
-              :draggable="slotGate(column, row) !== null"
+              :draggable="isDraggableToken(column, row)"
               @dragstart="startCellDrag(colIndex, row, $event)"
               @dragend="endDrag"
             >
@@ -190,13 +204,14 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref } from "vue";
-import type { CircuitColumn, GateCell, GateId, Operator, QubitRow } from "../types";
+import type { CircuitColumn, GateId, Operator, QubitRow } from "../types";
 import {
   appendColumn,
   clearGateAt,
   createCustomOperator,
   deleteCustomOperator,
   gateAt,
+  gateInstanceAt,
   gateLabel,
   qubitCount,
   removeLastColumn,
@@ -211,10 +226,18 @@ import * as complex from "../complex";
 import BlochPairView from "./BlochPairView.vue";
 import StageInspector from "./StageInspector.vue";
 
-const builtinAndCnotGates = computed<GateId[]>(() =>
-  qubitCount.value >= 2 ? ["I", "X", "H", "S", "CNOT"] : ["I", "X", "H", "S"],
-);
-const rows = computed<QubitRow[]>(() => (qubitCount.value >= 2 ? [0, 1] : [0]));
+const paletteGates = computed<GateId[]>(() => {
+  const gates: GateId[] = ["I", "X", "H", "S"];
+  if (qubitCount.value >= 2) {
+    gates.push("CNOT");
+  }
+  if (qubitCount.value >= 3) {
+    gates.push("TOFFOLI");
+  }
+  return gates;
+});
+
+const rows = computed<QubitRow[]>(() => Array.from({ length: qubitCount.value }, (_, index) => index));
 
 const isCustomModalOpen = ref(false);
 const customLabel = ref("");
@@ -247,18 +270,70 @@ const selectGate = (gate: GateId) => {
   setSelectedGate(state.selectedGate === gate ? null : gate);
 };
 
-const slotGate = (column: CircuitColumn, row: QubitRow): GateCell => gateAt(column, row);
+const slotInstance = (column: CircuitColumn, row: QubitRow) => gateInstanceAt(column, row);
 
 const tokenFor = (column: CircuitColumn, row: QubitRow): string => {
-  const gate = slotGate(column, row);
-  if (gate === "CNOT") {
+  const gate = gateAt(column, row);
+  if (gate === "CNOT" || gate === "TOFFOLI") {
     return "";
   }
   return gateLabel(gate);
 };
 
-const isCnotControl = (column: CircuitColumn, row: QubitRow): boolean => column.kind === "cnot" && row === column.control;
-const isCnotTarget = (column: CircuitColumn, row: QubitRow): boolean => column.kind === "cnot" && row === column.target;
+const isDraggableToken = (column: CircuitColumn, row: QubitRow): boolean => slotInstance(column, row)?.kind === "single";
+
+const isCnotControl = (column: CircuitColumn, row: QubitRow): boolean => {
+  const gate = slotInstance(column, row);
+  return gate?.kind === "cnot" && gate.control === row;
+};
+
+const isCnotTarget = (column: CircuitColumn, row: QubitRow): boolean => {
+  const gate = slotInstance(column, row);
+  return gate?.kind === "cnot" && gate.target === row;
+};
+
+const isToffoliControl = (column: CircuitColumn, row: QubitRow): boolean => {
+  const gate = slotInstance(column, row);
+  return gate?.kind === "toffoli" && (gate.controlA === row || gate.controlB === row);
+};
+
+const isToffoliTarget = (column: CircuitColumn, row: QubitRow): boolean => {
+  const gate = slotInstance(column, row);
+  return gate?.kind === "toffoli" && gate.target === row;
+};
+
+type ConnectorSegment = {
+  id: string;
+  fromRow: number;
+  toRow: number;
+};
+
+const connectorSegments = (column: CircuitColumn): ConnectorSegment[] =>
+  column.gates.flatMap((gate): ConnectorSegment[] => {
+    if (gate.kind === "single") {
+      return [];
+    }
+
+    if (gate.kind === "cnot") {
+      return [{ id: gate.id, fromRow: gate.control, toRow: gate.target }];
+    }
+
+    const minRow = Math.min(gate.controlA, gate.controlB, gate.target);
+    const maxRow = Math.max(gate.controlA, gate.controlB, gate.target);
+    return [{ id: gate.id, fromRow: minRow, toRow: maxRow }];
+  });
+
+const rowCenterPercent = (row: number): number => ((row + 0.5) / rows.value.length) * 100;
+
+const connectorStyle = (segment: ConnectorSegment): Record<string, string> => {
+  const start = rowCenterPercent(Math.min(segment.fromRow, segment.toRow));
+  const end = rowCenterPercent(Math.max(segment.fromRow, segment.toRow));
+
+  return {
+    top: `${start}%`,
+    height: `${Math.max(0, end - start)}%`,
+  };
+};
 
 const startPaletteDrag = (gate: GateId, event: DragEvent) => {
   dragging.value = { gate };
@@ -266,12 +341,12 @@ const startPaletteDrag = (gate: GateId, event: DragEvent) => {
 };
 
 const startCellDrag = (col: number, row: QubitRow, event: DragEvent) => {
-  const gate = slotGate(state.columns[col]!, row);
-  if (gate === null) {
+  const gate = slotInstance(state.columns[col]!, row);
+  if (!gate || gate.kind !== "single") {
     return;
   }
-  dragging.value = { gate, from: { col, row } };
-  event.dataTransfer?.setData("text/plain", gate);
+  dragging.value = { gate: gate.gate, from: { col, row } };
+  event.dataTransfer?.setData("text/plain", gate.gate);
 };
 
 const handleDragOver = (col: number, row: QubitRow) => {
@@ -295,7 +370,7 @@ const handleDrop = (col: number, row: QubitRow) => {
   const { gate, from } = dragging.value;
   setGateAt(col, row, gate);
 
-  if (from && (from.col !== col || (from.row !== row && gate !== "CNOT"))) {
+  if (from && (from.col !== col || from.row !== row)) {
     clearGateAt(from.col, from.row);
   }
 
@@ -378,9 +453,6 @@ const isDragSource = (col: number, row: QubitRow): boolean => {
   }
   if (dragging.value.from.col !== col) {
     return false;
-  }
-  if (dragging.value.gate === "CNOT") {
-    return true;
   }
   return dragging.value.from.row === row;
 };

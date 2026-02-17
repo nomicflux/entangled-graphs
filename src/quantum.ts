@@ -54,28 +54,50 @@ export function apply_single_qubit_gate(state: TwoQubitState, gate: Operator, ta
   return next;
 }
 
-export function apply_column(state: TwoQubitState, column: CircuitColumn, resolveSingleGate: SingleGateResolver): TwoQubitState {
-  if (column.kind === "cnot") {
-    const [a00, a01, a10, a11] = state;
-    if (column.control === 0 && column.target === 1) {
-      return [a00, a01, a11, a10];
-    }
-    return [a00, a11, a10, a01];
+function apply_controlled_x(state: TwoQubitState, control: number, target: number, qubitCount: number): TwoQubitState {
+  if (control === target) {
+    return state;
   }
 
+  const controlBit = qubitCount - 1 - control;
+  const targetBit = qubitCount - 1 - target;
+  const controlMask = 1 << controlBit;
+  const targetMask = 1 << targetBit;
+  const next: TwoQubitState = [
+    complex.from_real(0),
+    complex.from_real(0),
+    complex.from_real(0),
+    complex.from_real(0),
+  ];
+
+  for (let index = 0; index < state.length; index += 1) {
+    const mapped = (index & controlMask) !== 0 ? index ^ targetMask : index;
+    next[mapped] = state[index];
+  }
+
+  return next;
+}
+
+export function apply_column(state: TwoQubitState, column: CircuitColumn, resolveSingleGate: SingleGateResolver): TwoQubitState {
   let next = state;
 
-  if (column.q0 !== null) {
-    const op = resolveSingleGate(column.q0);
-    if (op !== null) {
-      next = apply_single_qubit_gate(next, op, 0);
+  for (const gate of column.gates) {
+    if (gate.kind === "single") {
+      if (gate.target > 1) {
+        continue;
+      }
+      const op = resolveSingleGate(gate.gate);
+      if (op !== null) {
+        next = apply_single_qubit_gate(next, op, gate.target as 0 | 1);
+      }
+      continue;
     }
-  }
 
-  if (column.q1 !== null) {
-    const op = resolveSingleGate(column.q1);
-    if (op !== null) {
-      next = apply_single_qubit_gate(next, op, 1);
+    if (gate.kind === "cnot") {
+      if (gate.control > 1 || gate.target > 1) {
+        continue;
+      }
+      next = apply_controlled_x(next, gate.control, gate.target, 2);
     }
   }
 

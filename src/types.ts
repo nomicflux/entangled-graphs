@@ -20,29 +20,43 @@ export type BlochParams = {
     phi: number;
 };
 
-export type QubitRow = 0 | 1;
+export type QubitRow = number;
 
 export type BuiltinSingleGateId = "I" | "X" | "H" | "S";
 export type CustomGateId = string;
 export type SingleGateId = BuiltinSingleGateId;
 export type SingleGateRef = BuiltinSingleGateId | CustomGateId;
-export type MultiGateId = "CNOT";
+export type MultiGateId = "CNOT" | "TOFFOLI";
 export type GateId = SingleGateRef | MultiGateId;
 export type GateCell = GateId | null;
 
-export type SingleGateColumn = {
+export type SingleGateInstance = {
+    id: string;
     kind: "single";
-    q0: SingleGateRef | null;
-    q1: SingleGateRef | null;
+    gate: SingleGateRef;
+    target: QubitRow;
 };
 
-export type CnotColumn = {
+export type CnotGateInstance = {
+    id: string;
     kind: "cnot";
     control: QubitRow;
     target: QubitRow;
 };
 
-export type CircuitColumn = SingleGateColumn | CnotColumn;
+export type ToffoliGateInstance = {
+    id: string;
+    kind: "toffoli";
+    controlA: QubitRow;
+    controlB: QubitRow;
+    target: QubitRow;
+};
+
+export type GateInstance = SingleGateInstance | CnotGateInstance | ToffoliGateInstance;
+
+export type CircuitColumn = {
+    gates: GateInstance[];
+};
 
 export type CustomOperator = {
     id: CustomGateId;
