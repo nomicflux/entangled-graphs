@@ -1,101 +1,78 @@
-import * as d3 from 'd3';
+import type { Complex, Operator, Qubit } from "./types";
+import * as qubit from "./qubit";
+import * as complex from "./complex";
 
-type Complex = {
-    real: number;
-    imag: number;
+type CanvasRegistry = Map<string, CanvasRenderingContext2D | null>;
+
+function create_context(registry: CanvasRegistry, id: string): CanvasRenderingContext2D {
+    const entry = registry.get(id);
+    if (entry) {
+        return entry;
+    } else {
+        const canvas = document.getElementById("entangled-canvas") as HTMLCanvasElement;
+        const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+        registry.set(id, ctx);
+        return ctx;
+    }
 }
 
-function from_real(real: number): Complex {
-    return {real, imag: 0};
+type Point = {
+    x: number,
+    y: number
 }
 
-function complex(real: number, imag: number): Complex {
-    return { real, imag };
+function from_complex(c: Complex): Point {
+    return { x: c.real, y: c.imag };
 }
 
-type Qubit = {
-    a: Complex;
-    b: Complex;
+function draw_circle(registry: CanvasRegistry, canvas: string, origin: Point, radius: number) {
+    const ctx = create_context(registry, canvas);
+    ctx.beginPath();
+    ctx.arc(origin.x, origin.y, radius, 0, 2 * Math.PI, false);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#ff0000';
+    ctx.stroke();
 }
 
-function qubit(a: Complex, b: Complex): Qubit {
-    return { a, b };
+function draw_line(registry: CanvasRegistry, canvas: string, start: Point, end: Point) {
+    const ctx = create_context(registry, canvas);
+    ctx.beginPath();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#000000';
+    ctx.moveTo(start.x, start.y);
+    ctx.lineTo(end.x, end.y);
+    ctx.stroke();
 }
 
-type Operator = {
-    o00: Complex;
-    o01: Complex;
-    o10: Complex;
-    o11: Complex;
+type ViewSettings = {
+    height: number,
+    width: number
 }
 
-function mk_op(o00: Complex, o01: Complex, o10: Complex, o11: Complex): Operator {
-    return { o00, o01, o10, o11 };
+function point_offset(pt: Point, offset: Point): Point {
+    return { x: pt.x + offset.x, y: offset.y - pt.y };
 }
 
-function mk_real_op(o00: number, o01: number, o10: number, o11: number): Operator {
-    return {
-        o00: from_real(o00),
-        o01: from_real(o01),
-        o10: from_real(o10),
-        o11: from_real(o11)
-    };
+function point_scale(pt: Point, s: number): Point {
+    return { x: pt.x * s, y: pt.y * s };
 }
 
-function conjugate(c: Complex): Complex {
-    return { real: c.real, imag: -c.imag };
+function draw_qubit(registry: CanvasRegistry, canvas: string, settings: ViewSettings, q: Qubit) {
+    const origin: Point = { x: settings.width / 2, y: settings.height / 2 };
+    const radius: number = settings.width / 16;
+    draw_circle(registry, canvas, origin, radius);
+    const end_a = point_offset(point_scale(from_complex(q.a), radius), origin);
+    draw_line(registry, canvas, origin, end_a);
+    const end_b = point_offset(point_scale(from_complex(q.b), radius), origin);
+    draw_line(registry, canvas, origin, end_b);
 }
 
-function transpose(op: Operator): Operator {
-    return mk_op(op.o00, op.o10, op.o01, op.o11);
+function initialize() {
+    const canvas = "entangled-canvas";
+    const registry: CanvasRegistry = new Map;
+    const settings: ViewSettings = { height: 400, width: 400 };
+    const q: Qubit = qubit.qubit(complex.complex(1,0), complex.complex(0,1));
+    draw_qubit(registry, canvas, settings, q);
 }
 
-function adjoint(op: Operator): Operator {
-    return mk_op(
-        conjugate(op.o00),
-        conjugate(op.o10),
-        conjugate(op.o01),
-        conjugate(op.o11)
-    );
-}
-
-function scale_complex(c: Complex, s: number): Complex {
-    return complex(c.real * s, c.imag * s);
-}
-
-function add_complex(a: Complex, b: Complex): Complex {
-    return complex(a.real + b.real, a.imag + b.imag);
-}
-
-function mult_complex(a: Complex, b: Complex): Complex {
-    return complex(a.real * b.real - a.imag * b.imag, a.imag * b.real + a.real * b.imag );
-}
-
-function scale_op(op: Operator, s: number): Operator {
-    return mk_op(
-        scale_complex(op.o00, s),
-        scale_complex(op.o01, s),
-        scale_complex(op.o10, s),
-        scale_complex(op.o11, s)
-    );
-}
-
-function mult_op(op1: Operator, op2: Operator): Operator {
-    return mk_op(
-        add_complex(mult_complex(op1.o00, op2.o00), mult_complex(op1.o01, op2.o10)),
-        add_complex(mult_complex(op1.o00, op2.o01), mult_complex(op1.o01, op2.o11)),
-        add_complex(mult_complex(op1.o10, op2.o00), mult_complex(op1.o11, op2.o10)),
-        add_complex(mult_complex(op1.o10, op2.o01), mult_complex(op1.o11, op2.o11)),
-    );
-}
-
-function apply(op: Operator, q: Qubit): Qubit {
-    return qubit(
-        add_complex(mult_complex(q.a, op.o00), mult_complex(q.b, op.o01)),
-        add_complex(mult_complex(q.a, op.o10), mult_complex(q.b, op.o11)),
-    );
-}
-
-const X: Operator = mk_real_op(0,1,1,0);
-const H: Operator = scale_op(mk_real_op(1,1,1,-1), 1/Math.sqrt(2));
-
+window.onload = initialize;
