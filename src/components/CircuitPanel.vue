@@ -61,27 +61,48 @@
         </div>
       </div>
       <div class="circuit-legend">
-        <span>Time →</span>
+        <span>Time -></span>
       </div>
     </div>
 
     <div class="snapshot-grid">
-      <div v-for="(snapshot, index) in stateSnapshots" :key="index" class="snapshot-card">
-        <p class="snapshot-title">{{ index === 0 ? "Prepared" : `After t${index}` }}</p>
-        <p v-for="entry in basisProbabilities(snapshot)" :key="entry.basis" class="snapshot-row">
+      <button
+        v-for="stage in stageViews"
+        :key="stage.id"
+        class="snapshot-card"
+        :class="{ selected: state.selectedStageIndex === stage.index }"
+        type="button"
+        @click="setSelectedStage(stage.index)"
+      >
+        <p class="snapshot-title">{{ stage.label }}</p>
+        <BlochPairView :pair="stage.blochPair" size="sm" :animated="false" compact />
+        <p v-for="entry in stage.distribution" :key="entry.basis" class="snapshot-row">
           <span>|{{ entry.basis }}></span>
           <span>{{ formatPercent(entry.probability) }}</span>
         </p>
-      </div>
+      </button>
     </div>
+
+    <StageInspector :stage="selectedStage" :animated="false" />
   </section>
 </template>
 
 <script setup lang="ts">
 import { ref } from "vue";
-import type { BasisProbability, GateId, QubitRow, TwoQubitState } from "../types";
-import { appendColumn, clearGateAt, removeLastColumn, setGateAt, setSelectedGate, state, stateSnapshots } from "../state";
-import { measurement_distribution } from "../quantum";
+import type { GateId, QubitRow } from "../types";
+import {
+  appendColumn,
+  clearGateAt,
+  removeLastColumn,
+  selectedStage,
+  setGateAt,
+  setSelectedGate,
+  setSelectedStage,
+  stageViews,
+  state,
+} from "../state";
+import BlochPairView from "./BlochPairView.vue";
+import StageInspector from "./StageInspector.vue";
 
 const gates: GateId[] = ["I", "X", "H", "S"];
 const rows: QubitRow[] = [0, 1];
@@ -170,6 +191,5 @@ const isDropTarget = (col: number, row: QubitRow): boolean =>
 const isDragSource = (col: number, row: QubitRow): boolean =>
   dragging.value?.from !== undefined && dragging.value.from.col === col && dragging.value.from.row === row;
 
-const basisProbabilities = (snapshot: TwoQubitState): BasisProbability[] => measurement_distribution(snapshot);
 const formatPercent = (value: number): string => `${(value * 100).toFixed(1)}%`;
 </script>

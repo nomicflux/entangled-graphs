@@ -27,11 +27,29 @@
   gap: 8px;
 }
 
+.measurement-context {
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.measurement-outcome {
+  margin: 0;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 1.4rem;
+}
+
 .readout-row {
   display: flex;
   justify-content: space-between;
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.85rem;
+}
+
+.measurement-visual {
+  padding-top: 4px;
 }
 
 .history h3 {
@@ -48,6 +66,16 @@
 .probability-list h3 {
   margin: 0 0 2px;
   font-size: 1rem;
+}
+
+.prob-row.is-highlighted {
+  background: rgba(102, 245, 214, 0.12);
+  border-radius: 8px;
+  padding: 4px 6px;
+}
+
+.prob-row.is-highlighted .prob-bar {
+  box-shadow: 0 0 14px rgba(102, 245, 214, 0.55);
 }
 
 .history-list {

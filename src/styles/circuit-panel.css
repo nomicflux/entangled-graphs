@@ -152,10 +152,19 @@
 }
 
 .snapshot-card {
+  appearance: none;
   background: rgba(7, 12, 26, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 12px;
   padding: 10px;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.snapshot-card.selected {
+  border-color: rgba(102, 245, 214, 0.75);
+  box-shadow: 0 0 0 1px rgba(102, 245, 214, 0.25) inset;
 }
 
 .snapshot-title {
@@ -172,6 +181,38 @@
   justify-content: space-between;
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.78rem;
+}
+
+.stage-inspector {
+  margin-top: 14px;
+  background: rgba(7, 12, 26, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.stage-inspector-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.stage-inspector-head h3 {
+  margin: 0;
+  font-size: 0.94rem;
+}
+
+.stage-inspector-head p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.stage-probability {
+  margin-top: 10px;
+  display: grid;
+  gap: 6px;
 }
 
 @media (max-width: 980px) {

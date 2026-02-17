@@ -32,3 +32,24 @@ export type BasisProbability = {
     basis: BasisLabel;
     probability: number;
 };
+
+export type BlochVector = {
+    x: number;
+    y: number;
+    z: number;
+    p0: number;
+    p1: number;
+    certainty: number;
+    uncertainty: number;
+};
+
+export type BlochPair = [BlochVector, BlochVector];
+
+export type StageView = {
+    id: string;
+    index: number;
+    label: string;
+    distribution: BasisProbability[];
+    blochPair: BlochPair;
+    isFinal: boolean;
+};

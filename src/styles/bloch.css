@@ -1,0 +1,85 @@
+.bloch-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.bloch-card {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+
+.bloch-card-title {
+  margin: 0;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.bloch-orb {
+  width: 72px;
+  height: 72px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.06), transparent 62%);
+}
+
+.bloch-pair.size-sm .bloch-orb {
+  width: 58px;
+  height: 58px;
+}
+
+.bloch-orb-axis {
+  position: absolute;
+  inset: 50% 14% auto 14%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.bloch-zero-cloud,
+.bloch-one-cloud,
+.bloch-uncertainty-cloud {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 999px;
+}
+
+.bloch-zero-cloud {
+  background: radial-gradient(circle, rgba(102, 245, 214, 0.92) 0%, rgba(102, 245, 214, 0.25) 58%, transparent 100%);
+}
+
+.bloch-one-cloud {
+  background: radial-gradient(circle, rgba(252, 165, 255, 0.92) 0%, rgba(252, 165, 255, 0.25) 58%, transparent 100%);
+}
+
+.bloch-uncertainty-cloud {
+  width: 34px;
+  height: 34px;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.14), transparent 72%);
+}
+
+.bloch-pair.compact .bloch-card {
+  gap: 4px;
+}
+
+.bloch-pair.animated .bloch-uncertainty-cloud {
+  animation: cloudPulse 2s ease-in-out infinite;
+}
+
+@keyframes cloudPulse {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+}

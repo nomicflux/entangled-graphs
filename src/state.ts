@@ -1,12 +1,22 @@
 import { computed, reactive } from "vue";
-import type { BlochParams, CircuitColumn, GateCell, GateId, Qubit, QubitRow, TwoQubitState } from "./types";
+import type {
+  BlochParams,
+  CircuitColumn,
+  GateCell,
+  GateId,
+  Qubit,
+  QubitRow,
+  StageView,
+  TwoQubitState,
+} from "./types";
 import * as complex from "./complex";
-import { measurement_distribution, simulate_columns, tensor_product_qubits } from "./quantum";
+import { bloch_pair_from_state, measurement_distribution, simulate_columns, tensor_product_qubits } from "./quantum";
 
 export type CircuitState = {
   preparedBloch: [BlochParams, BlochParams];
   columns: CircuitColumn[];
   selectedGate: GateId | null;
+  selectedStageIndex: number;
 };
 
 const emptyColumn = (): CircuitColumn => [null, null];
@@ -23,6 +33,7 @@ export const state = reactive<CircuitState>({
     [null, null],
   ],
   selectedGate: "H",
+  selectedStageIndex: 4,
 });
 
 export function qubitFromBloch(params: BlochParams): Qubit {
@@ -51,6 +62,21 @@ export const finalTwoQubitState = computed<TwoQubitState>(() => stateSnapshots.v
 
 export const finalDistribution = computed(() => measurement_distribution(finalTwoQubitState.value));
 
+export const stageViews = computed<StageView[]>(() => {
+  const lastIndex = stateSnapshots.value.length - 1;
+
+  return stateSnapshots.value.map((snapshot, index) => ({
+    id: index === 0 ? "prepared" : index === lastIndex ? "final" : `t${index}`,
+    index,
+    label: index === 0 ? "Prepared" : index === lastIndex ? "Final" : `After t${index}`,
+    distribution: measurement_distribution(snapshot),
+    blochPair: bloch_pair_from_state(snapshot),
+    isFinal: index === lastIndex,
+  }));
+});
+
+export const selectedStage = computed<StageView>(() => stageViews.value[state.selectedStageIndex]!);
+
 export function setSelectedGate(gate: GateId | null): void {
   state.selectedGate = gate;
 }
@@ -76,4 +102,14 @@ export function removeLastColumn(): void {
     return;
   }
   state.columns.pop();
+  if (state.selectedStageIndex > state.columns.length) {
+    state.selectedStageIndex = state.columns.length;
+  }
+}
+
+export function setSelectedStage(index: number): void {
+  if (index < 0 || index > state.columns.length) {
+    return;
+  }
+  state.selectedStageIndex = index;
 }

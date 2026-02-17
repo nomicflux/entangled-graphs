@@ -1,4 +1,14 @@
-import type { BasisProbability, CircuitColumn, GateId, Operator, Qubit, TwoQubitState } from "./types";
+import type {
+  BasisLabel,
+  BasisProbability,
+  BlochPair,
+  BlochVector,
+  CircuitColumn,
+  GateId,
+  Operator,
+  Qubit,
+  TwoQubitState,
+} from "./types";
 import * as complex from "./complex";
 import { H, I, S, X } from "./operator";
 
@@ -99,4 +109,55 @@ export function sample_distribution(distribution: BasisProbability[], randomValu
 
   const fallback = distribution[distribution.length - 1];
   return { basis: fallback.basis, probability: fallback.probability };
+}
+
+function reduced_bloch_vector(state: TwoQubitState, target: 0 | 1): BlochVector {
+  const [a00, a01, a10, a11] = state;
+
+  if (target === 0) {
+    const rho00 = complex.magnitude_squared(a00) + complex.magnitude_squared(a01);
+    const rho11 = complex.magnitude_squared(a10) + complex.magnitude_squared(a11);
+    const rho01 = complex.add(complex.mult(a00, complex.conjugate(a10)), complex.mult(a01, complex.conjugate(a11)));
+    const x = 2 * rho01.real;
+    const y = -2 * rho01.imag;
+    const z = rho00 - rho11;
+    const certainty = Math.sqrt(x * x + y * y + z * z);
+    return { x, y, z, p0: rho00, p1: rho11, certainty, uncertainty: 1 - certainty };
+  }
+
+  const rho00 = complex.magnitude_squared(a00) + complex.magnitude_squared(a10);
+  const rho11 = complex.magnitude_squared(a01) + complex.magnitude_squared(a11);
+  const rho01 = complex.add(complex.mult(a00, complex.conjugate(a01)), complex.mult(a10, complex.conjugate(a11)));
+  const x = 2 * rho01.real;
+  const y = -2 * rho01.imag;
+  const z = rho00 - rho11;
+  const certainty = Math.sqrt(x * x + y * y + z * z);
+  return { x, y, z, p0: rho00, p1: rho11, certainty, uncertainty: 1 - certainty };
+}
+
+export function bloch_pair_from_state(state: TwoQubitState): BlochPair {
+  return [reduced_bloch_vector(state, 0), reduced_bloch_vector(state, 1)];
+}
+
+export function basis_to_bloch_pair(basis: BasisLabel): BlochPair {
+  const pure = (z: number): BlochVector => ({
+    x: 0,
+    y: 0,
+    z,
+    p0: z === 1 ? 1 : 0,
+    p1: z === -1 ? 1 : 0,
+    certainty: 1,
+    uncertainty: 0,
+  });
+
+  if (basis === "00") {
+    return [pure(1), pure(1)];
+  }
+  if (basis === "01") {
+    return [pure(1), pure(-1)];
+  }
+  if (basis === "10") {
+    return [pure(-1), pure(1)];
+  }
+  return [pure(-1), pure(-1)];
 }
