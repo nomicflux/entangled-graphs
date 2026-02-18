@@ -1,7 +1,16 @@
 export { state } from "./store";
-export type { CellRef, CnotPlacement, ColumnIndex, SingleGatePlacement, ToffoliPlacement, WireIndex } from "./placements";
-export { toCellRef, toCnotPlacement, toSingleGatePlacement, toToffoliPlacement } from "./placements";
+export type {
+  CellRef,
+  CnotPlacement,
+  ColumnIndex,
+  MultiGatePlacement,
+  SingleGatePlacement,
+  ToffoliPlacement,
+  WireIndex,
+} from "./placements";
+export { toCellRef, toCnotPlacement, toMultiGatePlacement, toSingleGatePlacement, toToffoliPlacement } from "./placements";
 export { availableBuiltinGatesForQubitCount, operatorArityForGate, resolveOperator } from "./operators";
+export { resolveBlock2x2Selection, singleQubitBuilderOptions } from "./custom-operator-builder";
 
 export {
   qubitCount,
@@ -20,9 +29,12 @@ export {
   addQubit,
   removeQubit,
   setQubitCount,
+  createCustomSingleQubitOperator,
+  createCustomBlockOperator,
   createCustomOperator,
   deleteCustomOperator,
   setGateAt,
+  placeMultiGate,
   placeCnot,
   placeToffoli,
   clearGateAt,

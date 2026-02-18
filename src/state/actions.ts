@@ -2,10 +2,10 @@ import type { GateId, GateInstance } from "../types";
 import { MAX_QUBITS, MIN_QUBITS } from "./constants";
 import { normalizeOperator, persistCustomOperators } from "./custom-operator-storage";
 import { enforceDisjoint, gateTouchesRow, gateWires, mapGateAfterQubitRemoval, removeOverlaps } from "./gate-instance-utils";
-import type { CellRef, CnotPlacement, SingleGatePlacement, ToffoliPlacement } from "./placements";
+import type { CellRef, CnotPlacement, MultiGatePlacement, SingleGatePlacement, ToffoliPlacement } from "./placements";
 import { emptyColumn, nextGateInstanceId, state } from "./store";
 import { zeroBloch } from "./qubit-helpers";
-import { makeSingleQubitOperator, type SingleQubitMatrixEntries } from "../operator";
+import { blockMatrix2x2, makeSingleQubitOperator, type Block2x2, type SingleQubitMatrixEntries } from "../operator";
 import { operatorArityForGate } from "./operators";
 
 const sanitizeColumnsForQubitCount = (count: number): void => {
@@ -96,15 +96,32 @@ export const setQubitCount = (nextCount: number): void => {
   }
 };
 
-export const createCustomOperator = (label: string, entries: SingleQubitMatrixEntries): string => {
-  const id = `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const operatorLabel = label.trim() === "" ? `U${state.customOperators.length + 1}` : label.trim();
+const nextCustomOperatorId = (): string => `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+const nextCustomOperatorLabel = (label: string): string =>
+  label.trim() === "" ? `U${state.customOperators.length + 1}` : label.trim();
+
+export const createCustomSingleQubitOperator = (label: string, entries: SingleQubitMatrixEntries): string => {
+  const id = nextCustomOperatorId();
+  const operatorLabel = nextCustomOperatorLabel(label);
   const created = normalizeOperator(makeSingleQubitOperator(id, operatorLabel, entries));
 
   state.customOperators.push(created);
   persistCustomOperators(state.customOperators);
   return created.id;
 };
+
+export const createCustomBlockOperator = (label: string, blocks: Block2x2<1>): string => {
+  const id = nextCustomOperatorId();
+  const operatorLabel = nextCustomOperatorLabel(label);
+  const created = normalizeOperator(blockMatrix2x2(id, operatorLabel, blocks));
+
+  state.customOperators.push(created);
+  persistCustomOperators(state.customOperators);
+  return created.id;
+};
+
+export const createCustomOperator = createCustomSingleQubitOperator;
 
 export const deleteCustomOperator = (id: string): void => {
   state.customOperators = state.customOperators.filter((entry) => entry.id !== id);
@@ -133,6 +150,14 @@ export const placeToffoli = (placement: ToffoliPlacement): void => {
     id: nextGateInstanceId(),
     gate: "TOFFOLI",
     wires: [placement.controlA, placement.controlB, placement.target],
+  });
+};
+
+export const placeMultiGate = (placement: MultiGatePlacement): void => {
+  pushGate(placement.column, {
+    id: nextGateInstanceId(),
+    gate: placement.gate,
+    wires: placement.wires,
   });
 };
 

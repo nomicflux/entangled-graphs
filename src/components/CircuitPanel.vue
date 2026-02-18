@@ -2,7 +2,7 @@
   <section class="panel panel-center">
     <div class="panel-header">
       <h2>Quantum Circuit</h2>
-      <p>Drag gates into the grid. Alt+Click clears or deletes custom gates.</p>
+      <p>Drag single-qubit gates into the grid. Alt+Click clears or deletes custom gates.</p>
     </div>
 
     <div class="circuit-tools">
@@ -22,13 +22,13 @@
         </button>
 
         <button
-          v-for="custom in state.customOperators"
+          v-for="custom in visibleCustomOperators"
           :key="custom.id"
           class="gate-chip custom-chip"
           :class="{ selected: state.selectedGate === custom.id }"
           :title="`Alt+Click to delete ${custom.label}`"
           type="button"
-          draggable="true"
+          :draggable="gateArity(custom.id) === 1"
           @click="handleCustomChipClick(custom.id, $event)"
           @dragstart="startPaletteDrag(custom.id, $event)"
           @dragend="endDrag"
@@ -36,7 +36,8 @@
           {{ custom.label }}
         </button>
 
-        <button class="gate-chip custom-new" type="button" @click="openCustomModal">Custom</button>
+        <button class="gate-chip custom-new" type="button" @click="openSingleCustomModal">Custom (1Q)</button>
+        <button class="gate-chip custom-new" type="button" @click="openBlockCustomModal">Custom (NQ)</button>
       </div>
 
       <div class="column-controls">
@@ -91,6 +92,8 @@
                 'is-cnot-target': isCnotTarget(column, row) || isPendingCnotTarget(colIndex, row),
                 'is-toffoli-control': isToffoliControl(column, row) || isPendingToffoliControl(colIndex, row),
                 'is-toffoli-target': isToffoliTarget(column, row) || isPendingToffoliTarget(colIndex, row),
+                'is-multi-custom-wire': isCustomMultiWire(column, row) || isPendingMultiWire(colIndex, row),
+                'is-multi-custom-hover': isPendingMultiHover(colIndex, row),
               }"
               :draggable="isDraggableToken(column, row)"
               @dragstart="startCellDrag(colIndex, row, $event)"
@@ -127,9 +130,9 @@
     <StageInspector :stage="selectedStage" :animated="false" />
   </section>
 
-  <div v-if="isCustomModalOpen" class="custom-modal-backdrop" @click.self="closeCustomModal">
+  <div v-if="isSingleCustomModalOpen" class="custom-modal-backdrop" @click.self="closeSingleCustomModal">
     <section class="custom-modal">
-      <h3>Create Custom Operator</h3>
+      <h3>Create Custom Single-Qubit Gate</h3>
       <p class="custom-modal-note">
         Define a 2x2 complex matrix U. Each entry is a complex number (real + imaginary i). Values are normalized on
         submit.
@@ -201,8 +204,77 @@
       </div>
 
       <div class="custom-modal-actions">
-        <button type="button" class="column-btn" @click="closeCustomModal">Cancel</button>
-        <button type="button" class="column-btn primary" @click="submitCustomOperator">Save Operator</button>
+        <button type="button" class="column-btn" @click="closeSingleCustomModal">Cancel</button>
+        <button type="button" class="column-btn primary" @click="submitSingleCustomOperator">Save 1Q Gate</button>
+      </div>
+    </section>
+  </div>
+
+  <div v-if="isBlockCustomModalOpen" class="custom-modal-backdrop" @click.self="closeBlockCustomModal">
+    <section class="custom-modal">
+      <h3>Create Custom Multi-Qubit Gate</h3>
+      <p class="custom-modal-note">
+        Choose a qubit arity, then build a 2x2 block matrix from lower-arity gates. Current scope supports 2-qubit
+        builders from single-qubit blocks.
+      </p>
+
+      <label class="custom-label">
+        Operator label
+        <input v-model="blockCustomLabel" type="text" placeholder="U2" />
+      </label>
+
+      <label class="custom-label">
+        Qubit arity
+        <select v-model.number="blockCustomArity">
+          <option :value="2">2 qubits (4x4 matrix)</option>
+        </select>
+      </label>
+
+      <div class="matrix-help">
+        <span>U = [[A, B], [C, D]]</span>
+        <span>Each block is a 1-qubit gate.</span>
+      </div>
+
+      <div class="block-operator-grid">
+        <label class="block-cell">
+          <span>A (top-left)</span>
+          <select v-model="blockDraft.topLeft">
+            <option v-for="option in blockBuilderOptions" :key="`A-${option.gate}`" :value="option.gate">
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
+        <label class="block-cell">
+          <span>B (top-right)</span>
+          <select v-model="blockDraft.topRight">
+            <option v-for="option in blockBuilderOptions" :key="`B-${option.gate}`" :value="option.gate">
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
+        <label class="block-cell">
+          <span>C (bottom-left)</span>
+          <select v-model="blockDraft.bottomLeft">
+            <option v-for="option in blockBuilderOptions" :key="`C-${option.gate}`" :value="option.gate">
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
+        <label class="block-cell">
+          <span>D (bottom-right)</span>
+          <select v-model="blockDraft.bottomRight">
+            <option v-for="option in blockBuilderOptions" :key="`D-${option.gate}`" :value="option.gate">
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
+      </div>
+
+      <div class="custom-modal-actions">
+        <button type="button" class="column-btn" @click="closeBlockCustomModal">Cancel</button>
+        <button type="button" class="column-btn primary" :disabled="blockBuilderOptions.length === 0" @click="submitBlockCustomOperator">
+          Save NQ Gate
+        </button>
       </div>
     </section>
   </div>
@@ -215,24 +287,29 @@ import {
   appendColumn,
   availableBuiltinGatesForQubitCount,
   clearGateAt,
-  createCustomOperator,
+  createCustomBlockOperator,
+  createCustomSingleQubitOperator,
   deleteCustomOperator,
-  gateAt,
   gateInstanceAt,
   gateLabel,
+  placeMultiGate,
   placeCnot,
   placeToffoli,
   qubitCount,
   removeLastColumn,
+  resolveBlock2x2Selection,
+  resolveOperator,
   selectedStage,
   setGateAt,
   setSelectedGate,
   setSelectedStage,
+  singleQubitBuilderOptions,
   stageViews,
   operatorArityForGate,
   state,
   toCellRef,
   toCnotPlacement,
+  toMultiGatePlacement,
   toSingleGatePlacement,
   toToffoliPlacement,
 } from "../state";
@@ -247,10 +324,17 @@ const paletteGates = computed<GateId[]>(() =>
   availableBuiltinGatesForQubitCount(qubitCount.value).filter((gate) => paletteBuiltinGates.includes(gate)),
 );
 
+const visibleCustomOperators = computed(() =>
+  state.customOperators.filter((operator) => operator.qubitArity <= qubitCount.value),
+);
+
 const rows = computed<QubitRow[]>(() => Array.from({ length: qubitCount.value }, (_, index) => index));
 
-const isCustomModalOpen = ref(false);
+const isSingleCustomModalOpen = ref(false);
+const isBlockCustomModalOpen = ref(false);
 const customLabel = ref("");
+const blockCustomLabel = ref("");
+const blockCustomArity = ref<2>(2);
 
 const draft = reactive({
   o00r: "1",
@@ -261,6 +345,13 @@ const draft = reactive({
   o10i: "0",
   o11r: "1",
   o11i: "0",
+});
+
+const blockDraft = reactive({
+  topLeft: "I" as GateId,
+  topRight: "X" as GateId,
+  bottomLeft: "X" as GateId,
+  bottomRight: "I" as GateId,
 });
 
 type DragSource = {
@@ -288,12 +379,25 @@ type PendingToffoliPlacement = {
   hoverRow: QubitRow | null;
 };
 
-type PendingPlacement = PendingCnotPlacement | PendingToffoliPlacement;
+type PendingMultiPlacement = {
+  kind: "multi";
+  column: number;
+  gate: GateId;
+  arity: number;
+  wires: QubitRow[];
+  hoverRow: QubitRow | null;
+};
+
+type PendingPlacement = PendingCnotPlacement | PendingToffoliPlacement | PendingMultiPlacement;
 
 const dragging = ref<DragPayload | null>(null);
 const dropTarget = ref<DragSource | null>(null);
 const pendingPlacement = ref<PendingPlacement | null>(null);
 const placementError = ref<string | null>(null);
+
+const gateArity = (gate: GateId): number => operatorArityForGate(gate, state.customOperators) ?? 0;
+
+const gateName = (gate: GateId): string => resolveOperator(gate, state.customOperators)?.label ?? gate;
 
 const placementHint = computed<string | null>(() => {
   if (placementError.value) {
@@ -310,11 +414,18 @@ const placementHint = computed<string | null>(() => {
   if (pending?.kind === "toffoli") {
     return `Toffoli in t${pending.column + 1}: click target wire (Esc to cancel).`;
   }
+  if (pending?.kind === "multi") {
+    const nextStep = Math.min(pending.wires.length + 1, pending.arity);
+    return `${gateName(pending.gate)} in t${pending.column + 1}: click wire ${nextStep}/${pending.arity} (Esc to cancel).`;
+  }
   if (state.selectedGate === "CNOT") {
     return "CNOT: click a control wire to start placement.";
   }
   if (state.selectedGate === "TOFFOLI") {
     return "Toffoli: click the first control wire to start placement.";
+  }
+  if (state.selectedGate !== null && gateArity(state.selectedGate) > 1) {
+    return `${gateName(state.selectedGate)}: click wire 1/${gateArity(state.selectedGate)} to start placement.`;
   }
   return null;
 });
@@ -323,8 +434,6 @@ const clearPendingPlacement = () => {
   pendingPlacement.value = null;
   placementError.value = null;
 };
-
-const gateArity = (gate: GateId): number => operatorArityForGate(gate, state.customOperators) ?? 1;
 
 const isPaletteDraggable = (gate: GateId): boolean => gateArity(gate) === 1;
 
@@ -337,11 +446,17 @@ const selectGate = (gate: GateId) => {
 const slotInstance = (column: CircuitColumn, row: QubitRow) => gateInstanceAt(column, row);
 
 const tokenFor = (column: CircuitColumn, row: QubitRow): string => {
-  const gate = gateAt(column, row);
-  if (gate === "CNOT" || gate === "TOFFOLI") {
+  const instance = slotInstance(column, row);
+  if (!instance) {
     return "";
   }
-  return gateLabel(gate);
+  if (instance.gate === "CNOT" || instance.gate === "TOFFOLI") {
+    return "";
+  }
+  if (instance.wires.length > 1) {
+    return instance.wires[0] === row ? gateLabel(instance.gate) : "•";
+  }
+  return gateLabel(instance.gate);
 };
 
 const isDraggableToken = (column: CircuitColumn, row: QubitRow): boolean => {
@@ -370,6 +485,14 @@ const isToffoliControl = (column: CircuitColumn, row: QubitRow): boolean => {
 const isToffoliTarget = (column: CircuitColumn, row: QubitRow): boolean => {
   const gate = slotInstance(column, row);
   return gate?.gate === "TOFFOLI" && gate.wires[2] === row;
+};
+
+const isCustomMultiWire = (column: CircuitColumn, row: QubitRow): boolean => {
+  const gate = slotInstance(column, row);
+  if (!gate || gate.gate === "CNOT" || gate.gate === "TOFFOLI") {
+    return false;
+  }
+  return gate.wires.length > 1;
 };
 
 const isPendingCnotControl = (columnIndex: number, row: QubitRow): boolean => {
@@ -407,9 +530,28 @@ const isPendingToffoliTarget = (columnIndex: number, row: QubitRow): boolean => 
   return pending.hoverRow === row;
 };
 
+const isPendingMultiWire = (columnIndex: number, row: QubitRow): boolean => {
+  const pending = pendingPlacement.value;
+  if (pending?.kind !== "multi" || pending.column !== columnIndex) {
+    return false;
+  }
+  return pending.wires.includes(row);
+};
+
+const isPendingMultiHover = (columnIndex: number, row: QubitRow): boolean => {
+  const pending = pendingPlacement.value;
+  if (pending?.kind !== "multi" || pending.column !== columnIndex || pending.hoverRow === null) {
+    return false;
+  }
+  if (pending.wires.includes(pending.hoverRow)) {
+    return false;
+  }
+  return pending.hoverRow === row;
+};
+
 type ConnectorSegment = {
   id: string;
-  kind: "cnot" | "toffoli";
+  kind: "cnot" | "toffoli" | "multi";
   fromRow: number;
   toRow: number;
   preview: boolean;
@@ -417,17 +559,23 @@ type ConnectorSegment = {
 
 const connectorSegments = (column: CircuitColumn, columnIndex: number): ConnectorSegment[] => {
   const committedSegments = column.gates.flatMap((gate): ConnectorSegment[] => {
-    if (gate.gate !== "CNOT" && gate.gate !== "TOFFOLI") {
-      return [];
-    }
-
     if (gate.gate === "CNOT") {
       return [{ id: gate.id, kind: "cnot", fromRow: gate.wires[0]!, toRow: gate.wires[1]!, preview: false }];
     }
 
-    const minRow = Math.min(...gate.wires);
-    const maxRow = Math.max(...gate.wires);
-    return [{ id: gate.id, kind: "toffoli", fromRow: minRow, toRow: maxRow, preview: false }];
+    if (gate.gate === "TOFFOLI") {
+      const minRow = Math.min(...gate.wires);
+      const maxRow = Math.max(...gate.wires);
+      return [{ id: gate.id, kind: "toffoli", fromRow: minRow, toRow: maxRow, preview: false }];
+    }
+
+    if (gate.wires.length > 1) {
+      const minRow = Math.min(...gate.wires);
+      const maxRow = Math.max(...gate.wires);
+      return [{ id: gate.id, kind: "multi", fromRow: minRow, toRow: maxRow, preview: false }];
+    }
+
+    return [];
   });
 
   const pending = pendingPlacement.value;
@@ -458,6 +606,20 @@ const connectorSegments = (column: CircuitColumn, columnIndex: number): Connecto
         kind: "toffoli",
         fromRow: pending.controlA,
         toRow: hover,
+        preview: true,
+      },
+    ];
+  }
+
+  if (pending.kind === "multi") {
+    const previewRows = pending.hoverRow !== null ? [...pending.wires, pending.hoverRow] : pending.wires;
+    return [
+      ...committedSegments,
+      {
+        id: `pending-multi-${columnIndex}`,
+        kind: "multi",
+        fromRow: Math.min(...previewRows),
+        toRow: Math.max(...previewRows),
         preview: true,
       },
     ];
@@ -587,6 +749,11 @@ const beginToffoliPlacement = (column: number, controlA: QubitRow) => {
   placementError.value = null;
 };
 
+const beginMultiPlacement = (column: number, gate: GateId, arity: number, firstWire: QubitRow) => {
+  pendingPlacement.value = { kind: "multi", column, gate, arity, wires: [firstWire], hoverRow: firstWire };
+  placementError.value = null;
+};
+
 const handleCnotSlotClick = (col: number, row: QubitRow) => {
   if (qubitCount.value < 2) {
     return;
@@ -653,6 +820,41 @@ const handleToffoliSlotClick = (col: number, row: QubitRow) => {
   clearPendingPlacement();
 };
 
+const handleMultiSlotClick = (col: number, row: QubitRow, gate: GateId) => {
+  const arity = gateArity(gate);
+  if (arity < 2 || qubitCount.value < arity) {
+    return;
+  }
+
+  const pending = pendingPlacement.value;
+  if (!pending || pending.kind !== "multi" || pending.column !== col || pending.gate !== gate) {
+    beginMultiPlacement(col, gate, arity, row);
+    return;
+  }
+
+  if (pending.wires.includes(row)) {
+    placementError.value = "Each wire can only be selected once.";
+    pending.hoverRow = row;
+    return;
+  }
+
+  const nextWires = [...pending.wires, row];
+  if (nextWires.length < pending.arity) {
+    pendingPlacement.value = { ...pending, wires: nextWires, hoverRow: row };
+    placementError.value = null;
+    return;
+  }
+
+  const placement = toMultiGatePlacement(col, nextWires, gate);
+  if (!placement) {
+    placementError.value = "Gate placement is invalid for the current circuit.";
+    return;
+  }
+
+  placeMultiGate(placement);
+  clearPendingPlacement();
+};
+
 const handleSlotClick = (col: number, row: QubitRow, event: MouseEvent) => {
   if (event.altKey) {
     const cell = toCellRef(col, row);
@@ -679,6 +881,11 @@ const handleSlotClick = (col: number, row: QubitRow, event: MouseEvent) => {
     return;
   }
 
+  if (gateArity(state.selectedGate) > 1) {
+    handleMultiSlotClick(col, row, state.selectedGate);
+    return;
+  }
+
   clearPendingPlacement();
   const placement = toSingleGatePlacement(col, row, state.selectedGate);
   if (!placement) {
@@ -695,7 +902,9 @@ const handleCustomChipClick = (customId: string, event: MouseEvent) => {
   selectGate(customId);
 };
 
-const resetDraft = () => {
+const blockBuilderOptions = computed(() => singleQubitBuilderOptions(state.customOperators));
+
+const resetSingleDraft = () => {
   customLabel.value = "";
   draft.o00r = "1";
   draft.o00i = "0";
@@ -707,13 +916,51 @@ const resetDraft = () => {
   draft.o11i = "0";
 };
 
-const openCustomModal = () => {
-  resetDraft();
-  isCustomModalOpen.value = true;
+const resetBlockDraft = () => {
+  blockCustomLabel.value = "";
+  blockCustomArity.value = 2;
+
+  const firstGate = blockBuilderOptions.value[0]?.gate ?? "I";
+  blockDraft.topLeft = firstGate;
+  blockDraft.topRight = firstGate;
+  blockDraft.bottomLeft = firstGate;
+  blockDraft.bottomRight = firstGate;
 };
 
-const closeCustomModal = () => {
-  isCustomModalOpen.value = false;
+const synchronizeBlockDraft = () => {
+  const availableIds = new Set(blockBuilderOptions.value.map((option) => option.gate));
+  const fallback = blockBuilderOptions.value[0]?.gate ?? "I";
+
+  if (!availableIds.has(blockDraft.topLeft)) {
+    blockDraft.topLeft = fallback;
+  }
+  if (!availableIds.has(blockDraft.topRight)) {
+    blockDraft.topRight = fallback;
+  }
+  if (!availableIds.has(blockDraft.bottomLeft)) {
+    blockDraft.bottomLeft = fallback;
+  }
+  if (!availableIds.has(blockDraft.bottomRight)) {
+    blockDraft.bottomRight = fallback;
+  }
+};
+
+const openSingleCustomModal = () => {
+  resetSingleDraft();
+  isSingleCustomModalOpen.value = true;
+};
+
+const closeSingleCustomModal = () => {
+  isSingleCustomModalOpen.value = false;
+};
+
+const openBlockCustomModal = () => {
+  resetBlockDraft();
+  isBlockCustomModalOpen.value = true;
+};
+
+const closeBlockCustomModal = () => {
+  isBlockCustomModalOpen.value = false;
 };
 
 const parseNumber = (input: string): number => {
@@ -721,7 +968,7 @@ const parseNumber = (input: string): number => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
-const submitCustomOperator = () => {
+const submitSingleCustomOperator = () => {
   const entries = singleQubitMatrix(
     complex.complex(parseNumber(draft.o00r), parseNumber(draft.o00i)),
     complex.complex(parseNumber(draft.o01r), parseNumber(draft.o01i)),
@@ -729,10 +976,34 @@ const submitCustomOperator = () => {
     complex.complex(parseNumber(draft.o11r), parseNumber(draft.o11i)),
   );
 
-  const createdId = createCustomOperator(customLabel.value, entries);
+  const createdId = createCustomSingleQubitOperator(customLabel.value, entries);
   setSelectedGate(createdId);
   clearPendingPlacement();
-  closeCustomModal();
+  closeSingleCustomModal();
+};
+
+const submitBlockCustomOperator = () => {
+  if (blockCustomArity.value !== 2) {
+    return;
+  }
+
+  const blocks = resolveBlock2x2Selection(
+    {
+      topLeft: blockDraft.topLeft,
+      topRight: blockDraft.topRight,
+      bottomLeft: blockDraft.bottomLeft,
+      bottomRight: blockDraft.bottomRight,
+    },
+    state.customOperators,
+  );
+  if (!blocks) {
+    return;
+  }
+
+  const createdId = createCustomBlockOperator(blockCustomLabel.value, blocks);
+  setSelectedGate(createdId);
+  clearPendingPlacement();
+  closeBlockCustomModal();
 };
 
 const isDropTarget = (col: number, row: QubitRow): boolean =>
@@ -768,6 +1039,21 @@ const validatePendingPlacement = () => {
     return;
   }
 
+  if (pending.kind === "multi") {
+    if (
+      gateArity(pending.gate) !== pending.arity ||
+      qubitCount.value < pending.arity ||
+      pending.wires.some((wire) => wire >= qubitCount.value)
+    ) {
+      clearPendingPlacement();
+      return;
+    }
+    if (pending.hoverRow !== null && pending.hoverRow >= qubitCount.value) {
+      pending.hoverRow = null;
+    }
+    return;
+  }
+
   if (qubitCount.value < 3 || pending.controlA >= qubitCount.value) {
     clearPendingPlacement();
     return;
@@ -786,7 +1072,7 @@ const validatePendingPlacement = () => {
 watch(
   () => state.selectedGate,
   (gate) => {
-    if (gate !== "CNOT" && gate !== "TOFFOLI") {
+    if (gate === null) {
       clearPendingPlacement();
       return;
     }
@@ -797,7 +1083,22 @@ watch(
       return;
     }
 
-    if ((gate === "CNOT" && pending.kind !== "cnot") || (gate === "TOFFOLI" && pending.kind !== "toffoli")) {
+    if (gate === "CNOT" && pending.kind !== "cnot") {
+      clearPendingPlacement();
+      return;
+    }
+
+    if (gate === "TOFFOLI" && pending.kind !== "toffoli") {
+      clearPendingPlacement();
+      return;
+    }
+
+    if (gate !== "CNOT" && gate !== "TOFFOLI" && pending.kind !== "multi") {
+      clearPendingPlacement();
+      return;
+    }
+
+    if (pending.kind === "multi" && pending.gate !== gate) {
       clearPendingPlacement();
     }
   },
@@ -807,6 +1108,13 @@ watch(
   [() => qubitCount.value, () => state.columns.length],
   () => {
     validatePendingPlacement();
+  },
+);
+
+watch(
+  blockBuilderOptions,
+  () => {
+    synchronizeBlockDraft();
   },
 );
 

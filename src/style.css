@@ -3,5 +3,8 @@
 @import "./styles/panels.css";
 @import "./styles/bloch.css";
 @import "./styles/prep-panel.css";
-@import "./styles/circuit-panel.css";
+@import "./styles/circuit-tools.css";
+@import "./styles/circuit-grid.css";
+@import "./styles/circuit-stage.css";
+@import "./styles/circuit-modal.css";
 @import "./styles/measurement-panel.css";

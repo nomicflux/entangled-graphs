@@ -27,8 +27,8 @@ export type BuiltinSingleGateId = "I" | "X" | "H" | "S";
 export type BuiltinMultiGateId = "CNOT" | "TOFFOLI";
 export type BuiltinGateId = BuiltinSingleGateId | BuiltinMultiGateId;
 type CustomGateId = string;
-export type SingleGateRef = BuiltinSingleGateId | CustomGateId;
 export type GateId = BuiltinGateId | CustomGateId;
+export type SingleGateRef = GateId;
 export type GateCell = GateId | null;
 
 export type GateInstance = {
@@ -41,7 +41,7 @@ export type CircuitColumn = {
     gates: GateInstance[];
 };
 
-export type CustomOperator = Operator<1> & { id: CustomGateId };
+export type CustomOperator = Operator & { id: CustomGateId };
 
 export type BasisLabel = string;
 export type QubitState = Complex[];

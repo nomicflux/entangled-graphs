@@ -8,6 +8,7 @@ declare const cellRefBrand: unique symbol;
 declare const cnotPlacementBrand: unique symbol;
 declare const toffoliPlacementBrand: unique symbol;
 declare const singlePlacementBrand: unique symbol;
+declare const multiPlacementBrand: unique symbol;
 
 export type ColumnIndex = number & { readonly [columnIndexBrand]: "ColumnIndex" };
 export type WireIndex = number & { readonly [wireIndexBrand]: "WireIndex" };
@@ -39,8 +40,18 @@ export type SingleGatePlacement = {
   readonly [singlePlacementBrand]: "SingleGatePlacement";
 };
 
+export type MultiGatePlacement = {
+  readonly column: ColumnIndex;
+  readonly wires: ReadonlyArray<WireIndex>;
+  readonly gate: SingleGateRef;
+  readonly [multiPlacementBrand]: "MultiGatePlacement";
+};
+
 const asColumnIndex = (value: number): ColumnIndex => value as ColumnIndex;
 const asWireIndex = (value: number): WireIndex => value as WireIndex;
+const asMultiGatePlacement = (
+  placement: Omit<MultiGatePlacement, typeof multiPlacementBrand>,
+): MultiGatePlacement => placement as unknown as MultiGatePlacement;
 
 const hasColumn = (value: number): boolean =>
   Number.isInteger(value) && value >= 0 && value < state.columns.length;
@@ -72,6 +83,29 @@ export const toSingleGatePlacement = (column: number, wire: number, gate: Single
     cell,
     gate,
   } as SingleGatePlacement;
+};
+
+export const toMultiGatePlacement = (
+  column: number,
+  wires: ReadonlyArray<number>,
+  gate: SingleGateRef,
+): MultiGatePlacement | null => {
+  const arity = operatorArityForGate(gate, state.customOperators);
+  if (arity === null || arity < 2 || state.preparedBloch.length < arity) {
+    return null;
+  }
+  if (!hasColumn(column) || wires.length !== arity || wires.some((wire) => !hasWire(wire))) {
+    return null;
+  }
+  if (new Set(wires).size !== wires.length) {
+    return null;
+  }
+
+  return asMultiGatePlacement({
+    column: asColumnIndex(column),
+    wires: wires.map(asWireIndex),
+    gate,
+  });
 };
 
 export const toCnotPlacement = (column: number, control: number, target: number): CnotPlacement | null => {
