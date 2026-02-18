@@ -213,6 +213,7 @@ import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import type { CircuitColumn, GateId, QubitRow } from "../types";
 import {
   appendColumn,
+  availableBuiltinGatesForQubitCount,
   clearGateAt,
   createCustomOperator,
   deleteCustomOperator,
@@ -243,10 +244,7 @@ import StageInspector from "./StageInspector.vue";
 const paletteBuiltinGates: readonly GateId[] = ["I", "X", "H", "S", "CNOT", "TOFFOLI"];
 
 const paletteGates = computed<GateId[]>(() =>
-  paletteBuiltinGates.filter((gate) => {
-    const arity = operatorArityForGate(gate, state.customOperators);
-    return arity !== null && arity <= qubitCount.value;
-  }),
+  availableBuiltinGatesForQubitCount(qubitCount.value).filter((gate) => paletteBuiltinGates.includes(gate)),
 );
 
 const rows = computed<QubitRow[]>(() => Array.from({ length: qubitCount.value }, (_, index) => index));

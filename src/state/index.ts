@@ -1,7 +1,7 @@
 export { state } from "./store";
 export type { CellRef, CnotPlacement, ColumnIndex, SingleGatePlacement, ToffoliPlacement, WireIndex } from "./placements";
 export { toCellRef, toCnotPlacement, toSingleGatePlacement, toToffoliPlacement } from "./placements";
-export { operatorArityForGate, resolveOperator } from "./operators";
+export { availableBuiltinGatesForQubitCount, operatorArityForGate, resolveOperator } from "./operators";
 
 export {
   qubitCount,

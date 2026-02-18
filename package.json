@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite build && vite preview",
     "test:compile": "rm -rf .tmp-test && tsc -p tsconfig.test.json && node -e \"require('fs').writeFileSync('.tmp-test/package.json', JSON.stringify({ type: 'commonjs' }))\"",
-    "test": "npm run -s test:compile && node --test tests/*.test.cjs"
+    "test": "npm run -s test:compile && node --test tests/*.test.cjs",
+    "test:watch": "npm run -s test:compile && node --test --watch tests/*.test.cjs"
   },
   "keywords": [],
   "author": "",

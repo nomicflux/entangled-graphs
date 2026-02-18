@@ -1,5 +1,5 @@
 import type { BuiltinGateId, BuiltinSingleGateId, GateId, Operator } from "../types";
-import { CNOT, H, I, S, TOFFOLI, X } from "../operator";
+import { CNOT, H, I, S, TOFFOLI, X, builtinGateIds } from "../operator";
 import type { CustomOperator } from "../types";
 
 export const builtinOperatorMap: Record<BuiltinGateId, Operator> = {
@@ -29,3 +29,6 @@ export const operatorArityForGate = (gate: GateId, customOperators: ReadonlyArra
   const operator = resolveOperator(gate, customOperators);
   return operator ? operator.qubitArity : null;
 };
+
+export const availableBuiltinGatesForQubitCount = (qubitCount: number): BuiltinGateId[] =>
+  builtinGateIds.filter((gate) => builtinOperatorMap[gate].qubitArity <= qubitCount);
