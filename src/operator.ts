@@ -192,6 +192,20 @@ const xEntries = singleQubitMatrix(
   complex.from_real(0),
 );
 
+const yEntries = singleQubitMatrix(
+  complex.from_real(0),
+  complex.complex(0, -1),
+  complex.complex(0, 1),
+  complex.from_real(0),
+);
+
+const zEntries = singleQubitMatrix(
+  complex.from_real(1),
+  complex.from_real(0),
+  complex.from_real(0),
+  complex.from_real(-1),
+);
+
 const hRaw = makeSingleQubitOperator(
   "H",
   "H",
@@ -210,12 +224,41 @@ const sEntries = singleQubitMatrix(
   complex.complex(0, 1),
 );
 
+const tEntries = singleQubitMatrix(
+  complex.from_real(1),
+  complex.from_real(0),
+  complex.from_real(0),
+  complex.complex(Math.SQRT1_2, Math.SQRT1_2),
+);
+
 export const I: Operator<1> = makeSingleQubitOperator("I", "I", identityEntries);
 export const X: Operator<1> = makeSingleQubitOperator("X", "X", xEntries);
+export const Y: Operator<1> = makeSingleQubitOperator("Y", "Y", yEntries);
+export const Z: Operator<1> = makeSingleQubitOperator("Z", "Z", zEntries);
 export const H: Operator<1> = scaleOperator(hRaw, 1 / Math.sqrt(2));
 export const S: Operator<1> = makeSingleQubitOperator("S", "S", sEntries);
+export const T: Operator<1> = makeSingleQubitOperator("T", "T", tEntries);
 export const CNOT: Operator<2> = controlledOperator("CNOT", "CNOT", X);
+export const SWAP: Operator<2> = makeOperator("SWAP", "SWAP", 2, [
+  [complex.from_real(1), complex.from_real(0), complex.from_real(0), complex.from_real(0)],
+  [complex.from_real(0), complex.from_real(0), complex.from_real(1), complex.from_real(0)],
+  [complex.from_real(0), complex.from_real(1), complex.from_real(0), complex.from_real(0)],
+  [complex.from_real(0), complex.from_real(0), complex.from_real(0), complex.from_real(1)],
+]);
 export const TOFFOLI: Operator<3> = controlledOperator("TOFFOLI", "TOFFOLI", CNOT);
+export const CSWAP: Operator<3> = controlledOperator("CSWAP", "C-SWAP", SWAP);
 
-export const builtinOperatorIds: readonly BuiltinSingleGateId[] = ["I", "X", "H", "S"];
-export const builtinGateIds: readonly BuiltinGateId[] = ["I", "X", "H", "S", "CNOT", "TOFFOLI"];
+export const builtinOperatorIds: readonly BuiltinSingleGateId[] = ["I", "X", "Y", "Z", "H", "S", "T"];
+export const builtinGateIds: readonly BuiltinGateId[] = [
+  "I",
+  "X",
+  "Y",
+  "Z",
+  "H",
+  "S",
+  "T",
+  "CNOT",
+  "SWAP",
+  "TOFFOLI",
+  "CSWAP",
+];

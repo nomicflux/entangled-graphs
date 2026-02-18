@@ -115,6 +115,12 @@
   gap: 8px;
 }
 
+.custom-modal-error {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #ff8c99;
+}
+
 .column-btn.primary {
   background: rgba(102, 245, 214, 0.25);
   border-color: rgba(102, 245, 214, 0.8);

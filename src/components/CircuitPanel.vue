@@ -7,37 +7,30 @@
 
     <div class="circuit-tools">
       <div class="gate-palette">
-        <button
-          v-for="gate in paletteGates"
-          :key="gate"
-          class="gate-chip"
-          :class="{ selected: state.selectedGate === gate }"
-          type="button"
-          :draggable="isPaletteDraggable(gate)"
-          @click="selectGate(gate)"
-          @dragstart="startPaletteDrag(gate, $event)"
-          @dragend="endDrag"
-        >
-          {{ gate }}
-        </button>
+        <section v-for="group in paletteGroups" :key="group.arity" class="gate-group">
+          <p class="gate-group-title">{{ group.title }}</p>
+          <div class="gate-group-chips">
+            <button
+              v-for="entry in group.entries"
+              :key="entry.id"
+              class="gate-chip"
+              :class="{ selected: state.selectedGate === entry.id, 'custom-chip': entry.isCustom }"
+              :title="entry.isCustom ? `Alt+Click to delete ${entry.label}` : ''"
+              type="button"
+              :draggable="isPaletteDraggable(entry.id)"
+              @click="handlePaletteChipClick(entry, $event)"
+              @dragstart="startPaletteDrag(entry.id, $event)"
+              @dragend="endDrag"
+            >
+              {{ entry.label }}
+            </button>
+          </div>
+        </section>
 
-        <button
-          v-for="custom in visibleCustomOperators"
-          :key="custom.id"
-          class="gate-chip custom-chip"
-          :class="{ selected: state.selectedGate === custom.id }"
-          :title="`Alt+Click to delete ${custom.label}`"
-          type="button"
-          :draggable="gateArity(custom.id) === 1"
-          @click="handleCustomChipClick(custom.id, $event)"
-          @dragstart="startPaletteDrag(custom.id, $event)"
-          @dragend="endDrag"
-        >
-          {{ custom.label }}
-        </button>
-
-        <button class="gate-chip custom-new" type="button" @click="openSingleCustomModal">Custom (1Q)</button>
-        <button class="gate-chip custom-new" type="button" @click="openBlockCustomModal">Custom (NQ)</button>
+        <div class="custom-actions">
+          <button class="gate-chip custom-new" type="button" @click="openSingleCustomModal">Custom (1Q)</button>
+          <button class="gate-chip custom-new" type="button" @click="openBlockCustomModal">Custom (NQ)</button>
+        </div>
       </div>
 
       <div class="column-controls">
@@ -239,36 +232,46 @@
         <label class="block-cell">
           <span>A (top-left)</span>
           <select v-model="blockDraft.topLeft">
-            <option v-for="option in blockBuilderOptions" :key="`A-${option.gate}`" :value="option.gate">
-              {{ option.label }}
-            </option>
+            <optgroup v-for="group in blockBuilderOptionGroups" :key="`A-${group.label}`" :label="group.label">
+              <option v-for="option in group.options" :key="`A-${option.gate}`" :value="option.gate">
+                {{ option.label }}
+              </option>
+            </optgroup>
           </select>
         </label>
         <label class="block-cell">
           <span>B (top-right)</span>
           <select v-model="blockDraft.topRight">
-            <option v-for="option in blockBuilderOptions" :key="`B-${option.gate}`" :value="option.gate">
-              {{ option.label }}
-            </option>
+            <optgroup v-for="group in blockBuilderOptionGroups" :key="`B-${group.label}`" :label="group.label">
+              <option v-for="option in group.options" :key="`B-${option.gate}`" :value="option.gate">
+                {{ option.label }}
+              </option>
+            </optgroup>
           </select>
         </label>
         <label class="block-cell">
           <span>C (bottom-left)</span>
           <select v-model="blockDraft.bottomLeft">
-            <option v-for="option in blockBuilderOptions" :key="`C-${option.gate}`" :value="option.gate">
-              {{ option.label }}
-            </option>
+            <optgroup v-for="group in blockBuilderOptionGroups" :key="`C-${group.label}`" :label="group.label">
+              <option v-for="option in group.options" :key="`C-${option.gate}`" :value="option.gate">
+                {{ option.label }}
+              </option>
+            </optgroup>
           </select>
         </label>
         <label class="block-cell">
           <span>D (bottom-right)</span>
           <select v-model="blockDraft.bottomRight">
-            <option v-for="option in blockBuilderOptions" :key="`D-${option.gate}`" :value="option.gate">
-              {{ option.label }}
-            </option>
+            <optgroup v-for="group in blockBuilderOptionGroups" :key="`D-${group.label}`" :label="group.label">
+              <option v-for="option in group.options" :key="`D-${option.gate}`" :value="option.gate">
+                {{ option.label }}
+              </option>
+            </optgroup>
           </select>
         </label>
       </div>
+
+      <p v-if="blockBuilderError" class="custom-modal-error">{{ blockBuilderError }}</p>
 
       <div class="custom-modal-actions">
         <button type="button" class="column-btn" @click="closeBlockCustomModal">Cancel</button>
@@ -292,6 +295,7 @@ import {
   deleteCustomOperator,
   gateInstanceAt,
   gateLabel,
+  isUnitaryOperator,
   placeMultiGate,
   placeCnot,
   placeToffoli,
@@ -314,11 +318,24 @@ import {
   toToffoliPlacement,
 } from "../state";
 import * as complex from "../complex";
-import { singleQubitMatrix } from "../operator";
+import { blockMatrix2x2, singleQubitMatrix } from "../operator";
+import type { BuilderBlockId, SingleQubitBuilderOption } from "../state/custom-operator-builder";
 import BlochPairView from "./BlochPairView.vue";
 import StageInspector from "./StageInspector.vue";
 
-const paletteBuiltinGates: readonly GateId[] = ["I", "X", "H", "S", "CNOT", "TOFFOLI"];
+const paletteBuiltinGates: readonly GateId[] = [
+  "I",
+  "X",
+  "Y",
+  "Z",
+  "H",
+  "S",
+  "T",
+  "CNOT",
+  "SWAP",
+  "TOFFOLI",
+  "CSWAP",
+];
 
 const paletteGates = computed<GateId[]>(() =>
   availableBuiltinGatesForQubitCount(qubitCount.value).filter((gate) => paletteBuiltinGates.includes(gate)),
@@ -328,6 +345,43 @@ const visibleCustomOperators = computed(() =>
   state.customOperators.filter((operator) => operator.qubitArity <= qubitCount.value),
 );
 
+type PaletteEntry = {
+  id: GateId;
+  label: string;
+  isCustom: boolean;
+};
+
+type PaletteGroup = {
+  arity: number;
+  title: string;
+  entries: PaletteEntry[];
+};
+
+const paletteGroups = computed<PaletteGroup[]>(() => {
+  const byArity = new Map<number, PaletteEntry[]>();
+
+  for (const gate of paletteGates.value) {
+    const arity = gateArity(gate);
+    const entries = byArity.get(arity) ?? [];
+    entries.push({ id: gate, label: gate, isCustom: false });
+    byArity.set(arity, entries);
+  }
+
+  for (const custom of visibleCustomOperators.value) {
+    const entries = byArity.get(custom.qubitArity) ?? [];
+    entries.push({ id: custom.id, label: custom.label, isCustom: true });
+    byArity.set(custom.qubitArity, entries);
+  }
+
+  return [...byArity.entries()]
+    .sort(([left], [right]) => left - right)
+    .map(([arity, entries]) => ({
+      arity,
+      title: `${arity}Q Gates`,
+      entries,
+    }));
+});
+
 const rows = computed<QubitRow[]>(() => Array.from({ length: qubitCount.value }, (_, index) => index));
 
 const isSingleCustomModalOpen = ref(false);
@@ -335,6 +389,7 @@ const isBlockCustomModalOpen = ref(false);
 const customLabel = ref("");
 const blockCustomLabel = ref("");
 const blockCustomArity = ref<2>(2);
+const blockBuilderError = ref("");
 
 const draft = reactive({
   o00r: "1",
@@ -348,10 +403,10 @@ const draft = reactive({
 });
 
 const blockDraft = reactive({
-  topLeft: "I" as GateId,
-  topRight: "X" as GateId,
-  bottomLeft: "X" as GateId,
-  bottomRight: "I" as GateId,
+  topLeft: "I" as BuilderBlockId,
+  topRight: "X" as BuilderBlockId,
+  bottomLeft: "X" as BuilderBlockId,
+  bottomRight: "I" as BuilderBlockId,
 });
 
 type DragSource = {
@@ -894,15 +949,29 @@ const handleSlotClick = (col: number, row: QubitRow, event: MouseEvent) => {
   setGateAt(placement);
 };
 
-const handleCustomChipClick = (customId: string, event: MouseEvent) => {
-  if (event.altKey) {
-    deleteCustomOperator(customId);
+const handlePaletteChipClick = (entry: PaletteEntry, event: MouseEvent) => {
+  if (entry.isCustom && event.altKey) {
+    deleteCustomOperator(entry.id);
     return;
   }
-  selectGate(customId);
+  selectGate(entry.id);
 };
 
-const blockBuilderOptions = computed(() => singleQubitBuilderOptions(state.customOperators));
+const blockBuilderOptions = computed<SingleQubitBuilderOption[]>(() => singleQubitBuilderOptions(state.customOperators));
+const blockBuilderOptionGroups = computed(() => [
+  {
+    label: "Built-in 1Q gates",
+    options: blockBuilderOptions.value.filter((option) => option.category === "builtin"),
+  },
+  {
+    label: "Custom 1Q gates",
+    options: blockBuilderOptions.value.filter((option) => option.category === "custom"),
+  },
+  {
+    label: "Non-unitary blocks",
+    options: blockBuilderOptions.value.filter((option) => option.category === "block"),
+  },
+]);
 
 const resetSingleDraft = () => {
   customLabel.value = "";
@@ -919,6 +988,7 @@ const resetSingleDraft = () => {
 const resetBlockDraft = () => {
   blockCustomLabel.value = "";
   blockCustomArity.value = 2;
+  blockBuilderError.value = "";
 
   const firstGate = blockBuilderOptions.value[0]?.gate ?? "I";
   blockDraft.topLeft = firstGate;
@@ -960,6 +1030,7 @@ const openBlockCustomModal = () => {
 };
 
 const closeBlockCustomModal = () => {
+  blockBuilderError.value = "";
   isBlockCustomModalOpen.value = false;
 };
 
@@ -986,6 +1057,7 @@ const submitBlockCustomOperator = () => {
   if (blockCustomArity.value !== 2) {
     return;
   }
+  blockBuilderError.value = "";
 
   const blocks = resolveBlock2x2Selection(
     {
@@ -997,6 +1069,13 @@ const submitBlockCustomOperator = () => {
     state.customOperators,
   );
   if (!blocks) {
+    blockBuilderError.value = "Block selection is invalid.";
+    return;
+  }
+
+  const previewOperator = blockMatrix2x2("preview", "preview", blocks);
+  if (!isUnitaryOperator(previewOperator)) {
+    blockBuilderError.value = "Final matrix must be unitary. Choose different blocks.";
     return;
   }
 

@@ -66,3 +66,42 @@ test("generic multi-qubit apply works on non-adjacent wires", () => {
   // control q0=1 so target q2 flips: 110 -> 111
   assert.equal(hotIndex(final), 7);
 });
+
+test("SWAP truth table", () => {
+  const mapping = {
+    "00": "00",
+    "01": "10",
+    "10": "01",
+    "11": "11",
+  };
+
+  for (const [input, expected] of Object.entries(mapping)) {
+    const prepared = basisState(input);
+    const column = { gates: [{ id: `g-swap-${input}`, gate: "SWAP", wires: [0, 1] }] };
+    const snapshots = quantum.simulate_columns(prepared, [column], (gate) => (gate === "SWAP" ? operator.SWAP : null), 2);
+    const final = snapshots[snapshots.length - 1];
+    assert.equal(hotIndex(final), Number.parseInt(expected, 2), `${input} should map to ${expected}`);
+  }
+});
+
+test("CSWAP swaps targets only when control is 1", () => {
+  const mapping = {
+    "010": "010",
+    "011": "011",
+    "101": "110",
+    "110": "101",
+  };
+
+  for (const [input, expected] of Object.entries(mapping)) {
+    const prepared = basisState(input);
+    const column = { gates: [{ id: `g-cswap-${input}`, gate: "CSWAP", wires: [0, 1, 2] }] };
+    const snapshots = quantum.simulate_columns(
+      prepared,
+      [column],
+      (gate) => (gate === "CSWAP" ? operator.CSWAP : null),
+      3,
+    );
+    const final = snapshots[snapshots.length - 1];
+    assert.equal(hotIndex(final), Number.parseInt(expected, 2), `${input} should map to ${expected}`);
+  }
+});

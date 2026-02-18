@@ -7,6 +7,31 @@
 }
 
 .gate-palette {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+}
+
+.gate-group {
+  display: grid;
+  gap: 6px;
+}
+
+.gate-group-title {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.gate-group-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.custom-actions {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;

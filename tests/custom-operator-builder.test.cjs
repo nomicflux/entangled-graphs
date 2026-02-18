@@ -20,8 +20,15 @@ test("builder options include only single-qubit custom operators", () => {
   const customTwoQ = operator.blockMatrix2x2("custom-2q", "U2", [[operator.I, operator.X], [operator.X, operator.I]]);
 
   const options = builder.singleQubitBuilderOptions([customSingle, customTwoQ]);
+  const gateIds = options.map((entry) => entry.gate);
 
-  assert.deepEqual(options.map((entry) => entry.gate), ["I", "X", "H", "S", "custom-1q"]);
+  assert.ok(gateIds.includes("I"));
+  assert.ok(gateIds.includes("Y"));
+  assert.ok(gateIds.includes("T"));
+  assert.ok(gateIds.includes("custom-1q"));
+  assert.ok(gateIds.includes("BLOCK_ZERO"));
+  assert.ok(gateIds.includes("BLOCK_KET0_BRA1"));
+  assert.ok(!gateIds.includes("custom-2q"));
 });
 
 test("block selection resolves to ordered 2x2 operator blocks", () => {
@@ -69,4 +76,32 @@ test("resolved block selection can be persisted as a custom multi-qubit operator
   } finally {
     store.state.customOperators = originalCustomOperators;
   }
+});
+
+test("unitary check accepts CNOT-style block matrix and rejects non-unitary blocks", () => {
+  const cnotBlocks = builder.resolveBlock2x2Selection(
+    {
+      topLeft: "I",
+      topRight: "BLOCK_ZERO",
+      bottomLeft: "BLOCK_ZERO",
+      bottomRight: "X",
+    },
+    [],
+  );
+  assert.ok(cnotBlocks);
+  const cnotLike = operator.blockMatrix2x2("tmp-cnot", "tmp-cnot", cnotBlocks);
+  assert.equal(builder.isUnitaryOperator(cnotLike), true);
+
+  const nonUnitaryBlocks = builder.resolveBlock2x2Selection(
+    {
+      topLeft: "BLOCK_KET0_BRA1",
+      topRight: "BLOCK_ZERO",
+      bottomLeft: "BLOCK_ZERO",
+      bottomRight: "BLOCK_ZERO",
+    },
+    [],
+  );
+  assert.ok(nonUnitaryBlocks);
+  const nonUnitary = operator.blockMatrix2x2("tmp-non-unitary", "tmp-non-unitary", nonUnitaryBlocks);
+  assert.equal(builder.isUnitaryOperator(nonUnitary), false);
 });

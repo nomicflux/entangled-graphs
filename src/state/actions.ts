@@ -114,7 +114,7 @@ export const createCustomSingleQubitOperator = (label: string, entries: SingleQu
 export const createCustomBlockOperator = (label: string, blocks: Block2x2<1>): string => {
   const id = nextCustomOperatorId();
   const operatorLabel = nextCustomOperatorLabel(label);
-  const created = normalizeOperator(blockMatrix2x2(id, operatorLabel, blocks));
+  const created = blockMatrix2x2(id, operatorLabel, blocks);
 
   state.customOperators.push(created);
   persistCustomOperators(state.customOperators);

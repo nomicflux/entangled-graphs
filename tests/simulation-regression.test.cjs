@@ -57,7 +57,29 @@ test("single-qubit phase gate changes phase without changing measurement distrib
 });
 
 test("arity-based builtin gate eligibility", () => {
-  assert.deepEqual(stateOperators.availableBuiltinGatesForQubitCount(1), ["I", "X", "H", "S"]);
-  assert.deepEqual(stateOperators.availableBuiltinGatesForQubitCount(2), ["I", "X", "H", "S", "CNOT"]);
-  assert.deepEqual(stateOperators.availableBuiltinGatesForQubitCount(3), ["I", "X", "H", "S", "CNOT", "TOFFOLI"]);
+  assert.deepEqual(stateOperators.availableBuiltinGatesForQubitCount(1), ["I", "X", "Y", "Z", "H", "S", "T"]);
+  assert.deepEqual(stateOperators.availableBuiltinGatesForQubitCount(2), [
+    "I",
+    "X",
+    "Y",
+    "Z",
+    "H",
+    "S",
+    "T",
+    "CNOT",
+    "SWAP",
+  ]);
+  assert.deepEqual(stateOperators.availableBuiltinGatesForQubitCount(3), [
+    "I",
+    "X",
+    "Y",
+    "Z",
+    "H",
+    "S",
+    "T",
+    "CNOT",
+    "SWAP",
+    "TOFFOLI",
+    "CSWAP",
+  ]);
 });

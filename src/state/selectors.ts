@@ -10,7 +10,7 @@ import type {
 } from "../types";
 import { bloch_pair_from_state, measurement_distribution, simulate_columns, tensor_product_qubits } from "../quantum";
 import { gateTouchesRow } from "./gate-instance-utils";
-import { isBuiltinSingleGate, resolveOperator } from "./operators";
+import { isBuiltinGate, resolveOperator } from "./operators";
 import { preparedDistributionForQubits, qubitFromBloch } from "./qubit-helpers";
 import { state } from "./store";
 
@@ -66,7 +66,7 @@ export const gateLabel = (gate: GateCell): string => {
   if (gate === "CNOT" || gate === "TOFFOLI") {
     return "";
   }
-  if (isBuiltinSingleGate(gate)) {
+  if (isBuiltinGate(gate)) {
     return gate;
   }
 

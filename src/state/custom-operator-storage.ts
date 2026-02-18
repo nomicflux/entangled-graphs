@@ -42,11 +42,10 @@ const parseLegacy = (candidate: LegacyCustomOperator): CustomOperator => {
   return normalizeOperator(makeSingleQubitOperator(candidate.id, candidate.label, entries));
 };
 
-const parseCurrent = (candidate: CustomOperator): CustomOperator =>
-  normalizeOperator({
-    ...candidate,
-    matrix: matrixForQubitArity(candidate.qubitArity, candidate.matrix),
-  });
+const parseCurrent = (candidate: CustomOperator): CustomOperator => ({
+  ...candidate,
+  matrix: matrixForQubitArity(candidate.qubitArity, candidate.matrix),
+});
 
 export const loadCustomOperators = (): CustomOperator[] => {
   if (typeof window === "undefined") {
