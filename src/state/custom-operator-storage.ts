@@ -1,23 +1,52 @@
-import type { CustomOperator, Operator } from "../types";
 import * as complex from "../complex";
+import { makeSingleQubitOperator, matrixForQubitArity } from "../operator";
+import type { Complex, CustomOperator, Operator, QubitArity } from "../types";
 import { CUSTOM_OPERATOR_STORAGE_KEY } from "./constants";
 
-export const normalizeOperator = (operator: Operator): Operator => {
-  const values = [operator.o00, operator.o01, operator.o10, operator.o11];
-  const norm = Math.sqrt(values.reduce((acc, value) => acc + complex.magnitude_squared(value), 0));
+type LegacyOperator = {
+  o00: Complex;
+  o01: Complex;
+  o10: Complex;
+  o11: Complex;
+};
+
+type LegacyCustomOperator = {
+  id: string;
+  label: string;
+  operator: LegacyOperator;
+};
+
+const normalizeMatrix = (matrix: ReadonlyArray<ReadonlyArray<Complex>>): ReadonlyArray<ReadonlyArray<Complex>> => {
+  const norm = Math.sqrt(
+    matrix.reduce((acc, row) => acc + row.reduce((rowAcc, value) => rowAcc + complex.magnitude_squared(value), 0), 0),
+  );
 
   if (norm === 0) {
-    return operator;
+    return matrix;
   }
 
-  const scale = 1 / norm;
-  return {
-    o00: complex.scale(operator.o00, scale),
-    o01: complex.scale(operator.o01, scale),
-    o10: complex.scale(operator.o10, scale),
-    o11: complex.scale(operator.o11, scale),
-  };
+  const factor = 1 / norm;
+  return matrix.map((row) => row.map((value) => complex.scale(value, factor)));
 };
+
+export const normalizeOperator = <Arity extends QubitArity>(operator: Operator<Arity>): Operator<Arity> => ({
+  ...operator,
+  matrix: normalizeMatrix(operator.matrix),
+});
+
+const parseLegacy = (candidate: LegacyCustomOperator): CustomOperator => {
+  const entries = [
+    [candidate.operator.o00, candidate.operator.o01],
+    [candidate.operator.o10, candidate.operator.o11],
+  ] as const;
+  return normalizeOperator(makeSingleQubitOperator(candidate.id, candidate.label, entries));
+};
+
+const parseCurrent = (candidate: CustomOperator): CustomOperator =>
+  normalizeOperator({
+    ...candidate,
+    matrix: matrixForQubitArity(candidate.qubitArity, candidate.matrix),
+  });
 
 export const loadCustomOperators = (): CustomOperator[] => {
   if (typeof window === "undefined") {
@@ -35,12 +64,22 @@ export const loadCustomOperators = (): CustomOperator[] => {
       return [];
     }
 
-    return parsed.filter((candidate): candidate is CustomOperator => {
+    const customOperators: CustomOperator[] = [];
+
+    for (const candidate of parsed) {
       if (typeof candidate !== "object" || candidate === null) {
-        return false;
+        continue;
       }
-      return typeof candidate.id === "string" && typeof candidate.label === "string" && typeof candidate.operator === "object";
-    });
+
+      if ("operator" in candidate) {
+        customOperators.push(parseLegacy(candidate as LegacyCustomOperator));
+        continue;
+      }
+
+      customOperators.push(parseCurrent(candidate as CustomOperator));
+    }
+
+    return customOperators;
   } catch {
     return [];
   }

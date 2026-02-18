@@ -1,30 +1,96 @@
-import type { Complex, Operator } from "./types";
-
 import * as complex from "./complex";
+import type { BuiltinSingleGateId, Complex, Operator, QubitArity } from "./types";
 
-const mk_op = (o00: Complex, o01: Complex, o10: Complex, o11: Complex): Operator => ({ o00, o01, o10, o11 });
+export type SingleQubitMatrixEntries = readonly [
+  readonly [Complex, Complex],
+  readonly [Complex, Complex],
+];
 
-const mk_real_op = (o00: number, o01: number, o10: number, o11: number): Operator => ({
-    o00: complex.from_real(o00),
-    o01: complex.from_real(o01),
-    o10: complex.from_real(o10),
-    o11: complex.from_real(o11)
+const freezeMatrix = (rows: ReadonlyArray<ReadonlyArray<Complex>>): ReadonlyArray<ReadonlyArray<Complex>> =>
+  Object.freeze(rows.map((row) => Object.freeze([...row])));
+
+const matrixOrderForArity = (qubitArity: QubitArity): number => 1 << qubitArity;
+
+export const singleQubitMatrix = (
+  a00: Complex,
+  a01: Complex,
+  a10: Complex,
+  a11: Complex,
+): SingleQubitMatrixEntries => [[a00, a01], [a10, a11]];
+
+export const matrixForQubitArity = <Arity extends QubitArity>(
+  qubitArity: Arity,
+  rows: ReadonlyArray<ReadonlyArray<Complex>>,
+): ReadonlyArray<ReadonlyArray<Complex>> => {
+  const order = matrixOrderForArity(qubitArity);
+  if (rows.length !== order) {
+    throw new Error(`Expected ${order} rows for qubit arity ${qubitArity}.`);
+  }
+  if (rows.some((row) => row.length !== order)) {
+    throw new Error(`Expected ${order} columns for qubit arity ${qubitArity}.`);
+  }
+  return freezeMatrix(rows);
+};
+
+export const makeOperator = <Arity extends QubitArity>(
+  id: string,
+  label: string,
+  qubitArity: Arity,
+  matrix: ReadonlyArray<ReadonlyArray<Complex>>,
+): Operator<Arity> => ({
+  id,
+  label,
+  qubitArity,
+  matrix: matrixForQubitArity(qubitArity, matrix),
 });
 
-const scale = (op: Operator, s: number): Operator =>
-    mk_op(
-        complex.scale(op.o00, s),
-        complex.scale(op.o01, s),
-        complex.scale(op.o10, s),
-        complex.scale(op.o11, s)
-    );
+export const makeSingleQubitOperator = (
+  id: string,
+  label: string,
+  entries: SingleQubitMatrixEntries,
+): Operator<1> => makeOperator(id, label, 1, entries);
 
-export const X: Operator = mk_real_op(0,1,1,0);
-export const H: Operator = scale(mk_real_op(1,1,1,-1), 1/Math.sqrt(2));
-export const I: Operator = mk_real_op(1,0,0,1);
-export const S: Operator = mk_op(
-    complex.from_real(1), 
-    complex.from_real(0), 
-    complex.from_real(0), 
-    complex.complex(0, 1)
+const scaleMatrix = (matrix: ReadonlyArray<ReadonlyArray<Complex>>, scalar: number): ReadonlyArray<ReadonlyArray<Complex>> =>
+  freezeMatrix(matrix.map((row) => row.map((value) => complex.scale(value, scalar))));
+
+export const scaleOperator = <Arity extends QubitArity>(operator: Operator<Arity>, scalar: number): Operator<Arity> =>
+  makeOperator(operator.id, operator.label, operator.qubitArity, scaleMatrix(operator.matrix, scalar));
+
+const identityEntries = singleQubitMatrix(
+  complex.from_real(1),
+  complex.from_real(0),
+  complex.from_real(0),
+  complex.from_real(1),
 );
+
+const xEntries = singleQubitMatrix(
+  complex.from_real(0),
+  complex.from_real(1),
+  complex.from_real(1),
+  complex.from_real(0),
+);
+
+const hRaw = makeSingleQubitOperator(
+  "H",
+  "H",
+  singleQubitMatrix(
+    complex.from_real(1),
+    complex.from_real(1),
+    complex.from_real(1),
+    complex.from_real(-1),
+  ),
+);
+
+const sEntries = singleQubitMatrix(
+  complex.from_real(1),
+  complex.from_real(0),
+  complex.from_real(0),
+  complex.complex(0, 1),
+);
+
+export const I: Operator<1> = makeSingleQubitOperator("I", "I", identityEntries);
+export const X: Operator<1> = makeSingleQubitOperator("X", "X", xEntries);
+export const H: Operator<1> = scaleOperator(hRaw, 1 / Math.sqrt(2));
+export const S: Operator<1> = makeSingleQubitOperator("S", "S", sEntries);
+
+export const builtinOperatorIds: readonly BuiltinSingleGateId[] = ["I", "X", "H", "S"];

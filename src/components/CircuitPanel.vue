@@ -210,7 +210,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
-import type { CircuitColumn, GateId, Operator, QubitRow } from "../types";
+import type { CircuitColumn, GateId, QubitRow } from "../types";
 import {
   appendColumn,
   clearGateAt,
@@ -235,6 +235,7 @@ import {
   toToffoliPlacement,
 } from "../state";
 import * as complex from "../complex";
+import { singleQubitMatrix } from "../operator";
 import BlochPairView from "./BlochPairView.vue";
 import StageInspector from "./StageInspector.vue";
 
@@ -716,14 +717,14 @@ const parseNumber = (input: string): number => {
 };
 
 const submitCustomOperator = () => {
-  const operator: Operator = {
-    o00: complex.complex(parseNumber(draft.o00r), parseNumber(draft.o00i)),
-    o01: complex.complex(parseNumber(draft.o01r), parseNumber(draft.o01i)),
-    o10: complex.complex(parseNumber(draft.o10r), parseNumber(draft.o10i)),
-    o11: complex.complex(parseNumber(draft.o11r), parseNumber(draft.o11i)),
-  };
+  const entries = singleQubitMatrix(
+    complex.complex(parseNumber(draft.o00r), parseNumber(draft.o00i)),
+    complex.complex(parseNumber(draft.o01r), parseNumber(draft.o01i)),
+    complex.complex(parseNumber(draft.o10r), parseNumber(draft.o10i)),
+    complex.complex(parseNumber(draft.o11r), parseNumber(draft.o11i)),
+  );
 
-  const createdId = createCustomOperator(customLabel.value, operator);
+  const createdId = createCustomOperator(customLabel.value, entries);
   setSelectedGate(createdId);
   clearPendingPlacement();
   closeCustomModal();

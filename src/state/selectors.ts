@@ -23,13 +23,13 @@ export const preparedState = computed<QubitState>(() => tensor_product_qubits(pr
 
 export const preparedDistribution = computed(() => preparedDistributionForQubits(preparedQubits.value));
 
-const resolveSingleGate = (gate: SingleGateRef): Operator | null => {
+const resolveSingleGate = (gate: SingleGateRef): Operator<1> | null => {
   if (isBuiltinSingleGate(gate)) {
     return builtinOperatorMap[gate];
   }
 
   const custom = state.customOperators.find((entry) => entry.id === gate);
-  return custom ? custom.operator : null;
+  return custom ?? null;
 };
 
 export const stateSnapshots = computed<QubitState[]>(() =>

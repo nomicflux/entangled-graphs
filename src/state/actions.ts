@@ -1,10 +1,11 @@
-import type { GateId, GateInstance, Operator } from "../types";
+import type { GateId, GateInstance } from "../types";
 import { MAX_QUBITS, MIN_QUBITS } from "./constants";
 import { normalizeOperator, persistCustomOperators } from "./custom-operator-storage";
 import { enforceDisjoint, gateTouchesRow, gateWires, mapGateAfterQubitRemoval, removeOverlaps } from "./gate-instance-utils";
 import type { CellRef, CnotPlacement, SingleGatePlacement, ToffoliPlacement } from "./placements";
 import { emptyColumn, nextGateInstanceId, state } from "./store";
 import { zeroBloch } from "./qubit-helpers";
+import { makeSingleQubitOperator, type SingleQubitMatrixEntries } from "../operator";
 
 const sanitizeColumnsForQubitCount = (count: number): void => {
   for (const column of state.columns) {
@@ -77,12 +78,10 @@ export const setQubitCount = (nextCount: number): void => {
   }
 };
 
-export const createCustomOperator = (label: string, operator: Operator): string => {
-  const created = {
-    id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    label: label.trim() === "" ? `U${state.customOperators.length + 1}` : label.trim(),
-    operator: normalizeOperator(operator),
-  };
+export const createCustomOperator = (label: string, entries: SingleQubitMatrixEntries): string => {
+  const id = `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const operatorLabel = label.trim() === "" ? `U${state.customOperators.length + 1}` : label.trim();
+  const created = normalizeOperator(makeSingleQubitOperator(id, operatorLabel, entries));
 
   state.customOperators.push(created);
   persistCustomOperators(state.customOperators);

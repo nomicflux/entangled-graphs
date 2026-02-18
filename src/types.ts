@@ -8,11 +8,12 @@ export type Qubit = {
     b: Complex;
 }
 
-export type Operator = {
-    o00: Complex;
-    o01: Complex;
-    o10: Complex;
-    o11: Complex;
+export type QubitArity = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+export type Operator<Arity extends QubitArity = QubitArity> = {
+    id: string;
+    label: string;
+    qubitArity: Arity;
+    matrix: ReadonlyArray<ReadonlyArray<Complex>>;
 }
 
 export type BlochParams = {
@@ -57,11 +58,7 @@ export type CircuitColumn = {
     gates: GateInstance[];
 };
 
-export type CustomOperator = {
-    id: CustomGateId;
-    label: string;
-    operator: Operator;
-};
+export type CustomOperator = Operator<1> & { id: CustomGateId };
 
 export type BasisLabel = string;
 export type QubitState = Complex[];

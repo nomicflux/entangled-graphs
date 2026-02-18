@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite build && vite preview",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test:compile": "rm -rf .tmp-test && tsc -p tsconfig.test.json && node -e \"require('fs').writeFileSync('.tmp-test/package.json', JSON.stringify({ type: 'commonjs' }))\"",
+    "test": "npm run -s test:compile && node --test tests/*.test.cjs"
   },
   "keywords": [],
   "author": "",

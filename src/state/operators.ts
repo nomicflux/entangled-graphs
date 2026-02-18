@@ -1,7 +1,7 @@
 import type { BuiltinSingleGateId, Operator } from "../types";
 import { H, I, S, X } from "../operator";
 
-export const builtinOperatorMap: Record<BuiltinSingleGateId, Operator> = {
+export const builtinOperatorMap: Record<BuiltinSingleGateId, Operator<1>> = {
   I,
   X,
   H,

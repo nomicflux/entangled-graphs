@@ -16,7 +16,7 @@ type MeasurementSample = {
   basis: BasisProbability["basis"];
   probability: number;
 };
-type SingleGateResolver = (gate: SingleGateRef) => Operator | null;
+type SingleGateResolver = (gate: SingleGateRef) => Operator<1> | null;
 
 const qubitCountFromState = (state: QubitState): number => Math.log2(state.length);
 
@@ -37,8 +37,9 @@ export function tensor_product_qubits(qubits: Qubit[]): QubitState {
   return state;
 }
 
-function apply_single_qubit_gate(state: QubitState, gate: Operator, target: number, qubitCount: number): QubitState {
+function apply_single_qubit_gate(state: QubitState, gate: Operator<1>, target: number, qubitCount: number): QubitState {
   const targetMask = 1 << (qubitCount - 1 - target);
+  const [[o00, o01], [o10, o11]] = gate.matrix;
   const next = [...state];
 
   for (let index = 0; index < state.length; index += 1) {
@@ -50,8 +51,8 @@ function apply_single_qubit_gate(state: QubitState, gate: Operator, target: numb
     const oneIndex = index | targetMask;
     const a0 = state[zeroIndex]!;
     const a1 = state[oneIndex]!;
-    next[zeroIndex] = complex.add(complex.mult(gate.o00, a0), complex.mult(gate.o01, a1));
-    next[oneIndex] = complex.add(complex.mult(gate.o10, a0), complex.mult(gate.o11, a1));
+    next[zeroIndex] = complex.add(complex.mult(o00!, a0), complex.mult(o01!, a1));
+    next[oneIndex] = complex.add(complex.mult(o10!, a0), complex.mult(o11!, a1));
   }
 
   return next;
