@@ -2,16 +2,15 @@ import { computed } from "vue";
 import type {
   CircuitColumn,
   GateCell,
+  GateId,
   GateInstance,
-  Operator,
   QubitState,
   Qubit,
-  SingleGateRef,
   StageView,
 } from "../types";
 import { bloch_pair_from_state, measurement_distribution, simulate_columns, tensor_product_qubits } from "../quantum";
 import { gateTouchesRow } from "./gate-instance-utils";
-import { isBuiltinSingleGate, builtinOperatorMap } from "./operators";
+import { isBuiltinSingleGate, resolveOperator } from "./operators";
 import { preparedDistributionForQubits, qubitFromBloch } from "./qubit-helpers";
 import { state } from "./store";
 
@@ -23,17 +22,10 @@ export const preparedState = computed<QubitState>(() => tensor_product_qubits(pr
 
 export const preparedDistribution = computed(() => preparedDistributionForQubits(preparedQubits.value));
 
-const resolveSingleGate = (gate: SingleGateRef): Operator<1> | null => {
-  if (isBuiltinSingleGate(gate)) {
-    return builtinOperatorMap[gate];
-  }
-
-  const custom = state.customOperators.find((entry) => entry.id === gate);
-  return custom ?? null;
-};
+const resolveGate = (gate: GateId) => resolveOperator(gate, state.customOperators);
 
 export const stateSnapshots = computed<QubitState[]>(() =>
-  simulate_columns(preparedState.value, state.columns, resolveSingleGate, qubitCount.value),
+  simulate_columns(preparedState.value, state.columns, resolveGate, qubitCount.value),
 );
 
 export const finalState = computed<QubitState>(() => stateSnapshots.value[stateSnapshots.value.length - 1]!);
@@ -64,10 +56,7 @@ export const gateAt = (column: CircuitColumn, row: number): GateCell => {
   if (!gate) {
     return null;
   }
-  if (gate.kind === "single") {
-    return gate.gate;
-  }
-  return gate.kind === "cnot" ? "CNOT" : "TOFFOLI";
+  return gate.gate;
 };
 
 export const gateLabel = (gate: GateCell): string => {

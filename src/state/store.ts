@@ -25,14 +25,14 @@ export const state = reactive<CircuitState>({
   columns: [
     {
       gates: [
-        { id: nextGateInstanceId(), kind: "single", gate: "H", target: 0 },
-        { id: nextGateInstanceId(), kind: "single", gate: "X", target: 1 },
+        { id: nextGateInstanceId(), gate: "H", wires: [0] },
+        { id: nextGateInstanceId(), gate: "X", wires: [1] },
       ],
     },
     {
       gates: [
-        { id: nextGateInstanceId(), kind: "single", gate: "S", target: 0 },
-        { id: nextGateInstanceId(), kind: "single", gate: "H", target: 1 },
+        { id: nextGateInstanceId(), gate: "S", wires: [0] },
+        { id: nextGateInstanceId(), gate: "H", wires: [1] },
       ],
     },
     emptyColumn(),

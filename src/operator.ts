@@ -1,5 +1,5 @@
 import * as complex from "./complex";
-import type { BuiltinSingleGateId, Complex, Operator, QubitArity } from "./types";
+import type { BuiltinGateId, BuiltinSingleGateId, Complex, Operator, QubitArity } from "./types";
 
 export type SingleQubitMatrixEntries = readonly [
   readonly [Complex, Complex],
@@ -88,9 +88,31 @@ const sEntries = singleQubitMatrix(
   complex.complex(0, 1),
 );
 
+const r = complex.from_real;
+const cnotMatrix = matrixForQubitArity(2, [
+  [r(1), r(0), r(0), r(0)],
+  [r(0), r(1), r(0), r(0)],
+  [r(0), r(0), r(0), r(1)],
+  [r(0), r(0), r(1), r(0)],
+]);
+
+const toffoliMatrix = matrixForQubitArity(3, [
+  [r(1), r(0), r(0), r(0), r(0), r(0), r(0), r(0)],
+  [r(0), r(1), r(0), r(0), r(0), r(0), r(0), r(0)],
+  [r(0), r(0), r(1), r(0), r(0), r(0), r(0), r(0)],
+  [r(0), r(0), r(0), r(1), r(0), r(0), r(0), r(0)],
+  [r(0), r(0), r(0), r(0), r(1), r(0), r(0), r(0)],
+  [r(0), r(0), r(0), r(0), r(0), r(1), r(0), r(0)],
+  [r(0), r(0), r(0), r(0), r(0), r(0), r(0), r(1)],
+  [r(0), r(0), r(0), r(0), r(0), r(0), r(1), r(0)],
+]);
+
 export const I: Operator<1> = makeSingleQubitOperator("I", "I", identityEntries);
 export const X: Operator<1> = makeSingleQubitOperator("X", "X", xEntries);
 export const H: Operator<1> = scaleOperator(hRaw, 1 / Math.sqrt(2));
 export const S: Operator<1> = makeSingleQubitOperator("S", "S", sEntries);
+export const CNOT: Operator<2> = makeOperator("CNOT", "CNOT", 2, cnotMatrix);
+export const TOFFOLI: Operator<3> = makeOperator("TOFFOLI", "TOFFOLI", 3, toffoliMatrix);
 
 export const builtinOperatorIds: readonly BuiltinSingleGateId[] = ["I", "X", "H", "S"];
+export const builtinGateIds: readonly BuiltinGateId[] = ["I", "X", "H", "S", "CNOT", "TOFFOLI"];

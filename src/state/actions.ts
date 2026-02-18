@@ -6,6 +6,7 @@ import type { CellRef, CnotPlacement, SingleGatePlacement, ToffoliPlacement } fr
 import { emptyColumn, nextGateInstanceId, state } from "./store";
 import { zeroBloch } from "./qubit-helpers";
 import { makeSingleQubitOperator, type SingleQubitMatrixEntries } from "../operator";
+import { operatorArityForGate } from "./operators";
 
 const sanitizeColumnsForQubitCount = (count: number): void => {
   for (const column of state.columns) {
@@ -14,10 +15,14 @@ const sanitizeColumnsForQubitCount = (count: number): void => {
       if (wires.some((wire) => wire < 0 || wire >= count)) {
         return false;
       }
-      if (gate.kind === "cnot" && count < 2) {
+      const arity = operatorArityForGate(gate.gate, state.customOperators);
+      if (arity === null) {
         return false;
       }
-      if (gate.kind === "toffoli" && count < 3) {
+      if (arity !== wires.length) {
+        return false;
+      }
+      if (count < arity) {
         return false;
       }
       return true;
@@ -26,15 +31,28 @@ const sanitizeColumnsForQubitCount = (count: number): void => {
     enforceDisjoint(column);
   }
 
-  if (state.selectedGate === "CNOT" && count < 2) {
-    state.selectedGate = null;
-  }
-  if (state.selectedGate === "TOFFOLI" && count < 3) {
-    state.selectedGate = null;
+  if (state.selectedGate !== null) {
+    const arity = operatorArityForGate(state.selectedGate, state.customOperators);
+    if (arity === null || count < arity) {
+      state.selectedGate = null;
+    }
   }
 };
 
+const pushGate = (columnIndex: number, gate: GateInstance): void => {
+  const column = state.columns[columnIndex]!;
+  removeOverlaps(column, gate.wires);
+  column.gates.push(gate);
+  enforceDisjoint(column);
+};
+
 export const setSelectedGate = (gate: GateId | null): void => {
+  if (gate !== null) {
+    const arity = operatorArityForGate(gate, state.customOperators);
+    if (arity === null || arity > state.preparedBloch.length) {
+      return;
+    }
+  }
   state.selectedGate = gate;
 };
 
@@ -92,7 +110,7 @@ export const deleteCustomOperator = (id: string): void => {
   state.customOperators = state.customOperators.filter((entry) => entry.id !== id);
 
   for (const column of state.columns) {
-    column.gates = column.gates.filter((gate) => !(gate.kind === "single" && gate.gate === id));
+    column.gates = column.gates.filter((gate) => gate.gate !== id);
   }
 
   if (state.selectedGate === id) {
@@ -103,43 +121,27 @@ export const deleteCustomOperator = (id: string): void => {
 };
 
 export const placeCnot = (placement: CnotPlacement): void => {
-  const column = state.columns[placement.column]!;
-
-  removeOverlaps(column, [placement.control, placement.target]);
-  column.gates.push({
+  pushGate(placement.column, {
     id: nextGateInstanceId(),
-    kind: "cnot",
-    control: placement.control,
-    target: placement.target,
+    gate: "CNOT",
+    wires: [placement.control, placement.target],
   });
-  enforceDisjoint(column);
 };
 
 export const placeToffoli = (placement: ToffoliPlacement): void => {
-  const column = state.columns[placement.column]!;
-
-  removeOverlaps(column, [placement.controlA, placement.controlB, placement.target]);
-  column.gates.push({
+  pushGate(placement.column, {
     id: nextGateInstanceId(),
-    kind: "toffoli",
-    controlA: placement.controlA,
-    controlB: placement.controlB,
-    target: placement.target,
+    gate: "TOFFOLI",
+    wires: [placement.controlA, placement.controlB, placement.target],
   });
-  enforceDisjoint(column);
 };
 
 export const setGateAt = (placement: SingleGatePlacement): void => {
-  const column = state.columns[placement.cell.column]!;
-
-  removeOverlaps(column, [placement.cell.wire]);
-  column.gates.push({
+  pushGate(placement.cell.column, {
     id: nextGateInstanceId(),
-    kind: "single",
     gate: placement.gate,
-    target: placement.cell.wire,
+    wires: [placement.cell.wire],
   });
-  enforceDisjoint(column);
 };
 
 export const clearGateAt = (cell: CellRef): void => {

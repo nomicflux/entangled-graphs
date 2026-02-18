@@ -1,5 +1,6 @@
 import type { SingleGateRef } from "../types";
 import { state } from "./store";
+import { operatorArityForGate } from "./operators";
 
 declare const columnIndexBrand: unique symbol;
 declare const wireIndexBrand: unique symbol;
@@ -63,6 +64,9 @@ export const toSingleGatePlacement = (column: number, wire: number, gate: Single
   if (!cell) {
     return null;
   }
+  if (operatorArityForGate(gate, state.customOperators) !== 1) {
+    return null;
+  }
 
   return {
     cell,
@@ -71,6 +75,9 @@ export const toSingleGatePlacement = (column: number, wire: number, gate: Single
 };
 
 export const toCnotPlacement = (column: number, control: number, target: number): CnotPlacement | null => {
+  if (operatorArityForGate("CNOT", state.customOperators) !== 2) {
+    return null;
+  }
   if (state.preparedBloch.length < 2) {
     return null;
   }
@@ -91,6 +98,9 @@ export const toToffoliPlacement = (
   controlB: number,
   target: number,
 ): ToffoliPlacement | null => {
+  if (operatorArityForGate("TOFFOLI", state.customOperators) !== 3) {
+    return null;
+  }
   if (state.preparedBloch.length < 3) {
     return null;
   }

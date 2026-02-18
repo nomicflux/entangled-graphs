@@ -228,6 +228,7 @@ import {
   setSelectedGate,
   setSelectedStage,
   stageViews,
+  operatorArityForGate,
   state,
   toCellRef,
   toCnotPlacement,
@@ -239,16 +240,14 @@ import { singleQubitMatrix } from "../operator";
 import BlochPairView from "./BlochPairView.vue";
 import StageInspector from "./StageInspector.vue";
 
-const paletteGates = computed<GateId[]>(() => {
-  const gates: GateId[] = ["I", "X", "H", "S"];
-  if (qubitCount.value >= 2) {
-    gates.push("CNOT");
-  }
-  if (qubitCount.value >= 3) {
-    gates.push("TOFFOLI");
-  }
-  return gates;
-});
+const paletteBuiltinGates: readonly GateId[] = ["I", "X", "H", "S", "CNOT", "TOFFOLI"];
+
+const paletteGates = computed<GateId[]>(() =>
+  paletteBuiltinGates.filter((gate) => {
+    const arity = operatorArityForGate(gate, state.customOperators);
+    return arity !== null && arity <= qubitCount.value;
+  }),
+);
 
 const rows = computed<QubitRow[]>(() => Array.from({ length: qubitCount.value }, (_, index) => index));
 
@@ -327,7 +326,9 @@ const clearPendingPlacement = () => {
   placementError.value = null;
 };
 
-const isPaletteDraggable = (gate: GateId): boolean => gate !== "CNOT" && gate !== "TOFFOLI";
+const gateArity = (gate: GateId): number => operatorArityForGate(gate, state.customOperators) ?? 1;
+
+const isPaletteDraggable = (gate: GateId): boolean => gateArity(gate) === 1;
 
 const selectGate = (gate: GateId) => {
   const next = state.selectedGate === gate ? null : gate;
@@ -345,26 +346,32 @@ const tokenFor = (column: CircuitColumn, row: QubitRow): string => {
   return gateLabel(gate);
 };
 
-const isDraggableToken = (column: CircuitColumn, row: QubitRow): boolean => slotInstance(column, row)?.kind === "single";
+const isDraggableToken = (column: CircuitColumn, row: QubitRow): boolean => {
+  const instance = slotInstance(column, row);
+  if (!instance) {
+    return false;
+  }
+  return gateArity(instance.gate) === 1;
+};
 
 const isCnotControl = (column: CircuitColumn, row: QubitRow): boolean => {
   const gate = slotInstance(column, row);
-  return gate?.kind === "cnot" && gate.control === row;
+  return gate?.gate === "CNOT" && gate.wires[0] === row;
 };
 
 const isCnotTarget = (column: CircuitColumn, row: QubitRow): boolean => {
   const gate = slotInstance(column, row);
-  return gate?.kind === "cnot" && gate.target === row;
+  return gate?.gate === "CNOT" && gate.wires[1] === row;
 };
 
 const isToffoliControl = (column: CircuitColumn, row: QubitRow): boolean => {
   const gate = slotInstance(column, row);
-  return gate?.kind === "toffoli" && (gate.controlA === row || gate.controlB === row);
+  return gate?.gate === "TOFFOLI" && (gate.wires[0] === row || gate.wires[1] === row);
 };
 
 const isToffoliTarget = (column: CircuitColumn, row: QubitRow): boolean => {
   const gate = slotInstance(column, row);
-  return gate?.kind === "toffoli" && gate.target === row;
+  return gate?.gate === "TOFFOLI" && gate.wires[2] === row;
 };
 
 const isPendingCnotControl = (columnIndex: number, row: QubitRow): boolean => {
@@ -412,16 +419,16 @@ type ConnectorSegment = {
 
 const connectorSegments = (column: CircuitColumn, columnIndex: number): ConnectorSegment[] => {
   const committedSegments = column.gates.flatMap((gate): ConnectorSegment[] => {
-    if (gate.kind === "single") {
+    if (gate.gate !== "CNOT" && gate.gate !== "TOFFOLI") {
       return [];
     }
 
-    if (gate.kind === "cnot") {
-      return [{ id: gate.id, kind: "cnot", fromRow: gate.control, toRow: gate.target, preview: false }];
+    if (gate.gate === "CNOT") {
+      return [{ id: gate.id, kind: "cnot", fromRow: gate.wires[0]!, toRow: gate.wires[1]!, preview: false }];
     }
 
-    const minRow = Math.min(gate.controlA, gate.controlB, gate.target);
-    const maxRow = Math.max(gate.controlA, gate.controlB, gate.target);
+    const minRow = Math.min(...gate.wires);
+    const maxRow = Math.max(...gate.wires);
     return [{ id: gate.id, kind: "toffoli", fromRow: minRow, toRow: maxRow, preview: false }];
   });
 
@@ -495,7 +502,7 @@ const startPaletteDrag = (gate: GateId, event: DragEvent) => {
 
 const startCellDrag = (col: number, row: QubitRow, event: DragEvent) => {
   const gate = slotInstance(state.columns[col]!, row);
-  if (!gate || gate.kind !== "single") {
+  if (!gate || gateArity(gate.gate) !== 1) {
     return;
   }
   dragging.value = { gate: gate.gate, from: { col, row } };

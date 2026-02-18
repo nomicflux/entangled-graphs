@@ -4,10 +4,10 @@ import type {
   BlochPair,
   BlochVector,
   CircuitColumn,
+  GateId,
   Operator,
   QubitState,
   Qubit,
-  SingleGateRef,
 } from "./types";
 import * as complex from "./complex";
 import { basisLabels } from "./basis";
@@ -16,7 +16,8 @@ type MeasurementSample = {
   basis: BasisProbability["basis"];
   probability: number;
 };
-type SingleGateResolver = (gate: SingleGateRef) => Operator<1> | null;
+type GateResolver = (gate: GateId) => Operator | null;
+const isSingleQubitOperator = (operator: Operator): operator is Operator<1> => operator.qubitArity === 1;
 
 const qubitCountFromState = (state: QubitState): number => Math.log2(state.length);
 
@@ -58,95 +59,66 @@ function apply_single_qubit_gate(state: QubitState, gate: Operator<1>, target: n
   return next;
 }
 
-function apply_controlled_x(state: QubitState, control: number, target: number, qubitCount: number): QubitState {
-  if (control === target) {
-    return state;
-  }
+function apply_operator_on_wires(
+  state: QubitState,
+  operator: Operator,
+  wires: ReadonlyArray<number>,
+  qubitCount: number,
+): QubitState {
+  const order = 1 << operator.qubitArity;
+  const masks = wires.map((wire) => 1 << (qubitCount - 1 - wire));
+  const combinedMask = masks.reduce((acc, mask) => acc | mask, 0);
+  const next = [...state];
 
-  const controlBit = qubitCount - 1 - control;
-  const targetBit = qubitCount - 1 - target;
-  const controlMask = 1 << controlBit;
-  const targetMask = 1 << targetBit;
-  const next: QubitState = Array.from({ length: state.length }, () => complex.from_real(0));
+  for (let base = 0; base < state.length; base += 1) {
+    if ((base & combinedMask) !== 0) {
+      continue;
+    }
 
-  for (let index = 0; index < state.length; index += 1) {
-    const mapped = (index & controlMask) !== 0 ? index ^ targetMask : index;
-    next[mapped] = state[index]!;
+    const input = Array.from({ length: order }, (_, columnPattern) => {
+      let index = base;
+      for (let bit = 0; bit < masks.length; bit += 1) {
+        if (((columnPattern >> (masks.length - 1 - bit)) & 1) === 1) {
+          index |= masks[bit]!;
+        }
+      }
+      return state[index]!;
+    });
+
+    for (let rowPattern = 0; rowPattern < order; rowPattern += 1) {
+      let out = complex.from_real(0);
+      for (let columnPattern = 0; columnPattern < order; columnPattern += 1) {
+        out = complex.add(out, complex.mult(operator.matrix[rowPattern]![columnPattern]!, input[columnPattern]!));
+      }
+
+      let outputIndex = base;
+      for (let bit = 0; bit < masks.length; bit += 1) {
+        if (((rowPattern >> (masks.length - 1 - bit)) & 1) === 1) {
+          outputIndex |= masks[bit]!;
+        }
+      }
+      next[outputIndex] = out;
+    }
   }
 
   return next;
 }
 
-function apply_toffoli_x(
-  state: QubitState,
-  controlA: number,
-  controlB: number,
-  target: number,
-  qubitCount: number,
-): QubitState {
-  if (controlA === controlB || controlA === target || controlB === target) {
-    return state;
-  }
-
-  const controlMaskA = 1 << (qubitCount - 1 - controlA);
-  const controlMaskB = 1 << (qubitCount - 1 - controlB);
-  const targetMask = 1 << (qubitCount - 1 - target);
-  const next: QubitState = Array.from({ length: state.length }, () => complex.from_real(0));
-
-  for (let index = 0; index < state.length; index += 1) {
-    const controlsActive = (index & controlMaskA) !== 0 && (index & controlMaskB) !== 0;
-    const mapped = controlsActive ? index ^ targetMask : index;
-    next[mapped] = state[index]!;
-  }
-
-  return next;
-}
-
-function apply_column(
-  state: QubitState,
-  column: CircuitColumn,
-  resolveSingleGate: SingleGateResolver,
-  qubitCount: number,
-): QubitState {
+function apply_column(state: QubitState, column: CircuitColumn, resolveGate: GateResolver, qubitCount: number): QubitState {
   let next = state;
 
   for (const gate of column.gates) {
-    if (gate.kind === "single") {
-      if (gate.target < 0 || gate.target >= qubitCount) {
-        continue;
-      }
-      const op = resolveSingleGate(gate.gate);
-      if (op !== null) {
-        next = apply_single_qubit_gate(next, op, gate.target, qubitCount);
-      }
+    const operator = resolveGate(gate.gate);
+    if (operator === null) {
       continue;
     }
 
-    if (gate.kind === "cnot") {
-      if (
-        gate.control < 0 ||
-        gate.control >= qubitCount ||
-        gate.target < 0 ||
-        gate.target >= qubitCount
-      ) {
-        continue;
-      }
-      next = apply_controlled_x(next, gate.control, gate.target, qubitCount);
+    if (isSingleQubitOperator(operator)) {
+      next = apply_single_qubit_gate(next, operator, gate.wires[0]!, qubitCount);
       continue;
     }
 
-    if (
-      gate.controlA < 0 ||
-      gate.controlA >= qubitCount ||
-      gate.controlB < 0 ||
-      gate.controlB >= qubitCount ||
-      gate.target < 0 ||
-      gate.target >= qubitCount
-    ) {
-      continue;
-    }
-
-    next = apply_toffoli_x(next, gate.controlA, gate.controlB, gate.target, qubitCount);
+    next = apply_operator_on_wires(next, operator, gate.wires, qubitCount);
   }
 
   return next;
@@ -155,14 +127,14 @@ function apply_column(
 export function simulate_columns(
   prepared: QubitState,
   columns: CircuitColumn[],
-  resolveSingleGate: SingleGateResolver,
+  resolveGate: GateResolver,
   qubitCount: number,
 ): QubitState[] {
   const snapshots: QubitState[] = [prepared];
   let current = prepared;
 
   for (const column of columns) {
-    current = apply_column(current, column, resolveSingleGate, qubitCount);
+    current = apply_column(current, column, resolveGate, qubitCount);
     snapshots.push(current);
   }
 
