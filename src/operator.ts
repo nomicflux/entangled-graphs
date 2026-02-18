@@ -6,6 +6,21 @@ export type SingleQubitMatrixEntries = readonly [
   readonly [Complex, Complex],
 ];
 
+type NonMaxQubitArity = Exclude<QubitArity, 8>;
+type NextQubitArity<Arity extends NonMaxQubitArity> = Arity extends 1
+  ? 2
+  : Arity extends 2
+    ? 3
+    : Arity extends 3
+      ? 4
+      : Arity extends 4
+        ? 5
+        : Arity extends 5
+          ? 6
+          : Arity extends 6
+            ? 7
+            : 8;
+
 const freezeMatrix = (rows: ReadonlyArray<ReadonlyArray<Complex>>): ReadonlyArray<ReadonlyArray<Complex>> =>
   Object.freeze(rows.map((row) => Object.freeze([...row])));
 
@@ -56,6 +71,113 @@ const scaleMatrix = (matrix: ReadonlyArray<ReadonlyArray<Complex>>, scalar: numb
 export const scaleOperator = <Arity extends QubitArity>(operator: Operator<Arity>, scalar: number): Operator<Arity> =>
   makeOperator(operator.id, operator.label, operator.qubitArity, scaleMatrix(operator.matrix, scalar));
 
+const zeroMatrix = (qubitArity: QubitArity): ReadonlyArray<ReadonlyArray<Complex>> =>
+  matrixForQubitArity(
+    qubitArity,
+    Array.from({ length: matrixOrderForArity(qubitArity) }, () =>
+      Array.from({ length: matrixOrderForArity(qubitArity) }, () => complex.from_real(0)),
+    ),
+  );
+
+const identityMatrix = (qubitArity: QubitArity): ReadonlyArray<ReadonlyArray<Complex>> =>
+  matrixForQubitArity(
+    qubitArity,
+    Array.from({ length: matrixOrderForArity(qubitArity) }, (_, row) =>
+      Array.from({ length: matrixOrderForArity(qubitArity) }, (_, column) =>
+        row === column ? complex.from_real(1) : complex.from_real(0),
+      ),
+    ),
+  );
+
+export const zeroOperator = <Arity extends QubitArity>(id: string, label: string, qubitArity: Arity): Operator<Arity> =>
+  makeOperator(id, label, qubitArity, zeroMatrix(qubitArity));
+
+export const identityOperator = <Arity extends QubitArity>(id: string, label: string, qubitArity: Arity): Operator<Arity> =>
+  makeOperator(id, label, qubitArity, identityMatrix(qubitArity));
+
+export const multiplyOperators = <Arity extends QubitArity>(
+  id: string,
+  label: string,
+  left: Operator<Arity>,
+  right: Operator<Arity>,
+): Operator<Arity> => {
+  const order = matrixOrderForArity(left.qubitArity);
+
+  const product = Array.from({ length: order }, (_, row) =>
+    Array.from({ length: order }, (_, column) => {
+      let sum = complex.from_real(0);
+      for (let pivot = 0; pivot < order; pivot += 1) {
+        sum = complex.add(sum, complex.mult(left.matrix[row]![pivot]!, right.matrix[pivot]![column]!));
+      }
+      return sum;
+    }),
+  );
+
+  return makeOperator(id, label, left.qubitArity, product);
+};
+
+export const tensorProductOperators = (
+  id: string,
+  label: string,
+  left: Operator,
+  right: Operator,
+): Operator => {
+  const qubitArity = left.qubitArity + right.qubitArity;
+  if (qubitArity > 8) {
+    throw new Error(`Tensor product arity ${qubitArity} exceeds supported max arity 8.`);
+  }
+
+  const leftOrder = matrixOrderForArity(left.qubitArity);
+  const rightOrder = matrixOrderForArity(right.qubitArity);
+  const totalOrder = leftOrder * rightOrder;
+  const matrix = Array.from({ length: totalOrder }, (_, row) => {
+    const rowLeft = Math.floor(row / rightOrder);
+    const rowRight = row % rightOrder;
+
+    return Array.from({ length: totalOrder }, (_, column) => {
+      const colLeft = Math.floor(column / rightOrder);
+      const colRight = column % rightOrder;
+      return complex.mult(left.matrix[rowLeft]![colLeft]!, right.matrix[rowRight]![colRight]!);
+    });
+  });
+
+  return makeOperator(id, label, qubitArity as QubitArity, matrix);
+};
+
+export type Block2x2<Arity extends NonMaxQubitArity> = readonly [
+  readonly [Operator<Arity>, Operator<Arity>],
+  readonly [Operator<Arity>, Operator<Arity>],
+];
+
+export const blockMatrix2x2 = <Arity extends NonMaxQubitArity>(
+  id: string,
+  label: string,
+  blocks: Block2x2<Arity>,
+): Operator<NextQubitArity<Arity>> => {
+  const [[topLeft, topRight], [bottomLeft, bottomRight]] = blocks;
+  const blockOrder = matrixOrderForArity(topLeft.qubitArity);
+
+  const matrix = Array.from({ length: blockOrder * 2 }, (_, row) => {
+    if (row < blockOrder) {
+      return [...topLeft.matrix[row]!, ...topRight.matrix[row]!];
+    }
+    const blockRow = row - blockOrder;
+    return [...bottomLeft.matrix[blockRow]!, ...bottomRight.matrix[blockRow]!];
+  });
+
+  return makeOperator(id, label, (topLeft.qubitArity + 1) as NextQubitArity<Arity>, matrix);
+};
+
+export const controlledOperator = <Arity extends NonMaxQubitArity>(
+  id: string,
+  label: string,
+  target: Operator<Arity>,
+): Operator<NextQubitArity<Arity>> => {
+  const identityBlock = identityOperator(`id-${target.id}`, `I_${target.label}`, target.qubitArity);
+  const zeroBlock = zeroOperator(`zero-${target.id}`, `0_${target.label}`, target.qubitArity);
+  return blockMatrix2x2(id, label, [[identityBlock, zeroBlock], [zeroBlock, target]]);
+};
+
 const identityEntries = singleQubitMatrix(
   complex.from_real(1),
   complex.from_real(0),
@@ -88,31 +210,12 @@ const sEntries = singleQubitMatrix(
   complex.complex(0, 1),
 );
 
-const r = complex.from_real;
-const cnotMatrix = matrixForQubitArity(2, [
-  [r(1), r(0), r(0), r(0)],
-  [r(0), r(1), r(0), r(0)],
-  [r(0), r(0), r(0), r(1)],
-  [r(0), r(0), r(1), r(0)],
-]);
-
-const toffoliMatrix = matrixForQubitArity(3, [
-  [r(1), r(0), r(0), r(0), r(0), r(0), r(0), r(0)],
-  [r(0), r(1), r(0), r(0), r(0), r(0), r(0), r(0)],
-  [r(0), r(0), r(1), r(0), r(0), r(0), r(0), r(0)],
-  [r(0), r(0), r(0), r(1), r(0), r(0), r(0), r(0)],
-  [r(0), r(0), r(0), r(0), r(1), r(0), r(0), r(0)],
-  [r(0), r(0), r(0), r(0), r(0), r(1), r(0), r(0)],
-  [r(0), r(0), r(0), r(0), r(0), r(0), r(0), r(1)],
-  [r(0), r(0), r(0), r(0), r(0), r(0), r(1), r(0)],
-]);
-
 export const I: Operator<1> = makeSingleQubitOperator("I", "I", identityEntries);
 export const X: Operator<1> = makeSingleQubitOperator("X", "X", xEntries);
 export const H: Operator<1> = scaleOperator(hRaw, 1 / Math.sqrt(2));
 export const S: Operator<1> = makeSingleQubitOperator("S", "S", sEntries);
-export const CNOT: Operator<2> = makeOperator("CNOT", "CNOT", 2, cnotMatrix);
-export const TOFFOLI: Operator<3> = makeOperator("TOFFOLI", "TOFFOLI", 3, toffoliMatrix);
+export const CNOT: Operator<2> = controlledOperator("CNOT", "CNOT", X);
+export const TOFFOLI: Operator<3> = controlledOperator("TOFFOLI", "TOFFOLI", CNOT);
 
 export const builtinOperatorIds: readonly BuiltinSingleGateId[] = ["I", "X", "H", "S"];
 export const builtinGateIds: readonly BuiltinGateId[] = ["I", "X", "H", "S", "CNOT", "TOFFOLI"];

@@ -91,3 +91,33 @@ test("palette arity data comes from unified operators", () => {
   assert.equal(stateOperators.operatorArityForGate("CNOT", []), 2);
   assert.equal(stateOperators.operatorArityForGate("TOFFOLI", []), 3);
 });
+
+test("block-matrix controlled constructor produces CNOT matrix", () => {
+  const reconstructed = operator.controlledOperator("CNOT-rebuilt", "CNOT-rebuilt", operator.X);
+
+  assert.equal(reconstructed.qubitArity, 2);
+  assert.deepEqual(reconstructed.matrix, operator.CNOT.matrix);
+});
+
+test("toffoli built from composition flips target when both controls are 1", () => {
+  const prepared = quantum.tensor_product_qubits([
+    { a: complex.from_real(0), b: complex.from_real(1) }, // |1>
+    { a: complex.from_real(0), b: complex.from_real(1) }, // |1>
+    zeroQubit, // |0>
+  ]); // |110>
+
+  const column = {
+    gates: [{ id: "g3", gate: "TOFFOLI", wires: [0, 1, 2] }],
+  };
+  const snapshots = quantum.simulate_columns(prepared, [column], (gate) => {
+    if (gate === "TOFFOLI") {
+      return operator.TOFFOLI;
+    }
+    return null;
+  }, 3);
+  const final = snapshots[snapshots.length - 1];
+
+  // |111> basis index 7 has amplitude 1
+  assert.equal(final[6].real.toFixed(6), "0.000000");
+  assert.equal(final[7].real.toFixed(6), "1.000000");
+});
