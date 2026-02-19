@@ -23,7 +23,7 @@ export type BlochParams = {
 
 export type QubitRow = number;
 
-export type BuiltinSingleGateId = "I" | "X" | "Y" | "Z" | "H" | "S" | "T";
+export type BuiltinSingleGateId = "I" | "X" | "Y" | "Z" | "H" | "S" | "T" | "M";
 export type BuiltinMultiGateId = "CNOT" | "SWAP" | "TOFFOLI" | "CSWAP";
 export type BuiltinGateId = BuiltinSingleGateId | BuiltinMultiGateId;
 type CustomGateId = string;

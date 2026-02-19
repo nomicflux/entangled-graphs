@@ -8,6 +8,34 @@ import { zeroBloch } from "./qubit-helpers";
 import { blockMatrix2x2, makeSingleQubitOperator, type Block2x2, type SingleQubitMatrixEntries } from "../operator";
 import { operatorArityForGate } from "./operators";
 
+const enforceMeasurementLockRules = (): void => {
+  const firstMeasurementByRow = new Map<number, number>();
+
+  for (let columnIndex = 0; columnIndex < state.columns.length; columnIndex += 1) {
+    const column = state.columns[columnIndex]!;
+    column.gates = column.gates.filter((gate) => {
+      if (gate.wires.some((wire) => {
+        const measuredAt = firstMeasurementByRow.get(wire);
+        return measuredAt !== undefined && columnIndex > measuredAt;
+      })) {
+        return false;
+      }
+
+      if (gate.gate === "M") {
+        const row = gate.wires[0];
+        if (row === undefined || firstMeasurementByRow.has(row)) {
+          return false;
+        }
+        firstMeasurementByRow.set(row, columnIndex);
+      }
+
+      return true;
+    });
+
+    enforceDisjoint(column);
+  }
+};
+
 const sanitizeColumnsForQubitCount = (count: number): void => {
   for (const column of state.columns) {
     column.gates = column.gates.filter((gate) => {
@@ -31,6 +59,8 @@ const sanitizeColumnsForQubitCount = (count: number): void => {
     enforceDisjoint(column);
   }
 
+  enforceMeasurementLockRules();
+
   if (state.selectedGate !== null) {
     const arity = operatorArityForGate(state.selectedGate, state.customOperators);
     if (arity === null || count < arity) {
@@ -44,6 +74,7 @@ const pushGate = (columnIndex: number, gate: GateInstance): void => {
   removeOverlaps(column, gate.wires);
   column.gates.push(gate);
   enforceDisjoint(column);
+  enforceMeasurementLockRules();
 };
 
 export const setSelectedGate = (gate: GateId | null): void => {

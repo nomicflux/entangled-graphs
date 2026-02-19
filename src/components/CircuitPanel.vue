@@ -2,7 +2,7 @@
   <section class="panel panel-center">
     <div class="panel-header">
       <h2>Quantum Circuit</h2>
-      <p>Drag single-qubit gates into the grid. Alt+Click clears or deletes custom gates.</p>
+      <p>Drag single-qubit gates into the grid. M performs row measurement and locks later columns on that row.</p>
     </div>
 
     <div class="circuit-tools">
@@ -16,6 +16,25 @@
               class="gate-chip"
               :class="{ selected: state.selectedGate === entry.id, 'custom-chip': entry.isCustom }"
               :title="entry.isCustom ? `Alt+Click to delete ${entry.label}` : ''"
+              type="button"
+              :draggable="isPaletteDraggable(entry.id)"
+              @click="handlePaletteChipClick(entry, $event)"
+              @dragstart="startPaletteDrag(entry.id, $event)"
+              @dragend="endDrag"
+            >
+              {{ entry.label }}
+            </button>
+          </div>
+        </section>
+
+        <section v-if="measurementEntries.length > 0" class="gate-group measurement-group">
+          <p class="gate-group-title">Measurement</p>
+          <div class="gate-group-chips">
+            <button
+              v-for="entry in measurementEntries"
+              :key="entry.id"
+              class="gate-chip measurement-chip"
+              :class="{ selected: state.selectedGate === entry.id }"
               type="button"
               :draggable="isPaletteDraggable(entry.id)"
               @click="handlePaletteChipClick(entry, $event)"
@@ -65,7 +84,8 @@
             v-for="row in rows"
             :key="row"
             class="gate-slot"
-            :class="{ 'is-drop-target': isDropTarget(colIndex, row) }"
+            :class="{ 'is-drop-target': isDropTarget(colIndex, row), 'is-row-locked': isRowLockedAt(colIndex, row) }"
+            :title="slotTitle(colIndex, row)"
             @dragover.prevent="handleDragOver(colIndex, row)"
             @dragleave="handleDragLeave(colIndex, row)"
             @drop.prevent="handleDrop(colIndex, row)"
@@ -87,6 +107,8 @@
                 'is-toffoli-target': isToffoliTarget(column, row) || isPendingToffoliTarget(colIndex, row),
                 'is-multi-custom-wire': isCustomMultiWire(column, row) || isPendingMultiWire(colIndex, row),
                 'is-multi-custom-hover': isPendingMultiHover(colIndex, row),
+                'is-measurement': isMeasurementToken(column, row),
+                'is-row-locked-token': isRowLockedAt(colIndex, row),
               }"
               :draggable="isDraggableToken(column, row)"
               @dragstart="startCellDrag(colIndex, row, $event)"
@@ -293,8 +315,10 @@ import {
   createCustomBlockOperator,
   createCustomSingleQubitOperator,
   deleteCustomOperator,
+  firstMeasurementColumnByRow,
   gateInstanceAt,
   gateLabel,
+  isRowLockedAtColumn,
   isUnitaryOperator,
   placeMultiGate,
   placeCnot,
@@ -331,6 +355,7 @@ const paletteBuiltinGates: readonly GateId[] = [
   "H",
   "S",
   "T",
+  "M",
   "CNOT",
   "SWAP",
   "TOFFOLI",
@@ -361,6 +386,9 @@ const paletteGroups = computed<PaletteGroup[]>(() => {
   const byArity = new Map<number, PaletteEntry[]>();
 
   for (const gate of paletteGates.value) {
+    if (gate === "M") {
+      continue;
+    }
     const arity = gateArity(gate);
     const entries = byArity.get(arity) ?? [];
     entries.push({ id: gate, label: gate, isCustom: false });
@@ -380,6 +408,13 @@ const paletteGroups = computed<PaletteGroup[]>(() => {
       title: `${arity}Q Gates`,
       entries,
     }));
+});
+
+const measurementEntries = computed<PaletteEntry[]>(() => {
+  if (!paletteGates.value.includes("M")) {
+    return [];
+  }
+  return [{ id: "M", label: "M", isCustom: false }];
 });
 
 const rows = computed<QubitRow[]>(() => Array.from({ length: qubitCount.value }, (_, index) => index));
@@ -453,6 +488,16 @@ const placementError = ref<string | null>(null);
 const gateArity = (gate: GateId): number => operatorArityForGate(gate, state.customOperators) ?? 0;
 
 const gateName = (gate: GateId): string => resolveOperator(gate, state.customOperators)?.label ?? gate;
+const measurementLockByRow = computed(() => firstMeasurementColumnByRow(state.columns));
+const firstMeasurementColumnAtRow = (row: QubitRow): number | null => measurementLockByRow.value.get(row) ?? null;
+const isRowLockedAt = (column: number, row: QubitRow): boolean => isRowLockedAtColumn(state.columns, row, column);
+const slotTitle = (column: number, row: QubitRow): string => {
+  const measuredAt = firstMeasurementColumnAtRow(row);
+  if (measuredAt === null || column <= measuredAt) {
+    return "";
+  }
+  return `Locked: q${row} measured at t${measuredAt + 1}`;
+};
 
 const placementHint = computed<string | null>(() => {
   if (placementError.value) {
@@ -478,6 +523,9 @@ const placementHint = computed<string | null>(() => {
   }
   if (state.selectedGate === "TOFFOLI") {
     return "Toffoli: click the first control wire to start placement.";
+  }
+  if (state.selectedGate === "M") {
+    return "M: click a wire to measure it. Later columns on that row are locked.";
   }
   if (state.selectedGate !== null && gateArity(state.selectedGate) > 1) {
     return `${gateName(state.selectedGate)}: click wire 1/${gateArity(state.selectedGate)} to start placement.`;
@@ -548,6 +596,11 @@ const isCustomMultiWire = (column: CircuitColumn, row: QubitRow): boolean => {
     return false;
   }
   return gate.wires.length > 1;
+};
+
+const isMeasurementToken = (column: CircuitColumn, row: QubitRow): boolean => {
+  const gate = slotInstance(column, row);
+  return gate?.gate === "M";
 };
 
 const isPendingCnotControl = (columnIndex: number, row: QubitRow): boolean => {
@@ -728,6 +781,10 @@ const handleDragOver = (col: number, row: QubitRow) => {
   if (dragging.value === null) {
     return;
   }
+  if (isRowLockedAt(col, row)) {
+    dropTarget.value = null;
+    return;
+  }
   dropTarget.value = { col, row };
 };
 
@@ -743,6 +800,13 @@ const handleDrop = (col: number, row: QubitRow) => {
   }
 
   const { gate, from } = dragging.value;
+  const measuredAt = firstMeasurementColumnAtRow(row);
+  if (measuredAt !== null && col > measuredAt) {
+    placementError.value = `q${row} was measured at t${measuredAt + 1}; later columns are locked.`;
+    dragging.value = null;
+    dropTarget.value = null;
+    return;
+  }
   if (gate === "CNOT" || gate === "TOFFOLI") {
     placementError.value = `${gate} placement uses click flow on the grid.`;
     dragging.value = null;
@@ -926,6 +990,12 @@ const handleSlotClick = (col: number, row: QubitRow, event: MouseEvent) => {
     return;
   }
 
+  const measuredAt = firstMeasurementColumnAtRow(row);
+  if (measuredAt !== null && col > measuredAt) {
+    placementError.value = `q${row} was measured at t${measuredAt + 1}; later columns are locked.`;
+    return;
+  }
+
   if (state.selectedGate === "CNOT") {
     handleCnotSlotClick(col, row);
     return;
@@ -1086,7 +1156,7 @@ const submitBlockCustomOperator = () => {
 };
 
 const isDropTarget = (col: number, row: QubitRow): boolean =>
-  dropTarget.value !== null && dropTarget.value.col === col && dropTarget.value.row === row;
+  dropTarget.value !== null && dropTarget.value.col === col && dropTarget.value.row === row && !isRowLockedAt(col, row);
 
 const isDragSource = (col: number, row: QubitRow): boolean => {
   if (!dragging.value?.from) {

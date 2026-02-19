@@ -9,7 +9,8 @@ export type {
   WireIndex,
 } from "./placements";
 export { toCellRef, toCnotPlacement, toMultiGatePlacement, toSingleGatePlacement, toToffoliPlacement } from "./placements";
-export { availableBuiltinGatesForQubitCount, operatorArityForGate, resolveOperator } from "./operators";
+export { firstMeasurementColumnByRow, firstMeasurementColumnForRow, isRowLockedAtColumn } from "./measurement-locks";
+export { availableBuiltinGatesForQubitCount, gateKindForGate, operatorArityForGate, resolveOperator } from "./operators";
 export { isUnitaryOperator, resolveBlock2x2Selection, singleQubitBuilderOptions } from "./custom-operator-builder";
 
 export {

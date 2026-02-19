@@ -14,7 +14,7 @@ const zeroQubit = {
 const zeroState = () => quantum.tensor_product_qubits([zeroQubit]);
 
 test("built-in single-qubit operators have arity 1 and 2x2 matrices", () => {
-  for (const gate of [operator.I, operator.X, operator.Y, operator.Z, operator.H, operator.S, operator.T]) {
+  for (const gate of [operator.I, operator.X, operator.Y, operator.Z, operator.H, operator.S, operator.T, operator.M]) {
     assert.equal(gate.qubitArity, 1);
     assert.equal(gate.matrix.length, 2);
     assert.equal(gate.matrix[0].length, 2);
@@ -89,10 +89,13 @@ test("generic multi-qubit path applies CNOT operator", () => {
 test("palette arity data comes from unified operators", () => {
   assert.equal(stateOperators.operatorArityForGate("I", []), 1);
   assert.equal(stateOperators.operatorArityForGate("Y", []), 1);
+  assert.equal(stateOperators.operatorArityForGate("M", []), 1);
   assert.equal(stateOperators.operatorArityForGate("CNOT", []), 2);
   assert.equal(stateOperators.operatorArityForGate("SWAP", []), 2);
   assert.equal(stateOperators.operatorArityForGate("TOFFOLI", []), 3);
   assert.equal(stateOperators.operatorArityForGate("CSWAP", []), 3);
+  assert.equal(stateOperators.gateKindForGate("M", []), "measurement");
+  assert.equal(stateOperators.gateKindForGate("X", []), "unitary");
 });
 
 test("block-matrix controlled constructor produces CNOT matrix", () => {

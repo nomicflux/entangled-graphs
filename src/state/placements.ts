@@ -1,5 +1,6 @@
 import type { SingleGateRef } from "../types";
 import { state } from "./store";
+import { isRowLockedAtColumn } from "./measurement-locks";
 import { operatorArityForGate } from "./operators";
 
 declare const columnIndexBrand: unique symbol;
@@ -75,6 +76,9 @@ export const toSingleGatePlacement = (column: number, wire: number, gate: Single
   if (!cell) {
     return null;
   }
+  if (isRowLockedAtColumn(state.columns, wire, column)) {
+    return null;
+  }
   if (operatorArityForGate(gate, state.customOperators) !== 1) {
     return null;
   }
@@ -95,6 +99,9 @@ export const toMultiGatePlacement = (
     return null;
   }
   if (!hasColumn(column) || wires.length !== arity || wires.some((wire) => !hasWire(wire))) {
+    return null;
+  }
+  if (wires.some((wire) => isRowLockedAtColumn(state.columns, wire, column))) {
     return null;
   }
   if (new Set(wires).size !== wires.length) {
@@ -118,6 +125,9 @@ export const toCnotPlacement = (column: number, control: number, target: number)
   if (!hasColumn(column) || !hasWire(control) || !hasWire(target) || control === target) {
     return null;
   }
+  if (isRowLockedAtColumn(state.columns, control, column) || isRowLockedAtColumn(state.columns, target, column)) {
+    return null;
+  }
 
   return {
     column: asColumnIndex(column),
@@ -139,6 +149,13 @@ export const toToffoliPlacement = (
     return null;
   }
   if (!hasColumn(column) || !hasWire(controlA) || !hasWire(controlB) || !hasWire(target)) {
+    return null;
+  }
+  if (
+    isRowLockedAtColumn(state.columns, controlA, column) ||
+    isRowLockedAtColumn(state.columns, controlB, column) ||
+    isRowLockedAtColumn(state.columns, target, column)
+  ) {
     return null;
   }
 

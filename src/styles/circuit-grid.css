@@ -18,7 +18,7 @@
 .circuit-column {
   position: relative;
   display: grid;
-  gap: 14px;
+  gap: 0;
   align-items: center;
 }
 
@@ -76,10 +76,9 @@
   position: relative;
   z-index: 1;
   display: grid;
-  justify-items: center;
-  gap: 6px;
+  place-items: center;
   border-radius: 10px;
-  padding: 4px;
+  padding: 0;
 }
 
 .gate-slot::before {
@@ -99,10 +98,43 @@
   box-shadow: inset 0 0 0 1px rgba(102, 245, 214, 0.48);
 }
 
+.gate-slot.is-row-locked {
+  background: rgba(255, 140, 153, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 140, 153, 0.28);
+}
+
+.gate-slot.is-row-locked::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 8px;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(255, 140, 153, 0.18) 0,
+    rgba(255, 140, 153, 0.18) 4px,
+    transparent 4px,
+    transparent 9px
+  );
+  pointer-events: none;
+}
+
+.gate-slot.is-row-locked .gate-slot-label {
+  color: rgba(255, 140, 153, 0.9);
+}
+
+.gate-slot.is-row-locked .gate-token.empty {
+  border-color: rgba(255, 140, 153, 0.4);
+}
+
 .gate-slot-label {
+  position: absolute;
+  left: 50%;
+  top: 4px;
+  transform: translateX(-50%);
   font-size: 0.7rem;
   color: var(--muted);
   font-family: "IBM Plex Mono", monospace;
+  pointer-events: none;
 }
 
 .gate-token {
@@ -215,6 +247,15 @@
 
 .gate-token.is-multi-custom-hover {
   box-shadow: 0 0 0 2px rgba(146, 197, 255, 0.35) inset;
+}
+
+.gate-token.is-measurement {
+  background: rgba(255, 140, 153, 0.2);
+  border-color: rgba(255, 140, 153, 0.9);
+}
+
+.gate-token.is-row-locked-token {
+  opacity: 0.72;
 }
 
 .circuit-legend {

@@ -25,6 +25,7 @@ test("builder options include only single-qubit custom operators", () => {
   assert.ok(gateIds.includes("I"));
   assert.ok(gateIds.includes("Y"));
   assert.ok(gateIds.includes("T"));
+  assert.ok(!gateIds.includes("M"));
   assert.ok(gateIds.includes("custom-1q"));
   assert.ok(gateIds.includes("BLOCK_ZERO"));
   assert.ok(gateIds.includes("BLOCK_KET0_BRA1"));

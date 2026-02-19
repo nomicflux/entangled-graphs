@@ -17,6 +17,11 @@
   gap: 6px;
 }
 
+.measurement-group {
+  padding-top: 6px;
+  border-top: 1px dashed rgba(255, 140, 153, 0.4);
+}
+
 .gate-group-title {
   margin: 0;
   font-size: 0.72rem;
@@ -60,9 +65,19 @@
   background: rgba(102, 245, 214, 0.12);
 }
 
+.gate-chip.measurement-chip {
+  background: rgba(255, 140, 153, 0.2);
+  border-color: rgba(255, 140, 153, 0.85);
+}
+
 .gate-chip.selected {
   background: rgba(102, 245, 214, 0.24);
   border-color: rgba(102, 245, 214, 0.9);
+}
+
+.gate-chip.measurement-chip.selected {
+  background: rgba(255, 140, 153, 0.35);
+  border-color: rgba(255, 140, 153, 0.95);
 }
 
 .gate-chip:active {

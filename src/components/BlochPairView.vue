@@ -187,16 +187,16 @@ const phaseIndicatorStyle = (vector: BlochVector, index: number, totalSectors: n
   const coherence = Math.hypot(vector.x, vector.y);
   const sectorSpan = (2 * Math.PI) / totalSectors;
   const phaseOffset = (phase / Math.PI) * (sectorSpan * 0.36);
-  const angle = centerAngle + phaseOffset;
-  const anchorRadius = orbDiameter.value * 0.17;
-  const length = (orbDiameter.value * 0.08) + (coherence * orbDiameter.value * 0.14);
-  const x = Math.cos(centerAngle) * anchorRadius;
-  const y = Math.sin(centerAngle) * anchorRadius;
+  const cloudAngle = centerAngle + phaseOffset;
+  const anchorRadius = (orbDiameter.value * 0.14) + (coherence * orbDiameter.value * 0.1);
+  const length = (orbDiameter.value * 0.07) + (coherence * orbDiameter.value * 0.12);
+  const x = Math.cos(cloudAngle) * anchorRadius;
+  const y = Math.sin(cloudAngle) * anchorRadius;
   const palette = phasePalette(phase, "indicator");
 
   return {
     width: `${length}px`,
-    transform: `translate(-50%, -50%) translate(${x}px, ${y}px) rotate(${(angle * 180) / Math.PI}deg)`,
+    transform: `translate(-50%, -50%) translate(${x}px, ${y}px) rotate(${(cloudAngle * 180) / Math.PI}deg)`,
     opacity: `${0.3 + (coherence * 0.65)}`,
     background: `linear-gradient(90deg, ${palette.mid}, ${palette.core})`,
     boxShadow: `0 0 8px ${palette.glow}`,
