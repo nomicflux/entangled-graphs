@@ -16,6 +16,7 @@ export { isUnitaryOperator, resolveBlock2x2Selection, singleQubitBuilderOptions 
 export {
   qubitCount,
   preparedQubits,
+  preparedState,
   preparedDistribution,
   finalDistribution,
   stageViews,

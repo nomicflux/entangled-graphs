@@ -1,8 +1,34 @@
-import type { CircuitColumn, GateId, Operator, QubitState, StateEnsemble, WeightedStateBranch } from "../types";
+import type {
+  BasisProbability,
+  CircuitColumn,
+  GateId,
+  Operator,
+  QubitState,
+  StateEnsemble,
+  WeightedStateBranch,
+} from "../types";
 import * as complex from "../complex";
 import { apply_operator_on_wires, apply_single_qubit_gate, isSingleQubitOperator } from "./core";
+import { measurement_distribution, sample_distribution } from "./measurement";
 
 export type GateResolver = (gate: GateId) => Operator | null;
+type RandomSource = () => number;
+
+export type CircuitMeasurementOutcome = {
+  column: number;
+  gateId: string;
+  wire: number;
+  value: 0 | 1;
+  probability: number;
+};
+
+export type SampledCircuitRun = {
+  finalSample: {
+    basis: BasisProbability["basis"];
+    probability: number;
+  };
+  outcomes: ReadonlyArray<CircuitMeasurementOutcome>;
+};
 
 const branchEpsilon = 1e-12;
 const isMeasurementGate = (gate: GateId): boolean => gate === "M";
@@ -51,6 +77,46 @@ const project_state_on_wire = (
     const bit = (index & wireMask) === 0 ? 0 : 1;
     return bit === measuredValue ? amplitude : complex.from_real(0);
   });
+};
+
+const sample_measurement_on_wire = (
+  state: QubitState,
+  wire: number,
+  qubitCount: number,
+  randomValue: number,
+): {
+  value: 0 | 1;
+  probability: number;
+  state: QubitState;
+} => {
+  const projectedZero = project_state_on_wire(state, wire, 0, qubitCount);
+  const projectedOne = project_state_on_wire(state, wire, 1, qubitCount);
+  const zeroMass = probability_mass(projectedZero);
+  const oneMass = probability_mass(projectedOne);
+  const total = zeroMass + oneMass;
+
+  if (total <= branchEpsilon) {
+    return {
+      value: 0,
+      probability: 0,
+      state: state.map((amplitude) => ({ ...amplitude })),
+    };
+  }
+
+  const threshold = randomValue * total;
+  if (threshold <= zeroMass || oneMass <= branchEpsilon) {
+    return {
+      value: 0,
+      probability: zeroMass / total,
+      state: normalize_state(projectedZero),
+    };
+  }
+
+  return {
+    value: 1,
+    probability: oneMass / total,
+    state: normalize_state(projectedOne),
+  };
 };
 
 export const measure_state_on_wire = (
@@ -168,6 +234,50 @@ export const simulate_columns_ensemble = (
   }
 
   return snapshots;
+};
+
+export const sample_circuit_run = (
+  prepared: QubitState,
+  columns: CircuitColumn[],
+  resolveGate: GateResolver,
+  qubitCount: number,
+  random: RandomSource = Math.random,
+): SampledCircuitRun => {
+  let current = prepared;
+  const outcomes: CircuitMeasurementOutcome[] = [];
+
+  for (let columnIndex = 0; columnIndex < columns.length; columnIndex += 1) {
+    const column = columns[columnIndex]!;
+    for (const gate of column.gates) {
+      if (isMeasurementGate(gate.gate)) {
+        const sampled = sample_measurement_on_wire(current, gate.wires[0]!, qubitCount, random());
+        outcomes.push({
+          column: columnIndex,
+          gateId: gate.id,
+          wire: gate.wires[0]!,
+          value: sampled.value,
+          probability: sampled.probability,
+        });
+        current = sampled.state;
+        continue;
+      }
+
+      const operator = resolveGate(gate.gate);
+      if (operator === null) {
+        continue;
+      }
+
+      if (isSingleQubitOperator(operator)) {
+        current = apply_single_qubit_gate(current, operator, gate.wires[0]!, qubitCount);
+        continue;
+      }
+
+      current = apply_operator_on_wires(current, operator, gate.wires, qubitCount);
+    }
+  }
+
+  const finalSample = sample_distribution(measurement_distribution(current), random());
+  return { finalSample, outcomes };
 };
 
 export function simulate_columns(

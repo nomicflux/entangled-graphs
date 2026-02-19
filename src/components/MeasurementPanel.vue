@@ -40,9 +40,10 @@
       <h3>Recent Samples</h3>
       <p v-if="history.length === 0" class="muted">No samples yet.</p>
       <ul v-else class="history-list">
-        <li v-for="(basis, index) in history" :key="index">
-          <span>|{{ basis }}></span>
-          <span>{{ formatPercent(probabilityForBasis(basis)) }}</span>
+        <li v-for="(entry, index) in history" :key="index">
+          <span>|{{ entry.basis }}></span>
+          <span>{{ formatPercent(probabilityForBasis(entry.basis)) }}</span>
+          <p v-if="entry.path.length > 0" class="history-path">{{ entry.path }}</p>
         </li>
       </ul>
     </div>
@@ -51,13 +52,14 @@
 
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from "vue";
-import { finalDistribution, stageViews } from "../state";
-import { basis_to_bloch_pair, sample_distribution } from "../quantum";
-import type { BasisLabel } from "../types";
+import { finalDistribution, preparedState, qubitCount, stageViews, state } from "../state";
+import { resolveOperator } from "../state/operators";
+import { basis_to_bloch_pair, sample_circuit_run } from "../quantum";
+import type { BasisLabel, GateId } from "../types";
 import BlochPairView from "./BlochPairView.vue";
 
 const latestBasis = ref<BasisLabel | null>(null);
-const history = ref<BasisLabel[]>([]);
+const history = ref<Array<{ basis: BasisLabel; path: string }>>([]);
 const highlightBasis = ref<BasisLabel | null>(null);
 const maxHistory = 10;
 let highlightTimer: ReturnType<typeof setTimeout> | undefined;
@@ -83,12 +85,20 @@ const measurementBlochPair = computed(() =>
 
 const formatPercent = (value: number): string => `${(value * 100).toFixed(1)}%`;
 const probabilityForBasis = (basis: BasisLabel): number => probabilityByBasis.value.get(basis) ?? 0;
+const formatPath = (outcomes: ReadonlyArray<{ wire: number; value: 0 | 1 }>): string =>
+  outcomes.map((outcome) => `M(q${outcome.wire})=${outcome.value}`).join("  ");
+const resolveGate = (gate: GateId) => resolveOperator(gate, state.customOperators);
 
 const takeMeasurement = () => {
-  const sampled = sample_distribution(finalDistribution.value);
-  latestBasis.value = sampled.basis;
-  history.value = [sampled.basis, ...history.value].slice(0, maxHistory);
-  highlightBasis.value = sampled.basis;
+  const sampled = sample_circuit_run(
+    preparedState.value,
+    state.columns,
+    resolveGate,
+    qubitCount.value,
+  );
+  latestBasis.value = sampled.finalSample.basis;
+  history.value = [{ basis: sampled.finalSample.basis, path: formatPath(sampled.outcomes) }, ...history.value].slice(0, maxHistory);
+  highlightBasis.value = sampled.finalSample.basis;
 
   if (highlightTimer) {
     clearTimeout(highlightTimer);
