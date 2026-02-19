@@ -45,6 +45,11 @@ export type CustomOperator = Operator & { id: CustomGateId };
 
 export type BasisLabel = string;
 export type QubitState = Complex[];
+export type WeightedStateBranch = {
+    weight: number;
+    state: QubitState;
+};
+export type StateEnsemble = WeightedStateBranch[];
 
 export type BasisProbability = {
     basis: BasisLabel;
