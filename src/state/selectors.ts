@@ -7,8 +7,14 @@ import type {
   QubitState,
   Qubit,
   StageView,
+  StateEnsemble,
 } from "../types";
-import { bloch_pair_from_state, measurement_distribution, simulate_columns, tensor_product_qubits } from "../quantum";
+import {
+  bloch_pair_from_ensemble,
+  measurement_distribution_for_ensemble,
+  simulate_columns_ensemble,
+  tensor_product_qubits,
+} from "../quantum";
 import { gateTouchesRow } from "./gate-instance-utils";
 import { isBuiltinGate, resolveOperator } from "./operators";
 import { preparedDistributionForQubits, qubitFromBloch } from "./qubit-helpers";
@@ -24,23 +30,23 @@ export const preparedDistribution = computed(() => preparedDistributionForQubits
 
 const resolveGate = (gate: GateId) => resolveOperator(gate, state.customOperators);
 
-export const stateSnapshots = computed<QubitState[]>(() =>
-  simulate_columns(preparedState.value, state.columns, resolveGate, qubitCount.value),
+export const ensembleSnapshots = computed<StateEnsemble[]>(() =>
+  simulate_columns_ensemble(preparedState.value, state.columns, resolveGate, qubitCount.value),
 );
 
-export const finalState = computed<QubitState>(() => stateSnapshots.value[stateSnapshots.value.length - 1]!);
+export const finalEnsemble = computed<StateEnsemble>(() => ensembleSnapshots.value[ensembleSnapshots.value.length - 1]!);
 
-export const finalDistribution = computed(() => measurement_distribution(finalState.value));
+export const finalDistribution = computed(() => measurement_distribution_for_ensemble(finalEnsemble.value));
 
 export const stageViews = computed<StageView[]>(() => {
-  const lastIndex = stateSnapshots.value.length - 1;
+  const lastIndex = ensembleSnapshots.value.length - 1;
 
-  return stateSnapshots.value.map((snapshot, index) => ({
+  return ensembleSnapshots.value.map((snapshot, index) => ({
     id: index === 0 ? "prepared" : index === lastIndex ? "final" : `t${index}`,
     index,
     label: index === 0 ? "Prepared" : index === lastIndex ? "Final" : `After t${index}`,
-    distribution: measurement_distribution(snapshot),
-    blochPair: bloch_pair_from_state(snapshot),
+    distribution: measurement_distribution_for_ensemble(snapshot),
+    blochPair: bloch_pair_from_ensemble(snapshot),
     isFinal: index === lastIndex,
   }));
 });

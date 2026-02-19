@@ -1,4 +1,4 @@
-import type { BasisLabel, BlochPair, BlochVector, QubitState } from "../types";
+import type { BasisLabel, BlochPair, BlochVector, QubitState, StateEnsemble } from "../types";
 import * as complex from "../complex";
 import { qubitCountFromState } from "./core";
 
@@ -39,6 +39,55 @@ export function bloch_pair_from_state(state: QubitState): BlochPair {
 
   return vectors;
 }
+
+export const bloch_pair_from_ensemble = (ensemble: StateEnsemble): BlochPair => {
+  if (ensemble.length === 0) {
+    return [];
+  }
+
+  const qubitCount = qubitCountFromState(ensemble[0]!.state);
+  const totals = Array.from({ length: qubitCount }, () => ({
+    x: 0,
+    y: 0,
+    z: 0,
+    p0: 0,
+    p1: 0,
+    weight: 0,
+  }));
+
+  for (const branch of ensemble) {
+    const pair = bloch_pair_from_state(branch.state);
+    for (let index = 0; index < qubitCount; index += 1) {
+      const vector = pair[index]!;
+      const bucket = totals[index]!;
+      bucket.x += branch.weight * vector.x;
+      bucket.y += branch.weight * vector.y;
+      bucket.z += branch.weight * vector.z;
+      bucket.p0 += branch.weight * vector.p0;
+      bucket.p1 += branch.weight * vector.p1;
+      bucket.weight += branch.weight;
+    }
+  }
+
+  return totals.map((bucket) => {
+    const normalizer = bucket.weight > 0 ? bucket.weight : 1;
+    const x = bucket.x / normalizer;
+    const y = bucket.y / normalizer;
+    const z = bucket.z / normalizer;
+    const p0 = bucket.p0 / normalizer;
+    const p1 = bucket.p1 / normalizer;
+    const certainty = Math.sqrt(x * x + y * y + z * z);
+    return {
+      x,
+      y,
+      z,
+      p0,
+      p1,
+      certainty,
+      uncertainty: 1 - certainty,
+    };
+  });
+};
 
 export function basis_to_bloch_pair(basis: BasisLabel): BlochPair {
   const pure = (z: number): BlochVector => ({

@@ -14,4 +14,4 @@ export {
 } from "./quantum/measurement";
 export type { MeasurementSample } from "./quantum/measurement";
 
-export { basis_to_bloch_pair, bloch_pair_from_state } from "./quantum/bloch";
+export { basis_to_bloch_pair, bloch_pair_from_ensemble, bloch_pair_from_state } from "./quantum/bloch";

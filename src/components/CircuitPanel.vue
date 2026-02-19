@@ -6,51 +6,17 @@
     </div>
 
     <div class="circuit-tools">
-      <div class="gate-palette">
-        <section v-for="group in paletteGroups" :key="group.arity" class="gate-group">
-          <p class="gate-group-title">{{ group.title }}</p>
-          <div class="gate-group-chips">
-            <button
-              v-for="entry in group.entries"
-              :key="entry.id"
-              class="gate-chip"
-              :class="{ selected: state.selectedGate === entry.id, 'custom-chip': entry.isCustom }"
-              :title="entry.isCustom ? `Alt+Click to delete ${entry.label}` : ''"
-              type="button"
-              :draggable="isPaletteDraggable(entry.id)"
-              @click="handlePaletteChipClick(entry, $event)"
-              @dragstart="startPaletteDrag(entry.id, $event)"
-              @dragend="endDrag"
-            >
-              {{ entry.label }}
-            </button>
-          </div>
-        </section>
-
-        <section v-if="measurementEntries.length > 0" class="gate-group measurement-group">
-          <p class="gate-group-title">Measurement</p>
-          <div class="gate-group-chips">
-            <button
-              v-for="entry in measurementEntries"
-              :key="entry.id"
-              class="gate-chip measurement-chip"
-              :class="{ selected: state.selectedGate === entry.id }"
-              type="button"
-              :draggable="isPaletteDraggable(entry.id)"
-              @click="handlePaletteChipClick(entry, $event)"
-              @dragstart="startPaletteDrag(entry.id, $event)"
-              @dragend="endDrag"
-            >
-              {{ entry.label }}
-            </button>
-          </div>
-        </section>
-
-        <div class="custom-actions">
-          <button class="gate-chip custom-new" type="button" @click="openSingleCustomModal">Custom (1Q)</button>
-          <button class="gate-chip custom-new" type="button" @click="openBlockCustomModal">Custom (NQ)</button>
-        </div>
-      </div>
+      <CircuitGatePalette
+        :groups="paletteGroups"
+        :measurement-entries="measurementEntries"
+        :selected-gate="state.selectedGate"
+        :is-palette-draggable="isPaletteDraggable"
+        @chip-click="handlePaletteChipClick"
+        @palette-dragstart="startPaletteDrag"
+        @drag-end="endDrag"
+        @open-single-custom="openSingleCustomModal"
+        @open-block-custom="openBlockCustomModal"
+      />
 
       <div class="column-controls">
         <button class="column-btn" type="button" @click="appendColumn">Add column</button>
@@ -124,189 +90,32 @@
       </div>
     </div>
 
-    <div class="snapshot-grid">
-      <button
-        v-for="stage in stageViews"
-        :key="stage.id"
-        class="snapshot-card"
-        :class="{ selected: state.selectedStageIndex === stage.index }"
-        type="button"
-        @click="setSelectedStage(stage.index)"
-      >
-        <p class="snapshot-title">{{ stage.label }}</p>
-        <BlochPairView :pair="stage.blochPair" size="sm" :animated="false" compact />
-        <p v-for="entry in stage.distribution" :key="entry.basis" class="snapshot-row">
-          <span>|{{ entry.basis }}></span>
-          <span>{{ formatPercent(entry.probability) }}</span>
-        </p>
-      </button>
-    </div>
+    <CircuitStageSnapshots
+      :stages="stageViews"
+      :selected-stage-index="state.selectedStageIndex"
+      @select-stage="setSelectedStage"
+    />
 
     <StageInspector :stage="selectedStage" :animated="false" />
   </section>
 
-  <div v-if="isSingleCustomModalOpen" class="custom-modal-backdrop" @click.self="closeSingleCustomModal">
-    <section class="custom-modal">
-      <h3>Create Custom Single-Qubit Gate</h3>
-      <p class="custom-modal-note">
-        Define a 2x2 complex matrix U. Each entry is a complex number (real + imaginary i). Values are normalized on
-        submit.
-      </p>
+  <CircuitSingleCustomModal
+    :open="isSingleCustomModalOpen"
+    @close="closeSingleCustomModal"
+    @save="submitSingleCustomOperator"
+  />
 
-      <label class="custom-label">
-        Operator label
-        <input v-model="customLabel" type="text" placeholder="U" />
-      </label>
-
-      <div class="matrix-help">
-        <span>Row 0: [U[0,0] U[0,1]]</span>
-        <span>Row 1: [U[1,0] U[1,1]]</span>
-      </div>
-
-      <div class="operator-grid">
-        <div class="operator-cell">
-          <p>U[0,0] (Row 0, Column 0)</p>
-          <div class="operator-inputs">
-            <label>
-              Real part
-              <input v-model="draft.o00r" type="text" placeholder="e.g. 0.7071" />
-            </label>
-            <label>
-              Imaginary part
-              <input v-model="draft.o00i" type="text" placeholder="e.g. 0" />
-            </label>
-          </div>
-        </div>
-        <div class="operator-cell">
-          <p>U[0,1] (Row 0, Column 1)</p>
-          <div class="operator-inputs">
-            <label>
-              Real part
-              <input v-model="draft.o01r" type="text" placeholder="e.g. 0" />
-            </label>
-            <label>
-              Imaginary part
-              <input v-model="draft.o01i" type="text" placeholder="e.g. -0.7071" />
-            </label>
-          </div>
-        </div>
-        <div class="operator-cell">
-          <p>U[1,0] (Row 1, Column 0)</p>
-          <div class="operator-inputs">
-            <label>
-              Real part
-              <input v-model="draft.o10r" type="text" placeholder="e.g. 0" />
-            </label>
-            <label>
-              Imaginary part
-              <input v-model="draft.o10i" type="text" placeholder="e.g. 0.7071" />
-            </label>
-          </div>
-        </div>
-        <div class="operator-cell">
-          <p>U[1,1] (Row 1, Column 1)</p>
-          <div class="operator-inputs">
-            <label>
-              Real part
-              <input v-model="draft.o11r" type="text" placeholder="e.g. 0.7071" />
-            </label>
-            <label>
-              Imaginary part
-              <input v-model="draft.o11i" type="text" placeholder="e.g. 0" />
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <div class="custom-modal-actions">
-        <button type="button" class="column-btn" @click="closeSingleCustomModal">Cancel</button>
-        <button type="button" class="column-btn primary" @click="submitSingleCustomOperator">Save 1Q Gate</button>
-      </div>
-    </section>
-  </div>
-
-  <div v-if="isBlockCustomModalOpen" class="custom-modal-backdrop" @click.self="closeBlockCustomModal">
-    <section class="custom-modal">
-      <h3>Create Custom Multi-Qubit Gate</h3>
-      <p class="custom-modal-note">
-        Choose a qubit arity, then build a 2x2 block matrix from lower-arity gates. Current scope supports 2-qubit
-        builders from single-qubit blocks.
-      </p>
-
-      <label class="custom-label">
-        Operator label
-        <input v-model="blockCustomLabel" type="text" placeholder="U2" />
-      </label>
-
-      <label class="custom-label">
-        Qubit arity
-        <select v-model.number="blockCustomArity">
-          <option :value="2">2 qubits (4x4 matrix)</option>
-        </select>
-      </label>
-
-      <div class="matrix-help">
-        <span>U = [[A, B], [C, D]]</span>
-        <span>Each block is a 1-qubit gate.</span>
-      </div>
-
-      <div class="block-operator-grid">
-        <label class="block-cell">
-          <span>A (top-left)</span>
-          <select v-model="blockDraft.topLeft">
-            <optgroup v-for="group in blockBuilderOptionGroups" :key="`A-${group.label}`" :label="group.label">
-              <option v-for="option in group.options" :key="`A-${option.gate}`" :value="option.gate">
-                {{ option.label }}
-              </option>
-            </optgroup>
-          </select>
-        </label>
-        <label class="block-cell">
-          <span>B (top-right)</span>
-          <select v-model="blockDraft.topRight">
-            <optgroup v-for="group in blockBuilderOptionGroups" :key="`B-${group.label}`" :label="group.label">
-              <option v-for="option in group.options" :key="`B-${option.gate}`" :value="option.gate">
-                {{ option.label }}
-              </option>
-            </optgroup>
-          </select>
-        </label>
-        <label class="block-cell">
-          <span>C (bottom-left)</span>
-          <select v-model="blockDraft.bottomLeft">
-            <optgroup v-for="group in blockBuilderOptionGroups" :key="`C-${group.label}`" :label="group.label">
-              <option v-for="option in group.options" :key="`C-${option.gate}`" :value="option.gate">
-                {{ option.label }}
-              </option>
-            </optgroup>
-          </select>
-        </label>
-        <label class="block-cell">
-          <span>D (bottom-right)</span>
-          <select v-model="blockDraft.bottomRight">
-            <optgroup v-for="group in blockBuilderOptionGroups" :key="`D-${group.label}`" :label="group.label">
-              <option v-for="option in group.options" :key="`D-${option.gate}`" :value="option.gate">
-                {{ option.label }}
-              </option>
-            </optgroup>
-          </select>
-        </label>
-      </div>
-
-      <p v-if="blockBuilderError" class="custom-modal-error">{{ blockBuilderError }}</p>
-
-      <div class="custom-modal-actions">
-        <button type="button" class="column-btn" @click="closeBlockCustomModal">Cancel</button>
-        <button type="button" class="column-btn primary" :disabled="blockBuilderOptions.length === 0" @click="submitBlockCustomOperator">
-          Save NQ Gate
-        </button>
-      </div>
-    </section>
-  </div>
+  <CircuitBlockCustomModal
+    :open="isBlockCustomModalOpen"
+    :options="blockBuilderOptions"
+    :error="blockBuilderError"
+    @close="closeBlockCustomModal"
+    @save="submitBlockCustomOperator"
+  />
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import type { CircuitColumn, GateId, QubitRow } from "../types";
 import {
   appendColumn,
@@ -341,11 +150,14 @@ import {
   toSingleGatePlacement,
   toToffoliPlacement,
 } from "../state";
-import * as complex from "../complex";
-import { blockMatrix2x2, singleQubitMatrix } from "../operator";
 import type { BuilderBlockId, SingleQubitBuilderOption } from "../state/custom-operator-builder";
-import BlochPairView from "./BlochPairView.vue";
 import StageInspector from "./StageInspector.vue";
+import CircuitGatePalette from "./circuit/CircuitGatePalette.vue";
+import CircuitStageSnapshots from "./circuit/CircuitStageSnapshots.vue";
+import CircuitSingleCustomModal from "./circuit/CircuitSingleCustomModal.vue";
+import CircuitBlockCustomModal from "./circuit/CircuitBlockCustomModal.vue";
+import { blockMatrix2x2, type SingleQubitMatrixEntries } from "../operator";
+import type { PaletteEntry, PaletteGroup } from "./circuit/palette-types";
 
 const paletteBuiltinGates: readonly GateId[] = [
   "I",
@@ -369,18 +181,6 @@ const paletteGates = computed<GateId[]>(() =>
 const visibleCustomOperators = computed(() =>
   state.customOperators.filter((operator) => operator.qubitArity <= qubitCount.value),
 );
-
-type PaletteEntry = {
-  id: GateId;
-  label: string;
-  isCustom: boolean;
-};
-
-type PaletteGroup = {
-  arity: number;
-  title: string;
-  entries: PaletteEntry[];
-};
 
 const paletteGroups = computed<PaletteGroup[]>(() => {
   const byArity = new Map<number, PaletteEntry[]>();
@@ -421,28 +221,7 @@ const rows = computed<QubitRow[]>(() => Array.from({ length: qubitCount.value },
 
 const isSingleCustomModalOpen = ref(false);
 const isBlockCustomModalOpen = ref(false);
-const customLabel = ref("");
-const blockCustomLabel = ref("");
-const blockCustomArity = ref<2>(2);
 const blockBuilderError = ref("");
-
-const draft = reactive({
-  o00r: "1",
-  o00i: "0",
-  o01r: "0",
-  o01i: "0",
-  o10r: "0",
-  o10i: "0",
-  o11r: "1",
-  o11i: "0",
-});
-
-const blockDraft = reactive({
-  topLeft: "I" as BuilderBlockId,
-  topRight: "X" as BuilderBlockId,
-  bottomLeft: "X" as BuilderBlockId,
-  bottomRight: "I" as BuilderBlockId,
-});
 
 type DragSource = {
   col: number;
@@ -1028,65 +807,8 @@ const handlePaletteChipClick = (entry: PaletteEntry, event: MouseEvent) => {
 };
 
 const blockBuilderOptions = computed<SingleQubitBuilderOption[]>(() => singleQubitBuilderOptions(state.customOperators));
-const blockBuilderOptionGroups = computed(() => [
-  {
-    label: "Built-in 1Q gates",
-    options: blockBuilderOptions.value.filter((option) => option.category === "builtin"),
-  },
-  {
-    label: "Custom 1Q gates",
-    options: blockBuilderOptions.value.filter((option) => option.category === "custom"),
-  },
-  {
-    label: "Non-unitary blocks",
-    options: blockBuilderOptions.value.filter((option) => option.category === "block"),
-  },
-]);
-
-const resetSingleDraft = () => {
-  customLabel.value = "";
-  draft.o00r = "1";
-  draft.o00i = "0";
-  draft.o01r = "0";
-  draft.o01i = "0";
-  draft.o10r = "0";
-  draft.o10i = "0";
-  draft.o11r = "1";
-  draft.o11i = "0";
-};
-
-const resetBlockDraft = () => {
-  blockCustomLabel.value = "";
-  blockCustomArity.value = 2;
-  blockBuilderError.value = "";
-
-  const firstGate = blockBuilderOptions.value[0]?.gate ?? "I";
-  blockDraft.topLeft = firstGate;
-  blockDraft.topRight = firstGate;
-  blockDraft.bottomLeft = firstGate;
-  blockDraft.bottomRight = firstGate;
-};
-
-const synchronizeBlockDraft = () => {
-  const availableIds = new Set(blockBuilderOptions.value.map((option) => option.gate));
-  const fallback = blockBuilderOptions.value[0]?.gate ?? "I";
-
-  if (!availableIds.has(blockDraft.topLeft)) {
-    blockDraft.topLeft = fallback;
-  }
-  if (!availableIds.has(blockDraft.topRight)) {
-    blockDraft.topRight = fallback;
-  }
-  if (!availableIds.has(blockDraft.bottomLeft)) {
-    blockDraft.bottomLeft = fallback;
-  }
-  if (!availableIds.has(blockDraft.bottomRight)) {
-    blockDraft.bottomRight = fallback;
-  }
-};
 
 const openSingleCustomModal = () => {
-  resetSingleDraft();
   isSingleCustomModalOpen.value = true;
 };
 
@@ -1095,7 +817,7 @@ const closeSingleCustomModal = () => {
 };
 
 const openBlockCustomModal = () => {
-  resetBlockDraft();
+  blockBuilderError.value = "";
   isBlockCustomModalOpen.value = true;
 };
 
@@ -1104,37 +826,34 @@ const closeBlockCustomModal = () => {
   isBlockCustomModalOpen.value = false;
 };
 
-const parseNumber = (input: string): number => {
-  const parsed = Number.parseFloat(input);
-  return Number.isFinite(parsed) ? parsed : 0;
-};
-
-const submitSingleCustomOperator = () => {
-  const entries = singleQubitMatrix(
-    complex.complex(parseNumber(draft.o00r), parseNumber(draft.o00i)),
-    complex.complex(parseNumber(draft.o01r), parseNumber(draft.o01i)),
-    complex.complex(parseNumber(draft.o10r), parseNumber(draft.o10i)),
-    complex.complex(parseNumber(draft.o11r), parseNumber(draft.o11i)),
-  );
-
-  const createdId = createCustomSingleQubitOperator(customLabel.value, entries);
+const submitSingleCustomOperator = (payload: { label: string; entries: SingleQubitMatrixEntries }) => {
+  const createdId = createCustomSingleQubitOperator(payload.label, payload.entries);
   setSelectedGate(createdId);
   clearPendingPlacement();
   closeSingleCustomModal();
 };
 
-const submitBlockCustomOperator = () => {
-  if (blockCustomArity.value !== 2) {
+const submitBlockCustomOperator = (payload: {
+  label: string;
+  arity: 2;
+  selection: {
+    topLeft: BuilderBlockId;
+    topRight: BuilderBlockId;
+    bottomLeft: BuilderBlockId;
+    bottomRight: BuilderBlockId;
+  };
+}) => {
+  if (payload.arity !== 2) {
     return;
   }
   blockBuilderError.value = "";
 
   const blocks = resolveBlock2x2Selection(
     {
-      topLeft: blockDraft.topLeft,
-      topRight: blockDraft.topRight,
-      bottomLeft: blockDraft.bottomLeft,
-      bottomRight: blockDraft.bottomRight,
+      topLeft: payload.selection.topLeft,
+      topRight: payload.selection.topRight,
+      bottomLeft: payload.selection.bottomLeft,
+      bottomRight: payload.selection.bottomRight,
     },
     state.customOperators,
   );
@@ -1149,7 +868,7 @@ const submitBlockCustomOperator = () => {
     return;
   }
 
-  const createdId = createCustomBlockOperator(blockCustomLabel.value, blocks);
+  const createdId = createCustomBlockOperator(payload.label, blocks);
   setSelectedGate(createdId);
   clearPendingPlacement();
   closeBlockCustomModal();
@@ -1167,8 +886,6 @@ const isDragSource = (col: number, row: QubitRow): boolean => {
   }
   return dragging.value.from.row === row;
 };
-
-const formatPercent = (value: number): string => `${(value * 100).toFixed(1)}%`;
 
 const validatePendingPlacement = () => {
   const pending = pendingPlacement.value;
@@ -1257,13 +974,6 @@ watch(
   [() => qubitCount.value, () => state.columns.length],
   () => {
     validatePendingPlacement();
-  },
-);
-
-watch(
-  blockBuilderOptions,
-  () => {
-    synchronizeBlockDraft();
   },
 );
 
