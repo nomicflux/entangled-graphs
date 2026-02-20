@@ -68,6 +68,16 @@ export type BlochVector = {
 
 export type BlochPair = BlochVector[];
 
+export type BellStateId = "phi+" | "phi-" | "psi+" | "psi-";
+
+export type EntanglementLink = {
+    fromRow: QubitRow;
+    toRow: QubitRow;
+    dominantBell: BellStateId;
+    dominantProbability: number;
+    strength: number;
+}
+
 export type StageView = {
     id: string;
     index: number;

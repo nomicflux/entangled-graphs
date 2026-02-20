@@ -20,6 +20,7 @@ export {
   preparedDistribution,
   finalDistribution,
   stageViews,
+  stageEntanglementLinks,
   selectedStage,
   gateAt,
   gateLabel,

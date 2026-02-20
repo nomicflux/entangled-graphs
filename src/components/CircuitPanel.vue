@@ -36,6 +36,21 @@
           class="circuit-column"
           :style="{ gridTemplateRows: `repeat(${rows.length}, minmax(56px, 1fr))` }"
         >
+          <svg
+            class="column-entanglement"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            <path
+              v-for="(link, linkIndex) in entanglementLinksForColumn(colIndex)"
+              :key="`${colIndex}-${link.fromRow}-${link.toRow}-${linkIndex}`"
+              class="entanglement-arc"
+              :d="entanglementArcPath(link)"
+              :style="entanglementArcStyle(link)"
+            />
+          </svg>
+
           <div class="column-connectors">
             <div
               v-for="connector in connectorSegments(column, colIndex)"
@@ -116,7 +131,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
-import type { CircuitColumn, GateId, QubitRow } from "../types";
+import type { BellStateId, CircuitColumn, EntanglementLink, GateId, QubitRow } from "../types";
 import {
   appendColumn,
   availableBuiltinGatesForQubitCount,
@@ -141,6 +156,7 @@ import {
   setSelectedGate,
   setSelectedStage,
   singleQubitBuilderOptions,
+  stageEntanglementLinks,
   stageViews,
   operatorArityForGate,
   state,
@@ -151,6 +167,7 @@ import {
   toToffoliPlacement,
 } from "../state";
 import type { BuilderBlockId, SingleQubitBuilderOption } from "../state/custom-operator-builder";
+import { entanglement_delta_links } from "../quantum";
 import StageInspector from "./StageInspector.vue";
 import CircuitGatePalette from "./circuit/CircuitGatePalette.vue";
 import CircuitStageSnapshots from "./circuit/CircuitStageSnapshots.vue";
@@ -526,6 +543,7 @@ const connectorSegments = (column: CircuitColumn, columnIndex: number): Connecto
 };
 
 const rowCenterPercent = (row: number): number => ((row + 0.5) / rows.value.length) * 100;
+const rowCenterViewBox = (row: number): number => ((row + 0.5) / rows.value.length) * 100;
 
 const connectorStyle = (segment: ConnectorSegment): Record<string, string> => {
   const start = rowCenterPercent(Math.min(segment.fromRow, segment.toRow));
@@ -536,6 +554,34 @@ const connectorStyle = (segment: ConnectorSegment): Record<string, string> => {
     height: `${Math.max(0, end - start)}%`,
   };
 };
+
+const bellColorByState: Record<BellStateId, string> = {
+  "phi+": "rgba(255, 122, 102, 0.95)",
+  "phi-": "rgba(255, 196, 96, 0.95)",
+  "psi+": "rgba(128, 165, 255, 0.95)",
+  "psi-": "rgba(198, 130, 255, 0.95)",
+};
+
+const entanglementLinksForColumn = (columnIndex: number): EntanglementLink[] => {
+  const previous = stageEntanglementLinks.value[columnIndex] ?? [];
+  const current = stageEntanglementLinks.value[columnIndex + 1] ?? [];
+  return entanglement_delta_links(previous, current).filter((link) => link.strength > 0.08);
+};
+
+const entanglementArcPath = (link: EntanglementLink): string => {
+  const startY = rowCenterViewBox(Math.min(link.fromRow, link.toRow));
+  const endY = rowCenterViewBox(Math.max(link.fromRow, link.toRow));
+  const midY = (startY + endY) * 0.5;
+  const startX = 24;
+  const controlX = 16 - (link.strength * 6);
+  return `M ${startX} ${startY} Q ${controlX} ${midY} ${startX} ${endY}`;
+};
+
+const entanglementArcStyle = (link: EntanglementLink): Record<string, string> => ({
+  stroke: bellColorByState[link.dominantBell],
+  strokeWidth: `${0.6 + (link.strength * 1.8)}`,
+  opacity: `${0.22 + (link.strength * 0.55)}`,
+});
 
 const startPaletteDrag = (gate: GateId, event: DragEvent) => {
   if (!isPaletteDraggable(gate)) {

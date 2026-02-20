@@ -11,6 +11,7 @@ import type {
 } from "../types";
 import {
   bloch_pair_from_ensemble,
+  entanglement_links_from_ensemble,
   measurement_distribution_for_ensemble,
   simulate_columns_ensemble,
   tensor_product_qubits,
@@ -50,6 +51,10 @@ export const stageViews = computed<StageView[]>(() => {
     isFinal: index === lastIndex,
   }));
 });
+
+export const stageEntanglementLinks = computed(() =>
+  ensembleSnapshots.value.map((snapshot) => entanglement_links_from_ensemble(snapshot)),
+);
 
 export const selectedStage = computed<StageView>(() => stageViews.value[state.selectedStageIndex]!);
 
