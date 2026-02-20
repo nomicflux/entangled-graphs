@@ -80,6 +80,12 @@ The app has two top-level tabs:
 
 In the Teleportation view, these overlays stay active on the fixed algorithm backbone.
 
+### Notes and Limits
+
+- Multipartite overlays appear only when a `3+` qubit component exceeds strength thresholds used to keep the view readable.
+- Bell-arc strength is Bell-basis-derived and highlights dominant pairwise character; it is not a full entanglement monotone.
+- Multipartite strength is cut-entropy-based and is strongest for highly non-separable components; near-zero values are visually suppressed.
+
 ## Custom Gates
 
 - You can create custom single-qubit and multi-qubit gates from the circuit tools.

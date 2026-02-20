@@ -321,11 +321,15 @@ export const useTeleportationModel = () => {
   const stageEntanglementLinks = computed(() => ensembleSnapshots.value.map((snapshot) => entanglement_links_from_ensemble(snapshot)));
   const stageEntanglementModels = computed(() => stage_entanglement_models_from_snapshots(ensembleSnapshots.value));
 
-  const entanglementLinksForColumn = (columnIndex: number): EntanglementLink[] => {
-    const previous = stageEntanglementLinks.value[columnIndex] ?? [];
-    const current = stageEntanglementLinks.value[columnIndex + 1] ?? [];
-    return entanglement_delta_links(previous, current).filter((link) => link.strength > 0.08);
-  };
+  const entanglementLinksByColumn = computed<ReadonlyArray<ReadonlyArray<EntanglementLink>>>(() =>
+    stageEntanglementLinks.value.slice(0, -1).map((_, columnIndex) => {
+      const previous = stageEntanglementLinks.value[columnIndex] ?? [];
+      const current = stageEntanglementLinks.value[columnIndex + 1] ?? [];
+      return entanglement_delta_links(previous, current).filter((link) => link.strength > 0.08);
+    }),
+  );
+
+  const entanglementLinksForColumn = (columnIndex: number): EntanglementLink[] => [...(entanglementLinksByColumn.value[columnIndex] ?? [])];
 
   const rowCenterViewBox = (row: number): number => ((row + 0.5) / TELEPORT_ROWS.length) * 100;
 

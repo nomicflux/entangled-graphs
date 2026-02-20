@@ -9,6 +9,8 @@ import type {
 import { qubitCountFromState } from "../core";
 import { cut_entanglement_scores_from_ensemble } from "./cuts";
 
+const modelCache = new WeakMap<StateEnsemble, StageEntanglementModel>();
+
 const sortRows = (rows: ReadonlyArray<QubitRow>): QubitRow[] => [...rows].sort((left, right) => left - right);
 
 const splitByCut = (
@@ -111,14 +113,25 @@ export const entanglement_model_from_ensemble = (
     return { cuts: [], components: [] };
   }
 
+  if (entropyZeroEpsilon === 1e-8) {
+    const cached = modelCache.get(ensemble);
+    if (cached) {
+      return cached;
+    }
+  }
+
   const qubitCount = qubitCountFromState(ensemble[0]!.state);
   const cuts = cut_entanglement_scores_from_ensemble(ensemble);
   const components = entanglement_components_from_cut_scores(cuts, qubitCount, entropyZeroEpsilon);
-  return { cuts, components };
+  const model = { cuts, components };
+
+  if (entropyZeroEpsilon === 1e-8) {
+    modelCache.set(ensemble, model);
+  }
+  return model;
 };
 
 export const stage_entanglement_models_from_snapshots = (
   snapshots: ReadonlyArray<StateEnsemble>,
   entropyZeroEpsilon: number = 1e-8,
 ): StageEntanglementModel[] => snapshots.map((snapshot) => entanglement_model_from_ensemble(snapshot, entropyZeroEpsilon));
-

@@ -3,6 +3,8 @@ import * as complex from "../complex";
 import { qubitCountFromState } from "./core";
 import { reduced_density_for_subset_ensemble, type ComplexMatrix } from "./reduced-density";
 
+const entanglementLinksCache = new WeakMap<StateEnsemble, EntanglementLink[]>();
+
 const bellOrder: readonly BellStateId[] = ["phi+", "phi-", "psi+", "psi-"];
 
 const bellVectors: Record<BellStateId, readonly number[]> = {
@@ -51,6 +53,11 @@ export const entanglement_links_from_ensemble = (ensemble: StateEnsemble): Entan
     return [];
   }
 
+  const cached = entanglementLinksCache.get(ensemble);
+  if (cached) {
+    return cached;
+  }
+
   const qubitCount = qubitCountFromState(ensemble[0]!.state);
   if (qubitCount < 2) {
     return [];
@@ -69,6 +76,7 @@ export const entanglement_links_from_ensemble = (ensemble: StateEnsemble): Entan
     }
   }
 
+  entanglementLinksCache.set(ensemble, links);
   return links;
 };
 

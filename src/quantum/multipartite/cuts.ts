@@ -5,6 +5,8 @@ import { reduced_density_for_subset_state } from "../reduced-density";
 import { entropyFromEigenvalues, hermitianEigenvalues } from "./linalg";
 
 const EPSILON = 1e-12;
+const canonicalCutsCache = new Map<number, Array<{ subset: QubitRow[]; complement: QubitRow[] }>>();
+const cutScoreCache = new WeakMap<StateEnsemble, CutEntanglementScore[]>();
 
 const complexDivByReal = (value: { real: number; imag: number }, divisor: number) =>
   complex.complex(value.real / divisor, value.imag / divisor);
@@ -20,6 +22,11 @@ const wiresFromMask = (mask: number, qubitCount: number): QubitRow[] => {
 };
 
 const canonicalCuts = (qubitCount: number): Array<{ subset: QubitRow[]; complement: QubitRow[] }> => {
+  const cached = canonicalCutsCache.get(qubitCount);
+  if (cached) {
+    return cached;
+  }
+
   const maxMask = 1 << qubitCount;
   const cuts: Array<{ subset: QubitRow[]; complement: QubitRow[] }> = [];
 
@@ -37,6 +44,7 @@ const canonicalCuts = (qubitCount: number): Array<{ subset: QubitRow[]; compleme
     cuts.push({ subset, complement });
   }
 
+  canonicalCutsCache.set(qubitCount, cuts);
   return cuts;
 };
 
@@ -56,10 +64,15 @@ export const cut_entanglement_scores_from_ensemble = (ensemble: StateEnsemble): 
     return [];
   }
 
+  const cached = cutScoreCache.get(ensemble);
+  if (cached) {
+    return cached;
+  }
+
   const qubitCount = qubitCountFromState(ensemble[0]!.state);
   const cuts = canonicalCuts(qubitCount);
 
-  return cuts.map((cut) => {
+  const scores = cuts.map((cut) => {
     let entropy = 0;
     for (const branch of ensemble) {
       entropy += branch.weight * pureCutEntropy(branch.state, cut.subset);
@@ -70,6 +83,9 @@ export const cut_entanglement_scores_from_ensemble = (ensemble: StateEnsemble): 
       entropy,
     };
   });
+
+  cutScoreCache.set(ensemble, scores);
+  return scores;
 };
 
 export const stage_cut_entanglement_scores = (snapshots: ReadonlyArray<StateEnsemble>): CutEntanglementScore[][] =>
