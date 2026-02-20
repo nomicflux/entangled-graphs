@@ -98,3 +98,8 @@
 .padic-map-legend p {
   margin: 0;
 }
+
+.padic-replay-btn {
+  padding: 6px 9px;
+  font-size: 0.72rem;
+}

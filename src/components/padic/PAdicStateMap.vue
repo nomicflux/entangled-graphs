@@ -1,8 +1,13 @@
 <template>
   <section class="padic-state-map">
     <div class="padic-state-map-head">
-      <h3>p-adic State Map</h3>
-      <p>{{ stageLabel }} • {{ geometryModeLabel }} • p={{ prime }}</p>
+      <div>
+        <h3>p-adic State Map</h3>
+        <p>{{ stageLabel }} • {{ geometryModeLabel }} • p={{ prime }}</p>
+      </div>
+      <button class="column-btn padic-replay-btn" type="button" :disabled="!canReplay" @click="replayTransition">
+        Replay transition
+      </button>
     </div>
 
     <svg class="padic-map-svg" viewBox="0 0 100 100" role="img" aria-label="p-adic state map">
@@ -38,7 +43,7 @@
       </template>
 
       <line
-        v-for="edge in transitions"
+        v-for="edge in animatedTransitions"
         :key="`edge-${edge.basis}`"
         class="padic-map-edge"
         :x1="xFor(edge.from.x)"
@@ -52,7 +57,7 @@
         </title>
       </line>
 
-      <g v-for="node in nodes" :key="`node-${node.basis}`" class="padic-map-node" @click="emitSelect(node.basis)">
+      <g v-for="node in animatedNodes" :key="`node-${node.basis}`" class="padic-map-node" @click="emitSelect(node.basis)">
         <circle
           :cx="xFor(node.point.x)"
           :cy="yFor(node.point.y)"
@@ -88,10 +93,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onUnmounted, ref, watch } from "vue";
 import type { PAdicGeometryMode } from "../../padic-config";
 import type {
   PAdicStageVisualization,
+  PAdicVisualizationNode,
+  PAdicVisualizationTransition,
 } from "../../types";
 
 const props = withDefaults(
@@ -111,8 +118,8 @@ const emit = defineEmits<{
   (e: "select-basis", basis: string | null): void;
 }>();
 
-const nodes = computed(() => props.stage?.nodes ?? []);
-const transitions = computed(() => props.stage?.transitions ?? []);
+const nodes = computed<ReadonlyArray<PAdicVisualizationNode>>(() => props.stage?.nodes ?? []);
+const transitions = computed<ReadonlyArray<PAdicVisualizationTransition>>(() => props.stage?.transitions ?? []);
 const geometryMode = computed<PAdicGeometryMode>(() => props.stage?.geometryMode ?? "padic_vector");
 const geometryModeLabel = computed(() => (geometryMode.value === "padic_vector" ? "Digit-Vector" : "Valuation-Ring"));
 const residueAngles = computed(() =>
@@ -128,6 +135,115 @@ const valuationSummary = computed(() => {
     .map((value) => (Number.isFinite(value) ? `v_p=${value}` : "v_p=+∞"))
     .join(" • ");
 });
+const animationProgress = ref(1);
+const fromNodes = ref<ReadonlyArray<PAdicVisualizationNode>>([]);
+let animationFrame: ReturnType<typeof requestAnimationFrame> | null = null;
+let animationStartMs = 0;
+const animationDurationMs = 460;
+
+const cancelAnimation = () => {
+  if (animationFrame !== null) {
+    cancelAnimationFrame(animationFrame);
+    animationFrame = null;
+  }
+};
+
+const runAnimation = () => {
+  cancelAnimation();
+  animationProgress.value = 0;
+  animationStartMs = 0;
+
+  const step = (timestamp: number) => {
+    if (animationStartMs === 0) {
+      animationStartMs = timestamp;
+    }
+
+    const elapsed = timestamp - animationStartMs;
+    animationProgress.value = Math.min(1, elapsed / animationDurationMs);
+    if (animationProgress.value >= 1) {
+      animationFrame = null;
+      return;
+    }
+
+    animationFrame = requestAnimationFrame(step);
+  };
+
+  animationFrame = requestAnimationFrame(step);
+};
+
+watch(
+  () => props.stage,
+  (next, previous) => {
+    if (!next) {
+      fromNodes.value = [];
+      animationProgress.value = 1;
+      cancelAnimation();
+      return;
+    }
+
+    const previousNodes = previous?.nodes ?? [];
+    fromNodes.value = previousNodes.length > 0 ? previousNodes : next.nodes;
+
+    const shouldAnimate =
+      previous !== undefined &&
+      previous !== null &&
+      (previous.stageIndex !== next.stageIndex || previous.geometryMode !== next.geometryMode);
+
+    if (shouldAnimate) {
+      runAnimation();
+      return;
+    }
+
+    animationProgress.value = 1;
+    cancelAnimation();
+  },
+  { immediate: true },
+);
+
+onUnmounted(() => {
+  cancelAnimation();
+});
+
+const lerp = (from: number, to: number, t: number): number => from + ((to - from) * t);
+
+const animatedNodes = computed<ReadonlyArray<PAdicVisualizationNode>>(() => {
+  if (animationProgress.value >= 1) {
+    return nodes.value;
+  }
+
+  const byBasis = new Map(fromNodes.value.map((node) => [node.basis, node]));
+  const t = animationProgress.value;
+  return nodes.value.map((node) => {
+    const prior = byBasis.get(node.basis) ?? node;
+    return {
+      ...node,
+      rawWeight: lerp(prior.rawWeight, node.rawWeight, t),
+      weight: lerp(prior.weight, node.weight, t),
+      norm: lerp(prior.norm, node.norm, t),
+      point: {
+        x: lerp(prior.point.x, node.point.x, t),
+        y: lerp(prior.point.y, node.point.y, t),
+      },
+    };
+  });
+});
+
+const animatedTransitions = computed<ReadonlyArray<PAdicVisualizationTransition>>(() => {
+  if (animationProgress.value >= 1) {
+    return transitions.value;
+  }
+
+  const t = animationProgress.value;
+  return transitions.value.map((edge) => ({
+    ...edge,
+    to: {
+      x: lerp(edge.from.x, edge.to.x, t),
+      y: lerp(edge.from.y, edge.to.y, t),
+    },
+  }));
+});
+
+const canReplay = computed(() => nodes.value.length > 0 && fromNodes.value.length > 0);
 
 const xFor = (x: number): number => 50 + (x * 42);
 const yFor = (y: number): number => 50 - (y * 42);
@@ -155,5 +271,12 @@ const formatValuation = (value: number): string => {
 
 const emitSelect = (basis: string) => {
   emit("select-basis", props.selectedBasis === basis ? null : basis);
+};
+
+const replayTransition = () => {
+  if (!canReplay.value) {
+    return;
+  }
+  runAnimation();
 };
 </script>
