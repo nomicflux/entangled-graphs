@@ -2,7 +2,7 @@
   <section class="panel panel-center">
     <div class="panel-header">
       <h2>Quantum Teleportation</h2>
-      <p>Core algorithm steps are fixed in this phase.</p>
+      <p>Backbone is fixed. Correction behavior is controlled in the output panel.</p>
     </div>
 
     <div class="circuit-shell teleport-circuit-shell">
@@ -103,7 +103,7 @@ defineEmits<{
   (e: "select-stage", index: number): void;
 }>();
 
-const slotTitle = "Fixed teleportation backbone (editable controls arrive in later phases).";
+const slotTitle = "Fixed teleportation backbone.";
 
 const slotInstance = (column: TeleportationColumn, row: QubitRow): GateInstance | null =>
   column.gates.find((entry) => entry.wires.includes(row)) ?? null;

@@ -23,8 +23,18 @@
 
     <TeleportationResultsPanel
       :source="sourceAmplitudes"
+      :correction-mode="correctionMode"
+      :manual-apply-z="manualApplyZ"
+      :manual-apply-x="manualApplyX"
+      :active-expected="activeExpected"
+      :sampled-result="sampledResult"
       :branches="teleportationBranches"
       :output="teleportationOutput"
+      @update-correction-mode="setCorrectionMode"
+      @update-manual-z="setManualApplyZ"
+      @update-manual-x="setManualApplyX"
+      @run-sample="runSample"
+      @resample-from="resampleFrom"
     />
   </main>
 </template>
@@ -43,12 +53,19 @@ const {
   branchPreviews,
   teleportationBranches,
   teleportationOutput,
+  activeExpected,
+  correctionMode,
+  manualApplyZ,
+  manualApplyX,
+  sampledResult,
   circuitColumns,
   rows,
   stageViews,
   selectedStageIndex,
   selectedStage,
   applyPreset,
+  runSample,
+  resampleFrom,
   entanglementLinksForColumn,
   entanglementArcPath,
   entanglementArcStyle,
@@ -60,5 +77,17 @@ const setSourceBloch = (next: BlochParams) => {
 
 const setSelectedStage = (index: number) => {
   selectedStageIndex.value = index;
+};
+
+const setCorrectionMode = (mode: "auto" | "manual") => {
+  correctionMode.value = mode;
+};
+
+const setManualApplyZ = (enabled: boolean) => {
+  manualApplyZ.value = enabled;
+};
+
+const setManualApplyX = (enabled: boolean) => {
+  manualApplyX.value = enabled;
 };
 </script>

@@ -1,4 +1,6 @@
 import type { GateInstance, Qubit, QubitRow } from "../../../types";
+import type { BasisProbability } from "../../../types";
+import type { CircuitMeasurementOutcome } from "../../../quantum";
 
 export type PrepPreset = "zero" | "one" | "half";
 export type BranchOperation = "I" | "X" | "Z" | "XZ";
@@ -28,6 +30,25 @@ export type TeleportationBranchResult = {
 };
 
 export type TeleportationModeSummary = {
+  q2P0: number;
+  q2P1: number;
+  fidelityToSource: number;
+};
+
+export type TeleportationCorrectionMode = "auto" | "manual";
+
+export type TeleportationCorrectionPolicy = {
+  applyZ: boolean;
+  applyX: boolean;
+};
+
+export type TeleportationSampleResult = {
+  basis: string;
+  probability: number;
+  distribution: BasisProbability[];
+  outcomes: ReadonlyArray<CircuitMeasurementOutcome>;
+  m0: 0 | 1;
+  m1: 0 | 1;
   q2P0: number;
   q2P1: number;
   fidelityToSource: number;

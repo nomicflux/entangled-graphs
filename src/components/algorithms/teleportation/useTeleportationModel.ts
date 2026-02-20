@@ -5,22 +5,38 @@ import {
   bloch_pair_from_ensemble,
   entanglement_delta_links,
   entanglement_links_from_ensemble,
+  measurement_distribution,
   measurement_distribution_for_ensemble,
+  sample_circuit_run,
+  sample_distribution,
   simulate_columns_ensemble,
   tensor_product_qubits,
 } from "../../../quantum";
 import { qubitFromBloch } from "../../../state/qubit-helpers";
 import { resolveOperator } from "../../../state/operators";
-import { buildTeleportationBranchResults, teleportationSummaries } from "./engine";
+import { X, Z } from "../../../operator";
+import { apply_single_qubit_gate } from "../../../quantum/core";
+import {
+  bobQubitFromStateForOutcome,
+  buildTeleportationBranchResults,
+  teleportationSummaries,
+  teleportationSummaryForPolicy,
+} from "./engine";
 import {
   TELEPORT_ROWS,
   type PrepPreset,
   type BranchPreview,
   type TeleportationBranchResult,
+  type TeleportationCorrectionMode,
+  type TeleportationCorrectionPolicy,
   type TeleportationColumn,
+  type TeleportationSampleResult,
 } from "./model-types";
 
 const TELEPORT_SOURCE_KEY = "entangled.algorithms.teleportation.source";
+const TELEPORT_CORRECTION_MODE_KEY = "entangled.algorithms.teleportation.correction.mode";
+const TELEPORT_MANUAL_Z_KEY = "entangled.algorithms.teleportation.correction.manualZ";
+const TELEPORT_MANUAL_X_KEY = "entangled.algorithms.teleportation.correction.manualX";
 
 const loadSourceBloch = (): BlochParams => {
   const raw = window.localStorage.getItem(TELEPORT_SOURCE_KEY);
@@ -39,17 +55,50 @@ const loadSourceBloch = (): BlochParams => {
   }
 };
 
+const loadCorrectionMode = (): TeleportationCorrectionMode => {
+  const raw = window.localStorage.getItem(TELEPORT_CORRECTION_MODE_KEY);
+  return raw === "manual" ? "manual" : "auto";
+};
+
+const loadBoolean = (key: string, fallback: boolean): boolean => {
+  const raw = window.localStorage.getItem(key);
+  if (raw === null) {
+    return fallback;
+  }
+  return raw === "true";
+};
+
 export const useTeleportationModel = () => {
   const sourceBloch = ref<BlochParams>(loadSourceBloch());
   const selectedStageIndex = ref(0);
+  const correctionMode = ref<TeleportationCorrectionMode>(loadCorrectionMode());
+  const manualApplyZ = ref<boolean>(loadBoolean(TELEPORT_MANUAL_Z_KEY, true));
+  const manualApplyX = ref<boolean>(loadBoolean(TELEPORT_MANUAL_X_KEY, true));
+  const sampledResult = ref<TeleportationSampleResult | null>(null);
 
   watch(
     sourceBloch,
     (value) => {
       window.localStorage.setItem(TELEPORT_SOURCE_KEY, JSON.stringify(value));
+      sampledResult.value = null;
     },
     { deep: true },
   );
+
+  watch(correctionMode, (value) => {
+    window.localStorage.setItem(TELEPORT_CORRECTION_MODE_KEY, value);
+    sampledResult.value = null;
+  });
+
+  watch(manualApplyZ, (value) => {
+    window.localStorage.setItem(TELEPORT_MANUAL_Z_KEY, value ? "true" : "false");
+    sampledResult.value = null;
+  });
+
+  watch(manualApplyX, (value) => {
+    window.localStorage.setItem(TELEPORT_MANUAL_X_KEY, value ? "true" : "false");
+    sampledResult.value = null;
+  });
 
   const circuitColumns = computed<TeleportationColumn[]>(() => [
     {
@@ -150,6 +199,92 @@ export const useTeleportationModel = () => {
   );
 
   const teleportationOutput = computed(() => teleportationSummaries(teleportationBranches.value, sourceAmplitudes.value));
+  const correctionPolicy = computed<TeleportationCorrectionPolicy>(() => {
+    if (correctionMode.value === "auto") {
+      return { applyZ: true, applyX: true };
+    }
+    return {
+      applyZ: manualApplyZ.value,
+      applyX: manualApplyX.value,
+    };
+  });
+  const activeExpected = computed(() =>
+    teleportationSummaryForPolicy(teleportationBranches.value, sourceAmplitudes.value, correctionPolicy.value),
+  );
+
+  const measurementBits = (outcomes: ReadonlyArray<{ gateId: string; value: 0 | 1 }>): { m0: 0 | 1; m1: 0 | 1 } => {
+    const m0 = outcomes.find((entry) => entry.gateId === "measure-q0")!.value;
+    const m1 = outcomes.find((entry) => entry.gateId === "measure-q1")!.value;
+    return { m0, m1 };
+  };
+
+  const normalizeQubit = (qubit: Qubit): Qubit => {
+    const norm = complex.magnitude_squared(qubit.a) + complex.magnitude_squared(qubit.b);
+    const scale = norm > 0 ? 1 / Math.sqrt(norm) : 1;
+    return {
+      a: complex.scale(qubit.a, scale),
+      b: complex.scale(qubit.b, scale),
+    };
+  };
+
+  const fidelityToSource = (candidate: Qubit): number => {
+    const source = normalizeQubit(sourceAmplitudes.value);
+    const target = normalizeQubit(candidate);
+    const overlap = complex.add(
+      complex.mult(complex.conjugate(source.a), target.a),
+      complex.mult(complex.conjugate(source.b), target.b),
+    );
+    return complex.magnitude_squared(overlap);
+  };
+
+  const applyCorrectionsToState = (
+    state: ReturnType<typeof sample_circuit_run>["finalState"],
+    m0: 0 | 1,
+    m1: 0 | 1,
+    policy: TeleportationCorrectionPolicy,
+  ) => {
+    let next = state;
+    if (policy.applyZ && m0 === 1) {
+      next = apply_single_qubit_gate(next, Z, 2, 3);
+    }
+    if (policy.applyX && m1 === 1) {
+      next = apply_single_qubit_gate(next, X, 2, 3);
+    }
+    return next;
+  };
+
+  const executeSample = (
+    replay?: {
+      priorOutcomes: ReadonlyArray<{ gateId: string; value: 0 | 1 }>;
+      resampleFromGateId: string;
+    },
+  ) => {
+    const sampled = sample_circuit_run(
+      preparedState.value,
+      quantumColumns.value,
+      resolveGate,
+      3,
+      Math.random,
+      replay,
+    );
+    const bits = measurementBits(sampled.outcomes);
+    const correctedState = applyCorrectionsToState(sampled.finalState, bits.m0, bits.m1, correctionPolicy.value);
+    const distribution = measurement_distribution(correctedState);
+    const finalSample = sample_distribution(distribution);
+    const bob = bobQubitFromStateForOutcome(correctedState, bits.m0, bits.m1);
+
+    sampledResult.value = {
+      basis: finalSample.basis,
+      probability: finalSample.probability,
+      distribution,
+      outcomes: sampled.outcomes,
+      m0: bits.m0,
+      m1: bits.m1,
+      q2P0: complex.magnitude_squared(bob.a),
+      q2P1: complex.magnitude_squared(bob.b),
+      fidelityToSource: fidelityToSource(bob),
+    };
+  };
 
   const applyPreset = (preset: PrepPreset) => {
     if (preset === "zero") {
@@ -164,6 +299,21 @@ export const useTeleportationModel = () => {
     }
     sourceBloch.value.theta = Math.PI / 2;
     sourceBloch.value.phi = 0;
+  };
+
+  const runSample = () => {
+    executeSample();
+  };
+
+  const resampleFrom = (gateId: string) => {
+    if (!sampledResult.value) {
+      executeSample();
+      return;
+    }
+    executeSample({
+      priorOutcomes: sampledResult.value.outcomes.map((entry) => ({ gateId: entry.gateId, value: entry.value })),
+      resampleFromGateId: gateId,
+    });
   };
 
   const stageEntanglementLinks = computed(() => ensembleSnapshots.value.map((snapshot) => entanglement_links_from_ensemble(snapshot)));
@@ -205,12 +355,19 @@ export const useTeleportationModel = () => {
     branchPreviews,
     teleportationBranches,
     teleportationOutput,
+    activeExpected,
+    correctionMode,
+    manualApplyZ,
+    manualApplyX,
+    sampledResult,
     circuitColumns,
     rows: TELEPORT_ROWS,
     stageViews,
     selectedStageIndex,
     selectedStage,
     applyPreset,
+    runSample,
+    resampleFrom,
     entanglementLinksForColumn,
     entanglementArcPath,
     entanglementArcStyle,

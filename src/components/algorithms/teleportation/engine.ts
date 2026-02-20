@@ -1,7 +1,12 @@
 import type { BasisProbability, Qubit, QubitState } from "../../../types";
 import * as complex from "../../../complex";
 import { measurement_distribution_for_ensemble } from "../../../quantum";
-import type { BranchOperation, TeleportationBranchResult, TeleportationModeSummary } from "./model-types";
+import type {
+  BranchOperation,
+  TeleportationBranchResult,
+  TeleportationCorrectionPolicy,
+  TeleportationModeSummary,
+} from "./model-types";
 
 const EPSILON = 1e-12;
 
@@ -86,6 +91,17 @@ const branchState = (m0: 0 | 1, m1: 0 | 1, bob: Qubit): QubitState => {
   return next;
 };
 
+const policyCorrectedState = (entry: TeleportationBranchResult, policy: TeleportationCorrectionPolicy): Qubit => {
+  let next = entry.withoutCorrection;
+  if (policy.applyZ && entry.m0 === 1) {
+    next = applyCorrectionOperation("Z", next);
+  }
+  if (policy.applyX && entry.m1 === 1) {
+    next = applyCorrectionOperation("X", next);
+  }
+  return normalizeQubit(next);
+};
+
 const buildDistribution = (
   branches: TeleportationBranchResult[],
   pickState: (entry: TeleportationBranchResult) => Qubit,
@@ -151,4 +167,19 @@ export const teleportationSummaries = (branches: TeleportationBranchResult[], so
   withCorrection: modeSummary(branches, (entry) => entry.withCorrection, source),
   withoutCorrectionDistribution: buildDistribution(branches, (entry) => entry.withoutCorrection),
   withCorrectionDistribution: buildDistribution(branches, (entry) => entry.withCorrection),
+});
+
+export const bobQubitFromStateForOutcome = (state: QubitState, m0: 0 | 1, m1: 0 | 1): Qubit =>
+  qubitFromPreMeasurementState(state, m0, m1).qubit;
+
+export const teleportationSummaryForPolicy = (
+  branches: TeleportationBranchResult[],
+  source: Qubit,
+  policy: TeleportationCorrectionPolicy,
+): {
+  summary: TeleportationModeSummary;
+  distribution: BasisProbability[];
+} => ({
+  summary: modeSummary(branches, (entry) => policyCorrectedState(entry, policy), source),
+  distribution: buildDistribution(branches, (entry) => policyCorrectedState(entry, policy)),
 });

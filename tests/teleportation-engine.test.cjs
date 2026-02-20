@@ -19,7 +19,7 @@ const resolver = (gate) => {
   return null;
 };
 
-const tauStateForSource = (source) => {
+const preMeasurementStateForSource = (source) => {
   const prepared = quantum.tensor_product_qubits([source, ketZero, ketZero]);
   const columns = [
     { gates: [{ id: "bell-h", gate: "H", wires: [1] }] },
@@ -33,7 +33,7 @@ const tauStateForSource = (source) => {
 
 test("teleportation branch engine builds expected m0,m1 branches for |0>", () => {
   const source = { a: complex.from_real(1), b: complex.from_real(0) };
-  const branches = teleportationEngine.buildTeleportationBranchResults(tauStateForSource(source), source);
+  const branches = teleportationEngine.buildTeleportationBranchResults(preMeasurementStateForSource(source), source);
   const summary = teleportationEngine.teleportationSummaries(branches, source);
 
   assert.equal(branches.length, 4);
@@ -57,7 +57,7 @@ test("teleportation branch engine builds expected m0,m1 branches for |0>", () =>
 
 test("teleportation branch engine preserves phase-carrying source after correction", () => {
   const source = { a: complex.complex(Math.SQRT1_2, 0), b: complex.complex(0, Math.SQRT1_2) };
-  const branches = teleportationEngine.buildTeleportationBranchResults(tauStateForSource(source), source);
+  const branches = teleportationEngine.buildTeleportationBranchResults(preMeasurementStateForSource(source), source);
   const summary = teleportationEngine.teleportationSummaries(branches, source);
 
   for (const entry of branches) {
@@ -67,4 +67,14 @@ test("teleportation branch engine preserves phase-carrying source after correcti
   approx(summary.withCorrection.fidelityToSource, 1);
   approx(summary.withCorrection.q2P0, 0.5);
   approx(summary.withCorrection.q2P1, 0.5);
+});
+
+test("manual correction policy changes expected fidelity when one control is disabled", () => {
+  const source = { a: complex.from_real(1), b: complex.from_real(0) };
+  const branches = teleportationEngine.buildTeleportationBranchResults(preMeasurementStateForSource(source), source);
+  const autoPolicy = teleportationEngine.teleportationSummaryForPolicy(branches, source, { applyZ: true, applyX: true });
+  const zOnlyPolicy = teleportationEngine.teleportationSummaryForPolicy(branches, source, { applyZ: true, applyX: false });
+
+  approx(autoPolicy.summary.fidelityToSource, 1);
+  assert.ok(zOnlyPolicy.summary.fidelityToSource < 1);
 });

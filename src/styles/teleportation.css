@@ -105,6 +105,91 @@
   color: rgba(255, 255, 255, 0.82);
 }
 
+.teleport-correction-controls {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.teleport-correction-controls p {
+  margin: 0;
+}
+
+.teleport-toggle-row {
+  display: flex;
+  gap: 8px;
+}
+
+.teleport-toggle-btn {
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.68rem;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.teleport-toggle-btn.active {
+  border-color: rgba(110, 237, 213, 0.7);
+  background: rgba(110, 237, 213, 0.2);
+}
+
+.teleport-manual-controls {
+  display: grid;
+  gap: 5px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.7rem;
+}
+
+.teleport-manual-controls label {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.teleport-sample-panel {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.teleport-sample-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.teleport-sample-header h3 {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.teleport-run-btn {
+  min-width: 112px;
+}
+
+.teleport-sampled-block {
+  display: grid;
+  gap: 8px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.teleport-sample-outcome {
+  margin: 0;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.74rem;
+}
+
 .teleport-output-card {
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 14px;
@@ -158,6 +243,36 @@
 
 .teleport-dist-bar.is-corrected {
   background: linear-gradient(90deg, rgba(120, 238, 208, 0.9), rgba(104, 192, 255, 0.92));
+}
+
+.teleport-dist-bar.is-active {
+  background: linear-gradient(90deg, rgba(192, 149, 255, 0.9), rgba(127, 171, 255, 0.92));
+}
+
+.teleport-dist-bar.is-sampled {
+  background: linear-gradient(90deg, rgba(255, 214, 110, 0.95), rgba(255, 162, 90, 0.95));
+}
+
+.teleport-outcome-list h4 {
+  margin: 0 0 4px;
+  font-size: 0.76rem;
+}
+
+.teleport-outcome-list ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.teleport-outcome-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.68rem;
 }
 
 .teleport-branch-table-wrap {
