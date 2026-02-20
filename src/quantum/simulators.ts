@@ -85,33 +85,6 @@ const project_state_on_wire = (
   });
 };
 
-const flip_state_on_wire = (
-  state: QubitState,
-  wire: number,
-  qubitCount: number,
-): QubitState => {
-  const wireMask = 1 << (qubitCount - 1 - wire);
-  const next = state.map((amplitude) => ({ ...amplitude }));
-
-  for (let index = 0; index < state.length; index += 1) {
-    if ((index & wireMask) !== 0) {
-      continue;
-    }
-    const partner = index | wireMask;
-    next[index] = state[partner]!;
-    next[partner] = state[index]!;
-  }
-
-  return next;
-};
-
-const reset_measured_wire_to_zero = (
-  state: QubitState,
-  wire: number,
-  measuredValue: 0 | 1,
-  qubitCount: number,
-): QubitState => (measuredValue === 0 ? state : flip_state_on_wire(state, wire, qubitCount));
-
 const select_measurement_on_wire = (
   state: QubitState,
   wire: number,
@@ -241,7 +214,7 @@ const apply_measurement_to_ensemble = (
       }
       next.push({
         weight: weightedProbability,
-        state: reset_measured_wire_to_zero(outcome.state, wire, outcome.value, qubitCount),
+        state: outcome.state,
       });
     }
   }
@@ -323,7 +296,7 @@ export const sample_circuit_run = (
           value: sampled.value,
           probability: sampled.probability,
         });
-        current = reset_measured_wire_to_zero(sampled.state, gate.wires[0]!, sampled.value, qubitCount);
+        current = sampled.state;
         if (gate.id === replay.resampleFromGateId) {
           replayLocked = false;
         }

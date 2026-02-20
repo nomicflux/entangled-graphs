@@ -56,7 +56,7 @@ test("sampled run follows sampled in-circuit measurement branch (1 branch)", () 
 
   assert.equal(sampled.outcomes.length, 1);
   assert.equal(sampled.outcomes[0].value, 1);
-  assert.equal(sampled.finalSample.basis, "00");
+  assert.equal(sampled.finalSample.basis, "10");
   assert.equal(Number(sampled.finalSample.probability.toFixed(6)), 1);
 });
 

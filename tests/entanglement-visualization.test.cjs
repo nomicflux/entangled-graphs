@@ -42,7 +42,7 @@ test("Bell pair is marked with strong phi+ entanglement", () => {
   assert.equal(Number(pair.strength.toFixed(6)), 1);
 });
 
-test("measurement reset removes Bell entanglement link strength", () => {
+test("measurement collapse removes Bell entanglement link strength", () => {
   const prepared = quantum.tensor_product_qubits([ketZero, ketZero]);
   const columns = [
     { gates: [{ id: "h", gate: "H", wires: [0] }] },

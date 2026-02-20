@@ -50,10 +50,10 @@ test("distribution remains branch-correct after Bell partial measurement and dow
   const distribution = quantum.measurement_distribution_for_ensemble(snapshots[snapshots.length - 1]);
   const table = new Map(distribution.map((entry) => [entry.basis, Number(entry.probability.toFixed(6))]));
 
-  assert.equal(table.get("00"), 0.5);
-  assert.equal(table.get("01"), 0.5);
-  assert.equal(table.get("10"), 0);
-  assert.equal(table.get("11"), 0);
+  assert.equal(table.get("00"), 0.25);
+  assert.equal(table.get("01"), 0.25);
+  assert.equal(table.get("10"), 0.25);
+  assert.equal(table.get("11"), 0.25);
 });
 
 test("row lock remains correct after qubit removal remaps measured wire", () => {
@@ -128,6 +128,6 @@ test("deterministic sampled run follows two in-circuit measurement outcomes on e
   assert.equal(sampled.outcomes[1].wire, 1);
   assert.equal(sampled.outcomes[1].value, 1);
   assert.equal(Number(sampled.outcomes[1].probability.toFixed(6)), 1);
-  assert.equal(sampled.finalSample.basis, "00");
+  assert.equal(sampled.finalSample.basis, "11");
   assert.equal(Number(sampled.finalSample.probability.toFixed(6)), 1);
 });

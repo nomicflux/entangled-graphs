@@ -10,8 +10,9 @@ Add in-circuit partial measurements via a measurement gate that can be placed in
 4. Stage inspector shows post-measurement state at measurement stages.
 
 ## Follow-up Decisions (Post Phase 5)
-1. Measurement gate `M` performs projective measurement and then resets measured wire to `|0⟩`.
+1. Measurement gate `M` performs projective measurement collapse only (no automatic reset/reprepare).
 2. Measurement panel distribution can show the sampled-branch distribution from the latest click (in addition to expected-over-branches behavior).
+3. Users can replay from an in-circuit measurement point to resample from that point onward.
 
 ## Math Strategy
 Use projection operators on pure-state branches:
