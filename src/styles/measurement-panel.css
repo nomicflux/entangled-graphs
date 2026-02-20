@@ -151,3 +151,93 @@
 .resample-btn:hover {
   background: rgba(255, 255, 255, 0.14);
 }
+
+.padic-inspector {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(7, 12, 26, 0.42);
+  display: grid;
+  gap: 10px;
+}
+
+.padic-inspector-head h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.padic-inspector-head p {
+  margin: 3px 0 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.padic-inspector-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.padic-badge {
+  font-size: 0.68rem;
+  padding: 3px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  letter-spacing: 0.02em;
+}
+
+.padic-badge.primary {
+  background: rgba(102, 245, 214, 0.18);
+}
+
+.padic-badge.derived {
+  background: rgba(255, 196, 96, 0.18);
+}
+
+.padic-table-wrap {
+  overflow-x: auto;
+}
+
+.padic-value-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 620px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.73rem;
+}
+
+.padic-value-table th,
+.padic-value-table td {
+  padding: 6px 7px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
+}
+
+.padic-value-row {
+  cursor: pointer;
+}
+
+.padic-value-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.padic-value-row.selected {
+  background: rgba(102, 245, 214, 0.15);
+}
+
+.padic-selected-detail {
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 8px;
+  display: grid;
+  gap: 5px;
+  font-size: 0.76rem;
+}
+
+.padic-selected-detail p {
+  margin: 0;
+}

@@ -43,6 +43,16 @@
       </div>
     </div>
 
+    <PAdicValueInspector
+      :stage-label="pAdicSelectedStage.label"
+      :prime="state.pAdic.prime"
+      :measurement-model="state.pAdic.measurementModel"
+      :nodes="pAdicSelectedStageVisualization?.nodes ?? []"
+      :selected-basis="state.pAdic.selectedBasis"
+      :selected-node="pAdicSelectedBasisNode"
+      @select-basis="setPAdicSelectedBasis"
+    />
+
     <div v-if="latestRunOutcomes.length > 0" class="measurement-points">
       <h3>In-Circuit Measurements</h3>
       <ul class="measurement-point-list">
@@ -75,12 +85,17 @@ import type { CircuitMeasurementOutcome } from "../../quantum";
 import { PADIC_MEASUREMENT_MODELS } from "../../padic-config";
 import {
   pAdicFinalDistribution,
+  pAdicSelectedBasisNode,
+  pAdicSelectedStage,
+  pAdicSelectedStageVisualization,
   pAdicPreparedState,
   pAdicQubitCount,
   resolveOperator,
+  setPAdicSelectedBasis,
   setPAdicMeasurementModel,
   state,
 } from "../../state";
+import PAdicValueInspector from "./PAdicValueInspector.vue";
 
 const latestBasis = ref<BasisLabel | null>(null);
 const history = ref<Array<{ basis: BasisLabel; path: string }>>([]);
