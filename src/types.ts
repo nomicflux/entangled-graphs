@@ -78,6 +78,12 @@ export type EntanglementLink = {
     strength: number;
 }
 
+export type CutEntanglementScore = {
+    subset: ReadonlyArray<QubitRow>;
+    complement: ReadonlyArray<QubitRow>;
+    entropy: number;
+}
+
 export type StageView = {
     id: string;
     index: number;
