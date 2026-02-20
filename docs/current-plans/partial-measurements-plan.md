@@ -9,6 +9,10 @@ Add in-circuit partial measurements via a measurement gate that can be placed in
 3. Additional measurements on a row after its first measurement are disallowed.
 4. Stage inspector shows post-measurement state at measurement stages.
 
+## Follow-up Decisions (Post Phase 5)
+1. Measurement gate `M` performs projective measurement and then resets measured wire to `|0⟩`.
+2. Measurement panel distribution can show the sampled-branch distribution from the latest click (in addition to expected-over-branches behavior).
+
 ## Math Strategy
 Use projection operators on pure-state branches:
 1. Keep an ensemble of weighted pure states.
@@ -101,3 +105,16 @@ Manual review of measurement UX.
 1. Stable coverage of partial measurement behavior.
 2. All checks green.
 3. Ready for sign-off.
+
+### Implementation Notes
+1. Regression coverage:
+   - `/tests/measurement-phase2.test.cjs` keeps Bell collapse and branch evolution checks.
+   - `/tests/measurement-phase5.test.cjs` adds branch-correct distribution after partial measurement plus downstream gates.
+   - `/tests/measurement-phase1.test.cjs` and `/tests/measurement-phase5.test.cjs` cover row-lock behavior under column and qubit count mutations.
+2. Deterministic sampling:
+   - `/tests/measurement-phase4.test.cjs` covers sampled single-`M` paths.
+   - `/tests/measurement-phase5.test.cjs` covers sampled multi-`M` entangled paths.
+3. Verification:
+   - `npm test`
+   - `npx tsc --noEmit`
+   - `npm run -s build`

@@ -25,12 +25,12 @@ test("projective measurement splits one-qubit superposition into Born-rule branc
   const measured = snapshots[1];
 
   assert.equal(measured.length, 2);
-  const sorted = [...measured].sort((left, right) => hotIndex(left.state) - hotIndex(right.state));
-
-  assert.equal(Number(sorted[0].weight.toFixed(6)), 0.5);
-  assert.equal(Number(sorted[1].weight.toFixed(6)), 0.5);
-  assert.equal(hotIndex(sorted[0].state), 0);
-  assert.equal(hotIndex(sorted[1].state), 1);
+  const totalWeight = measured.reduce((acc, branch) => acc + branch.weight, 0);
+  assert.equal(Number(totalWeight.toFixed(6)), 1);
+  assert.equal(Number(measured[0].weight.toFixed(6)), 0.5);
+  assert.equal(Number(measured[1].weight.toFixed(6)), 0.5);
+  assert.equal(hotIndex(measured[0].state), 0);
+  assert.equal(hotIndex(measured[1].state), 0);
 });
 
 test("measurement on one qubit of Bell state collapses entangled partner branch-wise", () => {
@@ -49,7 +49,7 @@ test("measurement on one qubit of Bell state collapses entangled partner branch-
   assert.equal(Number(sorted[0].weight.toFixed(6)), 0.5);
   assert.equal(Number(sorted[1].weight.toFixed(6)), 0.5);
   assert.equal(hotIndex(sorted[0].state), 0); // |00>
-  assert.equal(hotIndex(sorted[1].state), 3); // |11>
+  assert.equal(hotIndex(sorted[1].state), 1); // |01> (q0 reset to |0>)
 });
 
 test("downstream unitary after measurement evolves each branch independently", () => {
@@ -65,8 +65,8 @@ test("downstream unitary after measurement evolves each branch independently", (
   const distribution = quantum.measurement_distribution_for_ensemble(finalEnsemble);
   const table = new Map(distribution.map((entry) => [entry.basis, Number(entry.probability.toFixed(6))]));
 
-  assert.equal(table.get("00"), 0);
+  assert.equal(table.get("00"), 0.5);
   assert.equal(table.get("01"), 0.5);
-  assert.equal(table.get("10"), 0.5);
+  assert.equal(table.get("10"), 0);
   assert.equal(table.get("11"), 0);
 });

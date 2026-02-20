@@ -22,8 +22,9 @@
 
     <div class="probability-list">
       <h3>Output Distribution</h3>
+      <p class="distribution-context">{{ distributionContext }}</p>
       <div
-        v-for="entry in finalDistribution"
+        v-for="entry in displayedDistribution"
         :key="entry.basis"
         class="prob-row"
         :class="{ 'is-highlighted': highlightBasis === entry.basis }"
@@ -36,8 +37,18 @@
       </div>
     </div>
 
+    <div v-if="latestRunOutcomes.length > 0" class="measurement-points">
+      <h3>In-Circuit Measurements</h3>
+      <ul class="measurement-point-list">
+        <li v-for="entry in latestRunOutcomes" :key="entry.gateId">
+          <span>{{ formatMeasurementPoint(entry) }}</span>
+          <button class="resample-btn" @click="resampleFrom(entry.gateId)">Resample from this point</button>
+        </li>
+      </ul>
+    </div>
+
     <div class="history">
-      <h3>Recent Samples</h3>
+      <h3>Recent Samples ({{ maxHistory }})</h3>
       <p v-if="history.length === 0" class="muted">No samples yet.</p>
       <ul v-else class="history-list">
         <li v-for="(entry, index) in history" :key="index">
@@ -54,20 +65,27 @@
 import { computed, onUnmounted, ref, watch } from "vue";
 import { finalDistribution, preparedState, qubitCount, stageViews, state } from "../state";
 import { resolveOperator } from "../state/operators";
-import { basis_to_bloch_pair, sample_circuit_run } from "../quantum";
-import type { BasisLabel, GateId } from "../types";
+import { basis_to_bloch_pair, measurement_distribution, sample_circuit_run } from "../quantum";
+import type { BasisLabel, BasisProbability, GateId } from "../types";
+import type { CircuitMeasurementOutcome } from "../quantum";
 import BlochPairView from "./BlochPairView.vue";
 
 const latestBasis = ref<BasisLabel | null>(null);
 const history = ref<Array<{ basis: BasisLabel; path: string }>>([]);
 const highlightBasis = ref<BasisLabel | null>(null);
-const maxHistory = 10;
+const sampledDistribution = ref<BasisProbability[] | null>(null);
+const latestRunOutcomes = ref<CircuitMeasurementOutcome[]>([]);
+const maxHistory = 6;
 let highlightTimer: ReturnType<typeof setTimeout> | undefined;
 
 const finalStage = computed(() => stageViews.value[stageViews.value.length - 1]!);
+const displayedDistribution = computed(() => sampledDistribution.value ?? finalDistribution.value);
+const distributionContext = computed(() =>
+  sampledDistribution.value === null ? "Expected over all branches" : "Sampled branch from latest run",
+);
 const probabilityByBasis = computed(() => {
   const table = new Map<BasisLabel, number>();
-  for (const entry of finalDistribution.value) {
+  for (const entry of displayedDistribution.value) {
     table.set(entry.basis, entry.probability);
   }
   return table;
@@ -87,17 +105,15 @@ const formatPercent = (value: number): string => `${(value * 100).toFixed(1)}%`;
 const probabilityForBasis = (basis: BasisLabel): number => probabilityByBasis.value.get(basis) ?? 0;
 const formatPath = (outcomes: ReadonlyArray<{ wire: number; value: 0 | 1 }>): string =>
   outcomes.map((outcome) => `M(q${outcome.wire})=${outcome.value}`).join("  ");
+const formatMeasurementPoint = (entry: CircuitMeasurementOutcome): string =>
+  `t${entry.column} • M(q${entry.wire})=${entry.value}`;
 const resolveGate = (gate: GateId) => resolveOperator(gate, state.customOperators);
 
-const takeMeasurement = () => {
-  const sampled = sample_circuit_run(
-    preparedState.value,
-    state.columns,
-    resolveGate,
-    qubitCount.value,
-  );
+const applySampledRun = (sampled: ReturnType<typeof sample_circuit_run>): void => {
+  latestRunOutcomes.value = [...sampled.outcomes];
   latestBasis.value = sampled.finalSample.basis;
   history.value = [{ basis: sampled.finalSample.basis, path: formatPath(sampled.outcomes) }, ...history.value].slice(0, maxHistory);
+  sampledDistribution.value = measurement_distribution(sampled.finalState);
   highlightBasis.value = sampled.finalSample.basis;
 
   if (highlightTimer) {
@@ -108,11 +124,41 @@ const takeMeasurement = () => {
   }, 850);
 };
 
+const takeMeasurement = () => {
+  const sampled = sample_circuit_run(
+    preparedState.value,
+    state.columns,
+    resolveGate,
+    qubitCount.value,
+  );
+  applySampledRun(sampled);
+};
+
+const resampleFrom = (gateId: string) => {
+  const sampled = sample_circuit_run(
+    preparedState.value,
+    state.columns,
+    resolveGate,
+    qubitCount.value,
+    Math.random,
+    {
+      priorOutcomes: latestRunOutcomes.value.map((entry) => ({
+        gateId: entry.gateId,
+        value: entry.value,
+      })),
+      resampleFromGateId: gateId,
+    },
+  );
+  applySampledRun(sampled);
+};
+
 watch(
   finalDistribution,
   () => {
     latestBasis.value = null;
     history.value = [];
+    sampledDistribution.value = null;
+    latestRunOutcomes.value = [];
     highlightBasis.value = null;
   },
   { deep: true },

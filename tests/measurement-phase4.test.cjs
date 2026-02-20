@@ -56,6 +56,42 @@ test("sampled run follows sampled in-circuit measurement branch (1 branch)", () 
 
   assert.equal(sampled.outcomes.length, 1);
   assert.equal(sampled.outcomes[0].value, 1);
-  assert.equal(sampled.finalSample.basis, "10");
+  assert.equal(sampled.finalSample.basis, "00");
   assert.equal(Number(sampled.finalSample.probability.toFixed(6)), 1);
+});
+
+test("resample-from-point replays earlier measurements and resamples from selected gate onward", () => {
+  const prepared = quantum.tensor_product_qubits([ketZero, ketZero]);
+  const columns = [
+    { gates: [{ id: "h", gate: "H", wires: [0] }] },
+    { gates: [{ id: "cx", gate: "CNOT", wires: [0, 1] }] },
+    { gates: [{ id: "m0", gate: "M", wires: [0] }] },
+    { gates: [{ id: "h1", gate: "H", wires: [1] }] },
+    { gates: [{ id: "m1", gate: "M", wires: [1] }] },
+  ];
+
+  const firstRun = quantum.sample_circuit_run(prepared, columns, resolver, 2, scriptedRandom([0.9, 0.2, 0.1]));
+  assert.equal(firstRun.outcomes.length, 2);
+  assert.equal(firstRun.outcomes[0].gateId, "m0");
+  assert.equal(firstRun.outcomes[0].value, 1);
+  assert.equal(firstRun.outcomes[1].gateId, "m1");
+  assert.equal(firstRun.outcomes[1].value, 0);
+
+  const replayed = quantum.sample_circuit_run(
+    prepared,
+    columns,
+    resolver,
+    2,
+    scriptedRandom([0.8, 0.3]),
+    {
+      priorOutcomes: firstRun.outcomes.map((entry) => ({ gateId: entry.gateId, value: entry.value })),
+      resampleFromGateId: "m1",
+    },
+  );
+
+  assert.equal(replayed.outcomes.length, 2);
+  assert.equal(replayed.outcomes[0].gateId, "m0");
+  assert.equal(replayed.outcomes[0].value, 1);
+  assert.equal(replayed.outcomes[1].gateId, "m1");
+  assert.equal(replayed.outcomes[1].value, 1);
 });

@@ -22,7 +22,13 @@ export type CircuitMeasurementOutcome = {
   probability: number;
 };
 
+export type SamplingReplayOptions = {
+  priorOutcomes?: ReadonlyArray<Pick<CircuitMeasurementOutcome, "gateId" | "value">>;
+  resampleFromGateId?: string;
+};
+
 export type SampledCircuitRun = {
+  finalState: QubitState;
   finalSample: {
     basis: BasisProbability["basis"];
     probability: number;
@@ -79,6 +85,55 @@ const project_state_on_wire = (
   });
 };
 
+const flip_state_on_wire = (
+  state: QubitState,
+  wire: number,
+  qubitCount: number,
+): QubitState => {
+  const wireMask = 1 << (qubitCount - 1 - wire);
+  const next = state.map((amplitude) => ({ ...amplitude }));
+
+  for (let index = 0; index < state.length; index += 1) {
+    if ((index & wireMask) !== 0) {
+      continue;
+    }
+    const partner = index | wireMask;
+    next[index] = state[partner]!;
+    next[partner] = state[index]!;
+  }
+
+  return next;
+};
+
+const reset_measured_wire_to_zero = (
+  state: QubitState,
+  wire: number,
+  measuredValue: 0 | 1,
+  qubitCount: number,
+): QubitState => (measuredValue === 0 ? state : flip_state_on_wire(state, wire, qubitCount));
+
+const select_measurement_on_wire = (
+  state: QubitState,
+  wire: number,
+  qubitCount: number,
+  selectedValue: 0 | 1,
+): {
+  value: 0 | 1;
+  probability: number;
+  state: QubitState;
+} | null => {
+  const outcomes = measure_state_on_wire(state, wire, qubitCount);
+  const selected = outcomes.find((outcome) => outcome.value === selectedValue);
+  if (!selected) {
+    return null;
+  }
+  return {
+    value: selected.value,
+    probability: selected.weight,
+    state: selected.state,
+  };
+};
+
 const sample_measurement_on_wire = (
   state: QubitState,
   wire: number,
@@ -123,18 +178,18 @@ export const measure_state_on_wire = (
   state: QubitState,
   wire: number,
   qubitCount: number,
-): WeightedStateBranch[] => {
+): Array<WeightedStateBranch & { value: 0 | 1 }> => {
   const projectedZero = project_state_on_wire(state, wire, 0, qubitCount);
   const projectedOne = project_state_on_wire(state, wire, 1, qubitCount);
   const zeroMass = probability_mass(projectedZero);
   const oneMass = probability_mass(projectedOne);
-  const branches: WeightedStateBranch[] = [];
+  const branches: Array<WeightedStateBranch & { value: 0 | 1 }> = [];
 
   if (zeroMass > branchEpsilon) {
-    branches.push({ weight: zeroMass, state: normalize_state(projectedZero) });
+    branches.push({ weight: zeroMass, value: 0, state: normalize_state(projectedZero) });
   }
   if (oneMass > branchEpsilon) {
-    branches.push({ weight: oneMass, state: normalize_state(projectedOne) });
+    branches.push({ weight: oneMass, value: 1, state: normalize_state(projectedOne) });
   }
 
   return branches;
@@ -186,7 +241,7 @@ const apply_measurement_to_ensemble = (
       }
       next.push({
         weight: weightedProbability,
-        state: outcome.state,
+        state: reset_measured_wire_to_zero(outcome.state, wire, outcome.value, qubitCount),
       });
     }
   }
@@ -242,7 +297,10 @@ export const sample_circuit_run = (
   resolveGate: GateResolver,
   qubitCount: number,
   random: RandomSource = Math.random,
+  replay: SamplingReplayOptions = {},
 ): SampledCircuitRun => {
+  const replayByGateId = new Map((replay.priorOutcomes ?? []).map((entry) => [entry.gateId, entry.value]));
+  let replayLocked = replay.resampleFromGateId !== undefined;
   let current = prepared;
   const outcomes: CircuitMeasurementOutcome[] = [];
 
@@ -250,7 +308,14 @@ export const sample_circuit_run = (
     const column = columns[columnIndex]!;
     for (const gate of column.gates) {
       if (isMeasurementGate(gate.gate)) {
-        const sampled = sample_measurement_on_wire(current, gate.wires[0]!, qubitCount, random());
+        const shouldReplay = replayLocked && gate.id !== replay.resampleFromGateId;
+        const replayedValue = shouldReplay ? replayByGateId.get(gate.id) : undefined;
+        const sampled =
+          replayedValue === undefined
+            ? sample_measurement_on_wire(current, gate.wires[0]!, qubitCount, random())
+            : (select_measurement_on_wire(current, gate.wires[0]!, qubitCount, replayedValue) ??
+              sample_measurement_on_wire(current, gate.wires[0]!, qubitCount, random()));
+
         outcomes.push({
           column: columnIndex,
           gateId: gate.id,
@@ -258,7 +323,10 @@ export const sample_circuit_run = (
           value: sampled.value,
           probability: sampled.probability,
         });
-        current = sampled.state;
+        current = reset_measured_wire_to_zero(sampled.state, gate.wires[0]!, sampled.value, qubitCount);
+        if (gate.id === replay.resampleFromGateId) {
+          replayLocked = false;
+        }
         continue;
       }
 
@@ -277,7 +345,7 @@ export const sample_circuit_run = (
   }
 
   const finalSample = sample_distribution(measurement_distribution(current), random());
-  return { finalSample, outcomes };
+  return { finalState: current, finalSample, outcomes };
 };
 
 export function simulate_columns(

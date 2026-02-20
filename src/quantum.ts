@@ -6,7 +6,7 @@ export {
   simulate_columns,
   simulate_columns_ensemble,
 } from "./quantum/simulators";
-export type { CircuitMeasurementOutcome, GateResolver, SampledCircuitRun } from "./quantum/simulators";
+export type { CircuitMeasurementOutcome, GateResolver, SampledCircuitRun, SamplingReplayOptions } from "./quantum/simulators";
 
 export {
   measurement_distribution,

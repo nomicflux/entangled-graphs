@@ -68,6 +68,14 @@
   font-size: 1rem;
 }
 
+.distribution-context {
+  margin: 0 0 2px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
 .prob-row.is-highlighted {
   background: rgba(102, 245, 214, 0.12);
   border-radius: 8px;
@@ -103,4 +111,43 @@
   color: var(--muted);
   font-size: 0.72rem;
   letter-spacing: 0.015em;
+}
+
+.measurement-points h3 {
+  margin: 18px 0 6px;
+  font-size: 1rem;
+}
+
+.measurement-point-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.measurement-point-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.78rem;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.resample-btn {
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.resample-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
 }
