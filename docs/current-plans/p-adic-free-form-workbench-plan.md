@@ -133,3 +133,7 @@ Add a p-adic free-form circuit workspace with interaction parity to the current 
 
 ## Open Clarifications Needed Before Phase 1 Sign-off
 1. None currently.
+
+## Follow-On Workstream
+1. Mathematical visualization-first roadmap is tracked in:
+   - `/Users/demouser/Code/entangled-graphs/docs/current-plans/p-adic-visualization-math-plan.md`
