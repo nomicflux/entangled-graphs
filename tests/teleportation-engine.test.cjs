@@ -31,7 +31,12 @@ const preMeasurementStateForSource = (source) => {
   return snapshots[snapshots.length - 1];
 };
 
-test("teleportation branch engine builds expected m0,m1 branches for |0>", () => {
+const probabilitiesForQubit = (qubit) => ({
+  p0: complex.magnitude_squared(qubit.a),
+  p1: complex.magnitude_squared(qubit.b),
+});
+
+test("teleportation branch engine builds expected mapping and branch probabilities", () => {
   const source = { a: complex.from_real(1), b: complex.from_real(0) };
   const branches = teleportationEngine.buildTeleportationBranchResults(preMeasurementStateForSource(source), source);
   const summary = teleportationEngine.teleportationSummaries(branches, source);
@@ -55,18 +60,19 @@ test("teleportation branch engine builds expected m0,m1 branches for |0>", () =>
   approx(correctedTable.get("110"), 0.25);
 });
 
-test("teleportation branch engine preserves phase-carrying source after correction", () => {
-  const source = { a: complex.complex(Math.SQRT1_2, 0), b: complex.complex(0, Math.SQRT1_2) };
+test("branch-level outputs follow correction map for source |0>", () => {
+  const source = { a: complex.from_real(1), b: complex.from_real(0) };
   const branches = teleportationEngine.buildTeleportationBranchResults(preMeasurementStateForSource(source), source);
-  const summary = teleportationEngine.teleportationSummaries(branches, source);
+  const branchByBasis = new Map(branches.map((entry) => [entry.basis, entry]));
 
-  for (const entry of branches) {
-    approx(entry.fidelityWithCorrection, 1);
+  approx(probabilitiesForQubit(branchByBasis.get("00").withoutCorrection).p0, 1);
+  approx(probabilitiesForQubit(branchByBasis.get("01").withoutCorrection).p1, 1);
+  approx(probabilitiesForQubit(branchByBasis.get("10").withoutCorrection).p0, 1);
+  approx(probabilitiesForQubit(branchByBasis.get("11").withoutCorrection).p1, 1);
+
+  for (const basis of ["00", "01", "10", "11"]) {
+    approx(probabilitiesForQubit(branchByBasis.get(basis).withCorrection).p0, 1);
   }
-
-  approx(summary.withCorrection.fidelityToSource, 1);
-  approx(summary.withCorrection.q2P0, 0.5);
-  approx(summary.withCorrection.q2P1, 0.5);
 });
 
 test("manual correction policy changes expected fidelity when one control is disabled", () => {
@@ -77,4 +83,35 @@ test("manual correction policy changes expected fidelity when one control is dis
 
   approx(autoPolicy.summary.fidelityToSource, 1);
   assert.ok(zOnlyPolicy.summary.fidelityToSource < 1);
+});
+
+test("auto-correction reaches unit fidelity for basis, superposition, and phase sources", () => {
+  const sources = [
+    { name: "|0>", value: { a: complex.from_real(1), b: complex.from_real(0) }, p0: 1, p1: 0 },
+    { name: "|1>", value: { a: complex.from_real(0), b: complex.from_real(1) }, p0: 0, p1: 1 },
+    {
+      name: "|+>",
+      value: { a: complex.complex(Math.SQRT1_2, 0), b: complex.complex(Math.SQRT1_2, 0) },
+      p0: 0.5,
+      p1: 0.5,
+    },
+    {
+      name: "phase",
+      value: { a: complex.complex(Math.SQRT1_2, 0), b: complex.complex(0, Math.SQRT1_2) },
+      p0: 0.5,
+      p1: 0.5,
+    },
+  ];
+
+  for (const source of sources) {
+    const branches = teleportationEngine.buildTeleportationBranchResults(preMeasurementStateForSource(source.value), source.value);
+    const autoPolicy = teleportationEngine.teleportationSummaryForPolicy(branches, source.value, { applyZ: true, applyX: true });
+    const summary = autoPolicy.summary;
+    approx(summary.fidelityToSource, 1, 1e-6);
+    approx(summary.q2P0, source.p0, 1e-6);
+    approx(summary.q2P1, source.p1, 1e-6);
+    for (const entry of branches) {
+      approx(entry.probability, 0.25, 1e-6);
+    }
+  }
 });

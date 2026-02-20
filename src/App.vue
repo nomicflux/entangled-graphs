@@ -40,31 +40,21 @@
 import { ref, watch } from "vue";
 import FreeFormWorkbench from "./components/FreeFormWorkbench.vue";
 import AlgorithmsWorkbench from "./components/algorithms/AlgorithmsWorkbench.vue";
+import {
+  readAlgorithmFromStorage,
+  readWorkspaceFromStorage,
+  writeAlgorithmToStorage,
+  writeWorkspaceToStorage,
+} from "./app/persistence";
 
-type WorkspaceMode = "free-form" | "algorithms";
-type AlgorithmView = "teleportation";
-
-const WORKSPACE_STORAGE_KEY = "entangled.workspace.mode";
-const ALGORITHM_STORAGE_KEY = "entangled.algorithms.selected";
-
-const readWorkspace = (): WorkspaceMode => {
-  const saved = window.localStorage.getItem(WORKSPACE_STORAGE_KEY);
-  return saved === "algorithms" ? "algorithms" : "free-form";
-};
-
-const readAlgorithm = (): AlgorithmView => {
-  const saved = window.localStorage.getItem(ALGORITHM_STORAGE_KEY);
-  return saved === "teleportation" ? "teleportation" : "teleportation";
-};
-
-const selectedWorkspace = ref<WorkspaceMode>(readWorkspace());
-const selectedAlgorithm = ref<AlgorithmView>(readAlgorithm());
+const selectedWorkspace = ref(readWorkspaceFromStorage(window.localStorage));
+const selectedAlgorithm = ref(readAlgorithmFromStorage(window.localStorage));
 
 watch(selectedWorkspace, (value) => {
-  window.localStorage.setItem(WORKSPACE_STORAGE_KEY, value);
+  writeWorkspaceToStorage(window.localStorage, value);
 });
 
 watch(selectedAlgorithm, (value) => {
-  window.localStorage.setItem(ALGORITHM_STORAGE_KEY, value);
+  writeAlgorithmToStorage(window.localStorage, value);
 });
 </script>
