@@ -1,17 +1,18 @@
 <template>
   <div class="snapshot-grid">
     <button
-      v-for="stage in stages"
+      v-for="stage in props.stages"
       :key="stage.id"
       class="snapshot-card"
-      :class="{ selected: selectedStageIndex === stage.index }"
+      :class="{ selected: props.selectedStageIndex === stage.index }"
       type="button"
       @click="$emit('select-stage', stage.index)"
     >
       <p class="snapshot-title">{{ stage.label }}</p>
+      <p v-if="props.metricHint" class="snapshot-hint">{{ props.metricHint }}</p>
       <BlochPairView :pair="stage.blochPair" size="sm" :animated="false" compact />
       <p v-for="entry in stage.distribution" :key="entry.basis" class="snapshot-row">
-        <span>|{{ entry.basis }}></span>
+        <span>{{ props.metricLabel }}(|{{ entry.basis }}>)</span>
         <span>{{ formatPercent(entry.probability) }}</span>
       </p>
     </button>
@@ -22,10 +23,18 @@
 import type { StageView } from "../../types";
 import BlochPairView from "../BlochPairView.vue";
 
-defineProps<{
-  stages: StageView[];
-  selectedStageIndex: number;
-}>();
+const props = withDefaults(
+  defineProps<{
+    stages: StageView[];
+    selectedStageIndex: number;
+    metricLabel?: string;
+    metricHint?: string;
+  }>(),
+  {
+    metricLabel: "P",
+    metricHint: "",
+  },
+);
 
 defineEmits<{
   (e: "select-stage", index: number): void;

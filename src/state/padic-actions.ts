@@ -205,6 +205,14 @@ export const removeLastPAdicColumn = (): void => {
   }
 };
 
+export const setPAdicSelectedStage = (index: number): void => {
+  if (index < 0 || index > state.pAdic.columns.length) {
+    return;
+  }
+
+  state.pAdic.selectedStageIndex = index;
+};
+
 export const clearPAdicGateAt = (columnIndex: number, wire: number): void => {
   const column = state.pAdic.columns[columnIndex];
   if (!column) {
