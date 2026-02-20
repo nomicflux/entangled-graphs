@@ -1,5 +1,5 @@
 import { computed, ref, watch } from "vue";
-import type { BellStateId, BlochParams, EntanglementLink, GateId, Qubit, StageView } from "../../../types";
+import type { BlochParams, EntanglementLink, GateId, Qubit, StageView } from "../../../types";
 import * as complex from "../../../complex";
 import {
   bloch_pair_from_ensemble,
@@ -17,6 +17,7 @@ import { qubitFromBloch } from "../../../state/qubit-helpers";
 import { resolveOperator } from "../../../state/operators";
 import { X, Z } from "../../../operator";
 import { apply_single_qubit_gate } from "../../../quantum/core";
+import { entanglementArcStyle, pairwiseTooltip } from "../../circuit/entanglement-display";
 import {
   bobQubitFromStateForOutcome,
   buildTeleportationBranchResults,
@@ -320,13 +321,6 @@ export const useTeleportationModel = () => {
   const stageEntanglementLinks = computed(() => ensembleSnapshots.value.map((snapshot) => entanglement_links_from_ensemble(snapshot)));
   const stageEntanglementModels = computed(() => stage_entanglement_models_from_snapshots(ensembleSnapshots.value));
 
-  const bellColorByState: Record<BellStateId, string> = {
-    "phi+": "rgba(255, 122, 102, 0.95)",
-    "phi-": "rgba(255, 196, 96, 0.95)",
-    "psi+": "rgba(128, 165, 255, 0.95)",
-    "psi-": "rgba(198, 130, 255, 0.95)",
-  };
-
   const entanglementLinksForColumn = (columnIndex: number): EntanglementLink[] => {
     const previous = stageEntanglementLinks.value[columnIndex] ?? [];
     const current = stageEntanglementLinks.value[columnIndex + 1] ?? [];
@@ -343,12 +337,6 @@ export const useTeleportationModel = () => {
     const controlX = 16 - (link.strength * 6);
     return `M ${startX} ${startY} Q ${controlX} ${midY} ${startX} ${endY}`;
   };
-
-  const entanglementArcStyle = (link: EntanglementLink): Record<string, string> => ({
-    stroke: bellColorByState[link.dominantBell],
-    strokeWidth: `${0.6 + (link.strength * 1.8)}`,
-    opacity: `${0.22 + (link.strength * 0.55)}`,
-  });
 
   return {
     sourceBloch,
@@ -374,5 +362,6 @@ export const useTeleportationModel = () => {
     entanglementLinksForColumn,
     entanglementArcPath,
     entanglementArcStyle,
+    pairwiseTooltip,
   };
 };

@@ -52,14 +52,18 @@
               :height="band.height"
               :rx="band.rx"
               :style="multipartiteBandStyle(band.strength)"
-            />
+            >
+              <title>{{ multipartiteTooltip(band.rows, band.strength) }}</title>
+            </rect>
             <path
               v-for="(link, linkIndex) in entanglementLinksForColumn(colIndex)"
               :key="`${colIndex}-${link.fromRow}-${link.toRow}-${linkIndex}`"
               class="entanglement-arc"
               :d="entanglementArcPath(link)"
               :style="entanglementArcStyle(link)"
-            />
+            >
+              <title>{{ pairwiseTooltip(link) }}</title>
+            </path>
           </svg>
 
           <div class="column-connectors">
@@ -112,7 +116,15 @@
         </div>
       </div>
       <div class="circuit-legend">
-        <span>Time -></span>
+        <span class="circuit-legend-time">Time -></span>
+        <span class="circuit-legend-item">
+          <span class="circuit-legend-swatch pairwise"></span>
+          <span title="Pairwise entanglement link; dominant Bell color and Bell-derived strength.">Pairwise</span>
+        </span>
+        <span class="circuit-legend-item">
+          <span class="circuit-legend-swatch multipartite"></span>
+          <span title="Multipartite component; strength is minimum cut entropy across cuts that split the component.">Multipartite</span>
+        </span>
       </div>
     </div>
 
@@ -260,6 +272,8 @@ const {
   entanglementArcPath,
   entanglementArcStyle,
   multipartiteBandStyle,
+  pairwiseTooltip,
+  multipartiteTooltip,
   startPaletteDrag,
   startCellDrag,
   handleDragOver,

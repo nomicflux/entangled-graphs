@@ -79,7 +79,7 @@
 }
 
 .gate-slot.is-teleport-locked {
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.01);
 }
 
 .gate-token.is-teleport-classical {

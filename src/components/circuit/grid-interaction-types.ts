@@ -46,6 +46,7 @@ export type ConnectorSegment = {
 
 export type MultipartiteBand = {
   id: string;
+  rows: ReadonlyArray<QubitRow>;
   x: number;
   y: number;
   width: number;

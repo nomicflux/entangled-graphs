@@ -42,6 +42,8 @@ export const useCircuitGridInteractions = () => {
     entanglementArcPath,
     entanglementArcStyle,
     multipartiteBandStyle,
+    pairwiseTooltip,
+    multipartiteTooltip,
   } = useCircuitGridEntanglement(rows);
 
   const dragHandlers = useCircuitGridDragHandlers({
@@ -81,6 +83,8 @@ export const useCircuitGridInteractions = () => {
     entanglementArcPath,
     entanglementArcStyle,
     multipartiteBandStyle,
+    pairwiseTooltip,
+    multipartiteTooltip,
     isPaletteDraggable: dragHandlers.isPaletteDraggable,
     startPaletteDrag: dragHandlers.startPaletteDrag,
     startCellDrag: (col: number, row: number, event: DragEvent) => dragHandlers.startCellDrag(state.columns, col, row, event),

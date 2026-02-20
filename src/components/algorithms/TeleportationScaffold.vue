@@ -19,6 +19,7 @@
       :entanglement-links-for-column="entanglementLinksForColumn"
       :entanglement-arc-path="entanglementArcPath"
       :entanglement-arc-style="entanglementArcStyle"
+      :pairwise-tooltip="pairwiseTooltip"
       @select-stage="setSelectedStage"
     />
 
@@ -71,6 +72,7 @@ const {
   entanglementLinksForColumn,
   entanglementArcPath,
   entanglementArcStyle,
+  pairwiseTooltip,
 } = useTeleportationModel();
 
 const setSourceBloch = (next: BlochParams) => {

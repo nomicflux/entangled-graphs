@@ -31,14 +31,18 @@
               :height="band.height"
               :rx="band.rx"
               :style="multipartiteBandStyle(band.strength)"
-            />
+            >
+              <title>{{ multipartiteTooltip(band.rows, band.strength) }}</title>
+            </rect>
             <path
               v-for="(link, linkIndex) in entanglementLinksForColumn(colIndex)"
               :key="`${colIndex}-${link.fromRow}-${link.toRow}-${linkIndex}`"
               class="entanglement-arc"
               :d="entanglementArcPath(link)"
               :style="entanglementArcStyle(link)"
-            />
+            >
+              <title>{{ pairwiseTooltip(link) }}</title>
+            </path>
           </svg>
 
           <div class="column-connectors">
@@ -73,7 +77,15 @@
         </div>
       </div>
       <div class="circuit-legend">
-        <span>Time -></span>
+        <span class="circuit-legend-time">Time -></span>
+        <span class="circuit-legend-item">
+          <span class="circuit-legend-swatch pairwise"></span>
+          <span title="Pairwise entanglement link; dominant Bell color and Bell-derived strength.">Pairwise</span>
+        </span>
+        <span class="circuit-legend-item">
+          <span class="circuit-legend-swatch multipartite"></span>
+          <span title="Multipartite component; strength is minimum cut entropy across cuts that split the component.">Multipartite</span>
+        </span>
       </div>
     </div>
 
@@ -90,6 +102,9 @@
 <script setup lang="ts">
 import type { EntanglementLink, GateInstance, QubitRow, StageEntanglementModel, StageView } from "../../../types";
 import type { TeleportationColumn } from "./model-types";
+import { multipartiteBandStyle, multipartiteTooltip } from "../../circuit/entanglement-display";
+import { multipartiteBandsForStageColumn } from "../../circuit/entanglement-overlays";
+import type { MultipartiteBand } from "../../circuit/grid-interaction-types";
 import StageInspector from "../../StageInspector.vue";
 import CircuitStageSnapshots from "../../circuit/CircuitStageSnapshots.vue";
 
@@ -97,16 +112,6 @@ type ConnectorSegment = {
   id: string;
   fromRow: number;
   toRow: number;
-};
-
-type MultipartiteBand = {
-  id: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  rx: number;
-  strength: number;
 };
 
 const props = defineProps<{
@@ -119,6 +124,7 @@ const props = defineProps<{
   entanglementLinksForColumn: (columnIndex: number) => EntanglementLink[];
   entanglementArcPath: (link: EntanglementLink) => string;
   entanglementArcStyle: (link: EntanglementLink) => Record<string, string>;
+  pairwiseTooltip: (link: EntanglementLink) => string;
 }>();
 
 defineEmits<{
@@ -190,38 +196,6 @@ const connectorStyle = (segment: ConnectorSegment): Record<string, string> => {
 };
 
 const multipartiteBandsForColumn = (columnIndex: number): MultipartiteBand[] => {
-  const previous = props.stageEntanglementModels[columnIndex]?.components ?? [];
-  const current = props.stageEntanglementModels[columnIndex + 1]?.components ?? [];
-  const previousStrengthByRows = new Map(
-    previous
-      .filter((component) => component.kind === "multipartite")
-      .map((component) => [component.rows.join("-"), component.strength]),
-  );
-
-  return current
-    .filter((component) => component.kind === "multipartite")
-    .filter((component) => component.strength > 0.06)
-    .filter((component) => component.strength > ((previousStrengthByRows.get(component.rows.join("-")) ?? 0) + 0.015))
-    .map((component) => {
-      const minRow = Math.min(...component.rows);
-      const maxRow = Math.max(...component.rows);
-      const top = ((minRow / props.rows.length) * 100) + 3.5;
-      const bottom = (((maxRow + 1) / props.rows.length) * 100) - 3.5;
-      return {
-        id: component.rows.join("-"),
-        x: 7,
-        y: top,
-        width: 30,
-        height: bottom - top,
-        rx: 4,
-        strength: component.strength,
-      };
-    });
+  return multipartiteBandsForStageColumn(props.stageEntanglementModels, columnIndex, props.rows.length);
 };
-
-const multipartiteBandStyle = (strength: number): Record<string, string> => ({
-  fill: `rgba(255, 203, 118, ${0.08 + (strength * 0.24)})`,
-  stroke: `rgba(255, 223, 162, ${0.22 + (strength * 0.45)})`,
-  strokeWidth: `${0.25 + (strength * 0.9)}`,
-});
 </script>

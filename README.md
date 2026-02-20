@@ -68,9 +68,15 @@ The app has two top-level tabs:
 ## Entanglement Visualization
 
 - Entanglement is shown directly on the circuit columns as arcs between rows.
-- Arc color reflects dominant Bell-basis component.
-- Arc intensity reflects entanglement strength.
+- Pairwise arcs:
+  - Color reflects dominant Bell-basis component.
+  - Thickness/opacity reflect Bell-derived strength.
+- Multipartite bands:
+  - Highlight components with 3+ qubits that are entangled as one component.
+  - Strength uses **minimum cut entropy** across cuts that split that component:
+    - `strength(C) = min S(rho_A)` over all bipartitions `A | C\\A` of component `C`.
 - Arcs appear where entanglement increases along the circuit timeline.
+- Hovering an arc or band shows its exact rows and strength metric.
 
 In the Teleportation view, these overlays stay active on the fixed algorithm backbone.
 
