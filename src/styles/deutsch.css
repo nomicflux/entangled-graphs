@@ -34,6 +34,11 @@
   gap: 8px;
 }
 
+.deutsch-guess-config {
+  display: grid;
+  gap: 8px;
+}
+
 .deutsch-toggle-btn {
   border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: 999px;
@@ -113,6 +118,39 @@
 .deutsch-sample-head h3 {
   margin: 0;
   font-size: 0.95rem;
+}
+
+.deutsch-interference-paths {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.deutsch-interference-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 56px;
+  align-items: center;
+  gap: 8px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.7rem;
+}
+
+.deutsch-interference-bar.positive {
+  background: linear-gradient(90deg, rgba(102, 245, 214, 0.95), rgba(146, 197, 255, 0.9));
+}
+
+.deutsch-interference-bar.negative {
+  background: linear-gradient(90deg, rgba(255, 164, 112, 0.92), rgba(255, 223, 162, 0.9));
+}
+
+.deutsch-interference-bar.neutral {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.38));
+}
+
+.deutsch-guess-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 @media (max-width: 1180px) {

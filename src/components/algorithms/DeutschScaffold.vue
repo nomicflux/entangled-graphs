@@ -5,6 +5,9 @@
       :mode="mode"
       :oracles="oracles"
       :oracle-class="oracleClass"
+      :revealed-oracle-label="revealedOracleLabel"
+      :guess-revealed="guessRound.revealed"
+      :guess-correct="guessRound.correct"
       :truth-rows="truthRows"
       :q0-bloch="q0Bloch"
       :q1-bloch="q1Bloch"
@@ -12,6 +15,7 @@
       @set-mode="mode = $event"
       @set-bloch="setBloch"
       @preset="setPreset"
+      @new-guess-round="startGuessRound"
     />
 
     <FixedCircuitPanel
@@ -35,10 +39,17 @@
       :mode="mode"
       :oracle-class="oracleClass"
       :expected-decision="expectedDecision"
+      :should-hide-decision="shouldHideDecision"
       :q0-decision-probability="q0DecisionProbability"
+      :interference-view="selectedInterferenceView"
       :final-distribution="expected.finalDistribution"
       :sampled="sampled"
+      :guess-selection="guessRound.guess"
+      :guess-revealed="guessRound.revealed"
+      :guess-correct="guessRound.correct"
       @run-sample="runSample"
+      @submit-guess="submitGuess"
+      @new-guess-round="startGuessRound"
     />
   </main>
 </template>
@@ -62,12 +73,18 @@ const {
   selectedStage,
   expected,
   expectedDecision,
+  shouldHideDecision,
+  revealedOracleLabel,
   truthRows,
   oracleClass,
   q0DecisionProbability,
   sampled,
   runSample,
   setPreset,
+  guessRound,
+  startGuessRound,
+  submitGuess,
+  selectedInterferenceView,
   stageEntanglementModels,
   entanglementLinksForColumn,
   entanglementArcPath,

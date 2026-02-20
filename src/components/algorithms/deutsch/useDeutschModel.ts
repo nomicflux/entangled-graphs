@@ -8,14 +8,15 @@ import {
   deutschColumns,
   deutschEnsembleSnapshots,
   deutschExpectedResult,
+  deutschInterferenceTimeline,
   deutschOracleClass,
+  deutschOracleDescriptor,
   deutschOracleTruthTable,
   deutschSampleResult,
   deutschStageLabels,
 } from "./engine";
-import type { DeutschDecisionClass, DeutschOracleId, DeutschSampleResult } from "./model-types";
-
-type DeutschMode = "select" | "guess";
+import { startDeutschGuessRound, submitDeutschGuess } from "./guess-mode";
+import type { DeutschDecisionClass, DeutschMode, DeutschOracleId, DeutschSampleResult } from "./model-types";
 
 const DEUTSCH_ORACLE_KEY = "entangled.algorithms.deutsch.oracle";
 const DEUTSCH_MODE_KEY = "entangled.algorithms.deutsch.mode";
@@ -52,14 +53,37 @@ export const useDeutschModel = () => {
   const q1Bloch = ref<BlochParams>(loadBloch(DEUTSCH_Q1_KEY, { theta: 0, phi: 0 }));
   const selectedStageIndex = ref(0);
   const sampled = ref<DeutschSampleResult | null>(null);
+  const guessRound = ref(startDeutschGuessRound());
+
+  const activeOracleId = computed<DeutschOracleId>(() => (mode.value === "guess" ? guessRound.value.activeOracle : oracleId.value));
 
   watch(oracleId, (value) => {
     window.localStorage.setItem(DEUTSCH_ORACLE_KEY, value);
     sampled.value = null;
   });
-  watch(mode, (value) => window.localStorage.setItem(DEUTSCH_MODE_KEY, value));
-  watch(q0Bloch, (value) => window.localStorage.setItem(DEUTSCH_Q0_KEY, JSON.stringify(value)), { deep: true });
-  watch(q1Bloch, (value) => window.localStorage.setItem(DEUTSCH_Q1_KEY, JSON.stringify(value)), { deep: true });
+  watch(mode, (value, previous) => {
+    window.localStorage.setItem(DEUTSCH_MODE_KEY, value);
+    sampled.value = null;
+    if (value === "guess" && previous !== "guess") {
+      guessRound.value = startDeutschGuessRound();
+    }
+  });
+  watch(
+    q0Bloch,
+    (value) => {
+      window.localStorage.setItem(DEUTSCH_Q0_KEY, JSON.stringify(value));
+      sampled.value = null;
+    },
+    { deep: true },
+  );
+  watch(
+    q1Bloch,
+    (value) => {
+      window.localStorage.setItem(DEUTSCH_Q1_KEY, JSON.stringify(value));
+      sampled.value = null;
+    },
+    { deep: true },
+  );
 
   const inputs = computed(() => [qubitFromBloch(q0Bloch.value), qubitFromBloch(q1Bloch.value)] as const);
 
@@ -72,7 +96,7 @@ export const useDeutschModel = () => {
     }));
   });
 
-  const ensembleSnapshots = computed(() => deutschEnsembleSnapshots(oracleId.value, inputs.value));
+  const ensembleSnapshots = computed(() => deutschEnsembleSnapshots(activeOracleId.value, inputs.value));
   const stageViews = computed<StageView[]>(() => {
     const lastIndex = ensembleSnapshots.value.length - 1;
     return ensembleSnapshots.value.map((snapshot, index) => ({
@@ -93,9 +117,13 @@ export const useDeutschModel = () => {
   });
 
   const selectedStage = computed(() => stageViews.value[selectedStageIndex.value] ?? stageViews.value[0]!);
-  const expected = computed(() => deutschExpectedResult(oracleId.value, inputs.value));
-  const truthRows = computed(() => deutschOracleTruthTable(oracleId.value));
-  const oracleClass = computed(() => deutschOracleClass(oracleId.value));
+  const expected = computed(() => deutschExpectedResult(activeOracleId.value, inputs.value));
+  const actualOracleClass = computed(() => deutschOracleClass(activeOracleId.value));
+  const actualOracleDescriptor = computed(() => deutschOracleDescriptor(activeOracleId.value));
+  const shouldHideOracleIdentity = computed(() => mode.value === "guess" && !guessRound.value.revealed);
+  const truthRows = computed(() => (shouldHideOracleIdentity.value ? [] : deutschOracleTruthTable(activeOracleId.value)));
+  const oracleClass = computed(() => (shouldHideOracleIdentity.value ? null : actualOracleClass.value));
+  const revealedOracleLabel = computed(() => (shouldHideOracleIdentity.value ? null : actualOracleDescriptor.value.functionLabel));
 
   const q0DecisionProbability = computed(() => ({
     constant: expected.value.q0ConstantProbability,
@@ -103,7 +131,7 @@ export const useDeutschModel = () => {
   }));
 
   const runSample = () => {
-    sampled.value = deutschSampleResult(oracleId.value, inputs.value);
+    sampled.value = deutschSampleResult(activeOracleId.value, inputs.value);
   };
 
   const setPreset = (wire: 0 | 1, preset: "zero" | "one" | "half") => {
@@ -123,12 +151,27 @@ export const useDeutschModel = () => {
   };
 
   const expectedDecision = computed<DeutschDecisionClass>(() => expected.value.predictedDecision);
+  const shouldHideDecision = computed(() => mode.value === "guess" && !guessRound.value.revealed);
+  const interferenceTimeline = computed(() => deutschInterferenceTimeline(activeOracleId.value, inputs.value));
+  const selectedInterferenceView = computed(() =>
+    interferenceTimeline.value[selectedStageIndex.value] ?? interferenceTimeline.value[0],
+  );
+
+  const startGuessRound = () => {
+    guessRound.value = startDeutschGuessRound();
+    sampled.value = null;
+  };
+
+  const submitGuess = (guess: DeutschDecisionClass) => {
+    guessRound.value = submitDeutschGuess(guessRound.value, guess);
+  };
 
   const entanglement = useAlgorithmEntanglement({ ensembleSnapshots, rows: [0, 1] });
 
   return {
     oracleId,
     mode,
+    activeOracleId,
     q0Bloch,
     q1Bloch,
     labeledColumns,
@@ -137,12 +180,21 @@ export const useDeutschModel = () => {
     selectedStage,
     expected,
     expectedDecision,
+    shouldHideDecision,
     truthRows,
     oracleClass,
+    shouldHideOracleIdentity,
+    actualOracleClass,
+    actualOracleDescriptor,
+    revealedOracleLabel,
     q0DecisionProbability,
     sampled,
     runSample,
     setPreset,
+    guessRound,
+    startGuessRound,
+    submitGuess,
+    selectedInterferenceView,
     ...entanglement,
   };
 };

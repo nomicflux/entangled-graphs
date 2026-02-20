@@ -6,10 +6,12 @@ import { resolveOperator } from "../../../state/operators";
 import type {
   DeutschDecisionClass,
   DeutschExpectedResult,
+  DeutschInterferenceView,
   DeutschInputs,
   DeutschOracleClass,
   DeutschOracleDescriptor,
   DeutschOracleId,
+  DeutschPathContribution,
   DeutschSampleResult,
   DeutschTruthRow,
 } from "./model-types";
@@ -161,3 +163,75 @@ export const deutschSampleResult = (
 };
 
 export const deutschStageLabels: readonly string[] = ["Prepared", "Init X (q1)", "Hadamards", "Oracle U_f", "Final H (q0)"];
+
+const sqrtHalf = Math.SQRT1_2;
+
+const minusProjectAmplitude = (a0: Complex, a1: Complex): Complex =>
+  complex.scale(complex.add(a0, complex.scale(a1, -1)), sqrtHalf);
+
+const magnitude = (value: Complex): number => Math.sqrt(complex.magnitude_squared(value));
+
+const phaseSign = (value: Complex): -1 | 0 | 1 => {
+  if (Math.abs(value.real) < 1e-9 && Math.abs(value.imag) < 1e-9) {
+    return 0;
+  }
+  return value.real < 0 ? -1 : 1;
+};
+
+const interferenceChannels = (alpha0: Complex, alpha1: Complex): { constant: number; balanced: number } => {
+  const plus = complex.add(alpha0, alpha1);
+  const minus = complex.add(alpha0, complex.scale(alpha1, -1));
+  return {
+    constant: complex.magnitude_squared(plus) * 0.5,
+    balanced: complex.magnitude_squared(minus) * 0.5,
+  };
+};
+
+export const deutschInterferenceForState = (
+  state: QubitState,
+  stageIndex: number,
+  stageLabel: string,
+): DeutschInterferenceView => {
+  const a00 = state[0] ?? complex.from_real(0);
+  const a01 = state[1] ?? complex.from_real(0);
+  const a10 = state[2] ?? complex.from_real(0);
+  const a11 = state[3] ?? complex.from_real(0);
+
+  const alpha0 = minusProjectAmplitude(a00, a01);
+  const alpha1 = minusProjectAmplitude(a10, a11);
+
+  const path0: DeutschPathContribution = {
+    x: 0,
+    amplitude: alpha0,
+    magnitude: magnitude(alpha0),
+    probability: complex.magnitude_squared(alpha0),
+    phaseSign: phaseSign(alpha0),
+  };
+  const path1: DeutschPathContribution = {
+    x: 1,
+    amplitude: alpha1,
+    magnitude: magnitude(alpha1),
+    probability: complex.magnitude_squared(alpha1),
+    phaseSign: phaseSign(alpha1),
+  };
+
+  const channels = interferenceChannels(alpha0, alpha1);
+  return {
+    stageIndex,
+    stageLabel,
+    supportInMinusSubspace: path0.probability + path1.probability,
+    constantChannel: channels.constant,
+    balancedChannel: channels.balanced,
+    contributions: [path0, path1],
+  };
+};
+
+export const deutschInterferenceTimeline = (
+  oracleId: DeutschOracleId,
+  inputs: DeutschInputs = DEFAULT_DEUTSCH_INPUTS,
+): ReadonlyArray<DeutschInterferenceView> => {
+  const snapshots = deutschEnsembleSnapshots(oracleId, inputs);
+  return snapshots.map((ensemble, index) =>
+    deutschInterferenceForState(ensemble[0]?.state ?? deutschPreparedState(inputs), index, deutschStageLabels[index] ?? `t${index}`),
+  );
+};

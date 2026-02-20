@@ -1,8 +1,9 @@
-import type { CircuitColumn, Qubit } from "../../../types";
+import type { CircuitColumn, Complex, Qubit } from "../../../types";
 
 export type DeutschOracleId = "const-0" | "const-1" | "balanced-id" | "balanced-not";
 export type DeutschOracleClass = "constant" | "balanced";
 export type DeutschDecisionClass = DeutschOracleClass;
+export type DeutschMode = "select" | "guess";
 
 export type DeutschOracleDescriptor = {
   id: DeutschOracleId;
@@ -32,4 +33,28 @@ export type DeutschSampleResult = {
   probability: number;
   q0Value: 0 | 1;
   predictedDecision: DeutschDecisionClass;
+};
+
+export type DeutschPathContribution = {
+  x: 0 | 1;
+  amplitude: Complex;
+  magnitude: number;
+  probability: number;
+  phaseSign: -1 | 0 | 1;
+};
+
+export type DeutschInterferenceView = {
+  stageIndex: number;
+  stageLabel: string;
+  supportInMinusSubspace: number;
+  constantChannel: number;
+  balancedChannel: number;
+  contributions: readonly [DeutschPathContribution, DeutschPathContribution];
+};
+
+export type DeutschGuessState = {
+  activeOracle: DeutschOracleId;
+  guess: DeutschDecisionClass | null;
+  revealed: boolean;
+  correct: boolean | null;
 };

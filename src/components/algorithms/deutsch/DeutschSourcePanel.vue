@@ -6,7 +6,7 @@
     </div>
 
     <div class="deutsch-controls">
-      <label class="deutsch-field">
+      <label v-if="mode === 'select'" class="deutsch-field">
         Oracle
         <select :value="oracleId" @change="emitOracleChange">
           <option v-for="oracle in oracles" :key="oracle.id" :value="oracle.id">
@@ -14,6 +14,10 @@
           </option>
         </select>
       </label>
+      <div v-else class="deutsch-guess-config">
+        <p class="deutsch-note"><strong>Hidden oracle active.</strong> Infer class from outcomes, then submit a guess.</p>
+        <button type="button" class="deutsch-toggle-btn" @click="$emit('new-guess-round')">New Hidden Oracle</button>
+      </div>
 
       <div class="deutsch-mode-toggle">
         <button type="button" class="deutsch-toggle-btn" :class="{ active: mode === 'select' }" @click="$emit('set-mode', 'select')">
@@ -26,9 +30,19 @@
     </div>
 
     <div class="deutsch-oracle-summary">
-      <p><strong>Oracle class:</strong> {{ oracleClass }}</p>
-      <p><strong>Truth table:</strong></p>
-      <p v-for="row in truthRows" :key="row.x">x={{ row.x }} -> f(x)={{ row.fx }}</p>
+      <template v-if="oracleClass !== null">
+        <p><strong>Oracle class:</strong> {{ oracleClass }}</p>
+        <p><strong>Oracle:</strong> {{ revealedOracleLabel }}</p>
+        <p><strong>Truth table:</strong></p>
+        <p v-for="row in truthRows" :key="row.x">x={{ row.x }} -> f(x)={{ row.fx }}</p>
+      </template>
+      <template v-else>
+        <p><strong>Oracle class:</strong> hidden</p>
+        <p><strong>Truth table:</strong> hidden until guess submission</p>
+      </template>
+      <p v-if="mode === 'guess' && guessRevealed && guessCorrect !== null">
+        <strong>Guess outcome:</strong> {{ guessCorrect ? "Correct" : "Incorrect" }}
+      </p>
     </div>
 
     <div class="deutsch-input-grid">
@@ -82,7 +96,10 @@ const props = defineProps<{
   oracleId: DeutschOracleId;
   mode: "select" | "guess";
   oracles: readonly DeutschOracleDescriptor[];
-  oracleClass: "constant" | "balanced";
+  oracleClass: "constant" | "balanced" | null;
+  revealedOracleLabel: string | null;
+  guessRevealed: boolean;
+  guessCorrect: boolean | null;
   truthRows: readonly DeutschTruthRow[];
   q0Bloch: BlochParams;
   q1Bloch: BlochParams;
@@ -93,6 +110,7 @@ const emit = defineEmits<{
   (e: "set-mode", mode: "select" | "guess"): void;
   (e: "set-bloch", wire: 0 | 1, next: BlochParams): void;
   (e: "preset", wire: 0 | 1, preset: "zero" | "one" | "half"): void;
+  (e: "new-guess-round"): void;
 }>();
 
 const emitOracleChange = (event: Event) => {
