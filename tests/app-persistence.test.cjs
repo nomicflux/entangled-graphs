@@ -17,7 +17,7 @@ const fakeStorage = (initial = {}) => {
 test("workspace parser falls back to free-form for invalid values", () => {
   assert.equal(persistence.parseWorkspaceMode("algorithms"), "algorithms");
   assert.equal(persistence.parseWorkspaceMode("free-form"), "free-form");
-  assert.equal(persistence.parseWorkspaceMode("p-adic"), "free-form");
+  assert.equal(persistence.parseWorkspaceMode("p-adic"), "p-adic");
   assert.equal(persistence.parseWorkspaceMode("anything-else"), "free-form");
   assert.equal(persistence.parseWorkspaceMode(null), "free-form");
 });

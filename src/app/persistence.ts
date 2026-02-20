@@ -24,7 +24,7 @@ export const PADIC_PREPARED_STORAGE_KEY = "entangled.padic.prepared.v1";
 export const PADIC_SELECTED_STAGE_STORAGE_KEY = "entangled.padic.selected-stage";
 
 // Keep p-adic workspace opt-in until its UI wiring lands.
-export const PADIC_WORKSPACE_FEATURE_FLAG = false;
+export const PADIC_WORKSPACE_FEATURE_FLAG = true;
 
 export const parseWorkspaceMode = (value: string | null): WorkspaceMode =>
   value === "algorithms"

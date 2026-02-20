@@ -8,7 +8,9 @@ import { zeroBloch } from "./qubit-helpers";
 import { blockMatrix2x2, makeSingleQubitOperator, type Block2x2, type SingleQubitMatrixEntries } from "../operator";
 import { operatorArityForGate } from "./operators";
 import {
+  PADIC_MAX_QUBITS,
   PADIC_DEFAULT_QUBIT_COUNT,
+  PADIC_MIN_QUBITS,
   clampPAdicQubitCount,
   isPAdicPrime,
   isPAdicMeasurementModel,
@@ -173,6 +175,51 @@ export const setPAdicQubitCount = (nextCount: number): void => {
   if (state.pAdic.selectedStageIndex > state.pAdic.columns.length) {
     state.pAdic.selectedStageIndex = state.pAdic.columns.length;
   }
+};
+
+export const addPAdicQubit = (): void => {
+  if (state.pAdic.qubitCount >= PADIC_MAX_QUBITS) {
+    return;
+  }
+  setPAdicQubitCount(state.pAdic.qubitCount + 1);
+};
+
+export const removePAdicQubit = (): void => {
+  if (state.pAdic.qubitCount <= PADIC_MIN_QUBITS) {
+    return;
+  }
+  setPAdicQubitCount(state.pAdic.qubitCount - 1);
+};
+
+export const setPAdicAmplitude = (qubitIndex: number, amplitudeKey: "a" | "b", raw: string): void => {
+  const target = state.pAdic.preparedQubits[qubitIndex];
+  if (!target) {
+    return;
+  }
+  target[amplitudeKey].raw = raw;
+};
+
+export const applyPAdicPreset = (qubitIndex: number, preset: "zero" | "one" | "balanced"): void => {
+  const target = state.pAdic.preparedQubits[qubitIndex];
+  if (!target) {
+    return;
+  }
+
+  if (preset === "zero") {
+    target.a.raw = "1";
+    target.b.raw = "0";
+    return;
+  }
+
+  if (preset === "one") {
+    target.a.raw = "0";
+    target.b.raw = "1";
+    return;
+  }
+
+  // Balanced starter represented explicitly without normalization assumptions.
+  target.a.raw = "1";
+  target.b.raw = "1";
 };
 
 export const resetPAdicWorkspaceState = (
