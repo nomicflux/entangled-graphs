@@ -23,6 +23,7 @@ test("workspace parser falls back to free-form for invalid values", () => {
 
 test("algorithm parser keeps current supported algorithm", () => {
   assert.equal(persistence.parseAlgorithmView("teleportation"), "teleportation");
+  assert.equal(persistence.parseAlgorithmView("deutsch"), "deutsch");
   assert.equal(persistence.parseAlgorithmView("unknown"), "teleportation");
   assert.equal(persistence.parseAlgorithmView(null), "teleportation");
 });
@@ -30,13 +31,12 @@ test("algorithm parser keeps current supported algorithm", () => {
 test("read/write helpers persist workspace and algorithm selections", () => {
   const storage = fakeStorage();
   persistence.writeWorkspaceToStorage(storage, "algorithms");
-  persistence.writeAlgorithmToStorage(storage, "teleportation");
+  persistence.writeAlgorithmToStorage(storage, "deutsch");
 
   assert.equal(persistence.readWorkspaceFromStorage(storage), "algorithms");
-  assert.equal(persistence.readAlgorithmFromStorage(storage), "teleportation");
+  assert.equal(persistence.readAlgorithmFromStorage(storage), "deutsch");
 
   const dump = storage.dump();
   assert.equal(dump[persistence.WORKSPACE_STORAGE_KEY], "algorithms");
-  assert.equal(dump[persistence.ALGORITHM_STORAGE_KEY], "teleportation");
+  assert.equal(dump[persistence.ALGORITHM_STORAGE_KEY], "deutsch");
 });
-
