@@ -10,5 +10,6 @@
 @import "./styles/algorithm-circuit.css";
 @import "./styles/circuit-modal.css";
 @import "./styles/measurement-panel.css";
+@import "./styles/padic-state-map.css";
 @import "./styles/teleportation.css";
 @import "./styles/deutsch.css";

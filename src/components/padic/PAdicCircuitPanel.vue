@@ -27,6 +27,14 @@
 
     <p v-if="placementHint" class="placement-hint">{{ placementHint }}</p>
 
+    <PAdicStateMap
+      :stage="pAdicSelectedStageVisualization"
+      :stage-label="pAdicSelectedStage.label"
+      :prime="state.pAdic.prime"
+      :selected-basis="state.pAdic.selectedBasis"
+      @select-basis="setPAdicSelectedBasis"
+    />
+
     <div class="circuit-shell">
       <div class="circuit-columns">
         <div
@@ -128,9 +136,11 @@
 <script setup lang="ts">
 import {
   appendPAdicColumn,
+  pAdicSelectedStageVisualization,
   pAdicSelectedStage,
   pAdicStageViews,
   removeLastPAdicColumn,
+  setPAdicSelectedBasis,
   setPAdicSelectedStage,
   state,
 } from "../../state";
@@ -142,6 +152,7 @@ import { usePAdicCircuitPalette } from "./circuit/usePAdicCircuitPalette";
 import { usePAdicCircuitEntanglement } from "./circuit/usePAdicCircuitEntanglement";
 import { usePAdicCircuitSlots } from "./circuit/usePAdicCircuitSlots";
 import { usePAdicCircuitInteractions } from "./circuit/usePAdicCircuitInteractions";
+import PAdicStateMap from "./PAdicStateMap.vue";
 
 const { paletteGroups, measurementEntries, isPaletteDraggable } = usePAdicCircuitPalette();
 const { rows, isRowLocked, slotTitle, slotGate, tokenFor, isCnotControl, isCnotTarget, isToffoliControl, isToffoliTarget, isMultiWire, isMeasurementToken } =

@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const actions = require("../.tmp-test/state/actions.js");
+const selectors = require("../.tmp-test/state/selectors.js");
 const store = require("../.tmp-test/state/store.js");
 const stateOperators = require("../.tmp-test/state/operators.js");
 
@@ -71,6 +72,36 @@ test("p-adic selected gate rejects unavailable builtins", () => {
 
     actions.setSelectedPAdicGate("H");
     assert.equal(store.state.pAdic.selectedGate, "X");
+  } finally {
+    restorePAdic(original);
+  }
+});
+
+test("p-adic stage visualization and basis selection stay wired to circuit stage state", () => {
+  const original = clonePAdic();
+
+  try {
+    actions.setPAdicQubitCount(2);
+    store.state.pAdic.columns = [
+      { gates: [{ id: "h", gate: "X", wires: [0] }] },
+      { gates: [{ id: "m", gate: "M", wires: [0] }] },
+    ];
+
+    actions.setPAdicSelectedStage(1);
+    const stageOne = selectors.pAdicSelectedStageVisualization.value;
+    assert.ok(stageOne);
+    assert.equal(stageOne.stageIndex, 1);
+    assert.equal(stageOne.nodes.length, 4);
+
+    actions.setPAdicSelectedBasis("10");
+    assert.equal(store.state.pAdic.selectedBasis, "10");
+    assert.ok(selectors.pAdicSelectedBasisNode.value);
+    assert.equal(selectors.pAdicSelectedBasisNode.value.basis, "10");
+
+    actions.setPAdicSelectedStage(2);
+    assert.equal(selectors.pAdicSelectedStageVisualization.value.stageIndex, 2);
+    assert.ok(selectors.pAdicSelectedBasisNode.value);
+    assert.equal(selectors.pAdicSelectedBasisNode.value.basis, "10");
   } finally {
     restorePAdic(original);
   }
