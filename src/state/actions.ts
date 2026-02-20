@@ -7,6 +7,14 @@ import { emptyColumn, nextGateInstanceId, state } from "./store";
 import { zeroBloch } from "./qubit-helpers";
 import { blockMatrix2x2, makeSingleQubitOperator, type Block2x2, type SingleQubitMatrixEntries } from "../operator";
 import { operatorArityForGate } from "./operators";
+import {
+  PADIC_DEFAULT_QUBIT_COUNT,
+  clampPAdicQubitCount,
+  isPAdicPrime,
+  isPAdicMeasurementModel,
+  type PAdicMeasurementModel,
+  type PAdicPrime,
+} from "../padic-config";
 
 const enforceMeasurementLockRules = (): void => {
   const firstMeasurementByRow = new Map<number, number>();
@@ -125,6 +133,58 @@ export const setQubitCount = (nextCount: number): void => {
   while (state.preparedBloch.length > bounded) {
     removeQubit(state.preparedBloch.length - 1);
   }
+};
+
+const defaultPAdicPreparedQubit = () => ({
+  a: { raw: "1" },
+  b: { raw: "0" },
+});
+
+export const setPAdicPrime = (prime: number): void => {
+  if (!isPAdicPrime(prime)) {
+    return;
+  }
+  state.pAdic.prime = prime;
+};
+
+export const setPAdicMeasurementModel = (model: string): void => {
+  if (!isPAdicMeasurementModel(model)) {
+    return;
+  }
+  state.pAdic.measurementModel = model;
+};
+
+export const setPAdicQubitCount = (nextCount: number): void => {
+  const bounded = clampPAdicQubitCount(nextCount);
+  state.pAdic.qubitCount = bounded;
+
+  while (state.pAdic.preparedQubits.length < bounded) {
+    state.pAdic.preparedQubits.push(defaultPAdicPreparedQubit());
+  }
+
+  while (state.pAdic.preparedQubits.length > bounded) {
+    state.pAdic.preparedQubits.pop();
+  }
+
+  if (state.pAdic.columns.length === 0) {
+    state.pAdic.columns.push(emptyColumn());
+  }
+
+  if (state.pAdic.selectedStageIndex > state.pAdic.columns.length) {
+    state.pAdic.selectedStageIndex = state.pAdic.columns.length;
+  }
+};
+
+export const resetPAdicWorkspaceState = (
+  prime: PAdicPrime,
+  measurementModel: PAdicMeasurementModel,
+  qubitCount: number = PADIC_DEFAULT_QUBIT_COUNT,
+): void => {
+  state.pAdic.prime = prime;
+  state.pAdic.measurementModel = measurementModel;
+  state.pAdic.columns = [emptyColumn(), emptyColumn(), emptyColumn(), emptyColumn()];
+  state.pAdic.selectedStageIndex = 0;
+  setPAdicQubitCount(qubitCount);
 };
 
 const nextCustomOperatorId = (): string => `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
