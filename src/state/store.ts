@@ -25,6 +25,7 @@ export type PAdicWorkspaceState = {
   qubitCount: number;
   preparedQubits: PAdicPreparedQubit[];
   columns: CircuitColumn[];
+  selectedGate: GateId | null;
   selectedStageIndex: number;
 };
 
@@ -77,6 +78,7 @@ export const state = reactive<CircuitState>({
     qubitCount: PADIC_DEFAULT_QUBIT_COUNT,
     preparedQubits: Array.from({ length: PADIC_DEFAULT_QUBIT_COUNT }, () => defaultPAdicPreparedQubit()),
     columns: [emptyColumn(), emptyColumn(), emptyColumn(), emptyColumn()],
+    selectedGate: "X",
     selectedStageIndex: 0,
   },
 });

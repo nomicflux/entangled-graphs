@@ -12,6 +12,7 @@ const restorePAdic = (snapshot) => {
   store.state.pAdic.qubitCount = snapshot.qubitCount;
   store.state.pAdic.preparedQubits = snapshot.preparedQubits;
   store.state.pAdic.columns = snapshot.columns;
+  store.state.pAdic.selectedGate = snapshot.selectedGate;
   store.state.pAdic.selectedStageIndex = snapshot.selectedStageIndex;
 };
 

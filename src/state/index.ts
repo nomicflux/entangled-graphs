@@ -10,7 +10,13 @@ export type {
 } from "./placements";
 export { toCellRef, toCnotPlacement, toMultiGatePlacement, toSingleGatePlacement, toToffoliPlacement } from "./placements";
 export { firstMeasurementColumnByRow, firstMeasurementColumnForRow, isRowLockedAtColumn } from "./measurement-locks";
-export { availableBuiltinGatesForQubitCount, gateKindForGate, operatorArityForGate, resolveOperator } from "./operators";
+export {
+  availableBuiltinGatesForQubitCount,
+  availablePAdicBuiltinGatesForQubitCount,
+  gateKindForGate,
+  operatorArityForGate,
+  resolveOperator,
+} from "./operators";
 export { isUnitaryOperator, resolveBlock2x2Selection, singleQubitBuilderOptions } from "./custom-operator-builder";
 
 export {
@@ -36,10 +42,18 @@ export {
   setPAdicPrime,
   setPAdicMeasurementModel,
   setPAdicQubitCount,
+  setSelectedPAdicGate,
   addPAdicQubit,
   removePAdicQubit,
   setPAdicAmplitude,
   applyPAdicPreset,
+  appendPAdicColumn,
+  removeLastPAdicColumn,
+  clearPAdicGateAt,
+  setPAdicGateAt,
+  placePAdicCnot,
+  placePAdicToffoli,
+  placePAdicMultiGate,
   resetPAdicWorkspaceState,
   createCustomSingleQubitOperator,
   createCustomBlockOperator,

@@ -39,7 +39,7 @@
       </div>
     </section>
 
-    <div class="custom-actions">
+    <div v-if="showCustomActions" class="custom-actions">
       <button class="gate-chip custom-new" type="button" @click="$emit('open-single-custom')">Custom (1Q)</button>
       <button class="gate-chip custom-new" type="button" @click="$emit('open-block-custom')">Custom (NQ)</button>
     </div>
@@ -50,12 +50,15 @@
 import type { GateId } from "../../types";
 import type { PaletteEntry, PaletteGroup } from "./palette-types";
 
-defineProps<{
+withDefaults(defineProps<{
   groups: PaletteGroup[];
   measurementEntries: PaletteEntry[];
   selectedGate: GateId | null;
   isPaletteDraggable: (gate: GateId) => boolean;
-}>();
+  showCustomActions?: boolean;
+}>(), {
+  showCustomActions: true,
+});
 
 defineEmits<{
   (e: "chip-click", entry: PaletteEntry, event: MouseEvent): void;
