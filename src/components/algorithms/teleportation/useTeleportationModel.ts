@@ -15,6 +15,7 @@ import { resolveOperator } from "../../../state/operators";
 import { X, Z } from "../../../operator";
 import { apply_single_qubit_gate } from "../../../quantum/core";
 import { useAlgorithmEntanglement } from "../shared/useAlgorithmEntanglement";
+import { loadBlochParams, saveBlochParams } from "../shared/storage";
 import {
   bobQubitFromStateForOutcome,
   buildTeleportationBranchResults,
@@ -37,23 +38,6 @@ const TELEPORT_CORRECTION_MODE_KEY = "entangled.algorithms.teleportation.correct
 const TELEPORT_MANUAL_Z_KEY = "entangled.algorithms.teleportation.correction.manualZ";
 const TELEPORT_MANUAL_X_KEY = "entangled.algorithms.teleportation.correction.manualX";
 
-const loadSourceBloch = (): BlochParams => {
-  const raw = window.localStorage.getItem(TELEPORT_SOURCE_KEY);
-  if (!raw) {
-    return { theta: 0, phi: 0 };
-  }
-
-  try {
-    const parsed = JSON.parse(raw) as Partial<BlochParams>;
-    if (typeof parsed.theta !== "number" || typeof parsed.phi !== "number") {
-      return { theta: 0, phi: 0 };
-    }
-    return { theta: parsed.theta, phi: parsed.phi };
-  } catch {
-    return { theta: 0, phi: 0 };
-  }
-};
-
 const loadCorrectionMode = (): TeleportationCorrectionMode => {
   const raw = window.localStorage.getItem(TELEPORT_CORRECTION_MODE_KEY);
   return raw === "manual" ? "manual" : "auto";
@@ -68,7 +52,7 @@ const loadBoolean = (key: string, fallback: boolean): boolean => {
 };
 
 export const useTeleportationModel = () => {
-  const sourceBloch = ref<BlochParams>(loadSourceBloch());
+  const sourceBloch = ref<BlochParams>(loadBlochParams(TELEPORT_SOURCE_KEY, { theta: 0, phi: 0 }));
   const selectedStageIndex = ref(0);
   const correctionMode = ref<TeleportationCorrectionMode>(loadCorrectionMode());
   const manualApplyZ = ref<boolean>(loadBoolean(TELEPORT_MANUAL_Z_KEY, true));
@@ -78,7 +62,7 @@ export const useTeleportationModel = () => {
   watch(
     sourceBloch,
     (value) => {
-      window.localStorage.setItem(TELEPORT_SOURCE_KEY, JSON.stringify(value));
+      saveBlochParams(TELEPORT_SOURCE_KEY, value);
       sampledResult.value = null;
     },
     { deep: true },

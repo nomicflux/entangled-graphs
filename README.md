@@ -29,7 +29,9 @@ The app has two top-level tabs:
 
 2. **Algorithms**
 - Contains guided algorithm views.
-- Current algorithm: **Teleportation**.
+- Current algorithm views:
+  - **Teleportation**
+  - **Deutsch**
 
 ## How To Use It
 
@@ -57,6 +59,22 @@ The app has two top-level tabs:
 - Sampled output distribution
 - Fidelity to source and branch table details
 
+### Deutsch (Algorithms tab)
+1. Switch to **Algorithms** and open **Deutsch**.
+2. In **Select** mode:
+- Choose one oracle from the standard four (`f=0`, `f=1`, `f=x`, `f=not x`).
+- Edit `q0` and `q1` inputs if you want to probe non-canonical setups.
+3. Inspect the fixed Deutsch backbone:
+- Starts from your prepared `|q0 q1⟩` with an explicit initial `X` on `q1`,
+- then `H` layer, `U_f`, and final `H` on `q0`.
+4. In **Results**:
+- Read expected `q0` verdict (`constant` vs `balanced`) and full 2-qubit distribution.
+- Run sampled executions to compare sampled vs expected verdicts.
+5. Use **Guess** mode to hide oracle identity:
+- infer class from outputs/interference,
+- submit guess (`constant` or `balanced`),
+- reveal correctness, then start a new hidden round.
+
 ## In-Circuit Measurement Behavior
 
 - `M` measures one row at its column.
@@ -79,6 +97,7 @@ The app has two top-level tabs:
 - Hovering an arc or band shows its exact rows and strength metric.
 
 In the Teleportation view, these overlays stay active on the fixed algorithm backbone.
+In the Deutsch view, overlays and stage snapshots update with oracle/input changes.
 
 ### Notes and Limits
 

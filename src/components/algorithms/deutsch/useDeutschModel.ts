@@ -3,6 +3,7 @@ import type { BlochParams, StageView } from "../../../types";
 import { bloch_pair_from_ensemble, measurement_distribution_for_ensemble } from "../../../quantum";
 import { qubitFromBloch } from "../../../state/qubit-helpers";
 import { useAlgorithmEntanglement } from "../shared/useAlgorithmEntanglement";
+import { loadBlochParams, saveBlochParams } from "../shared/storage";
 import {
   DEUTSCH_ORACLES,
   deutschColumns,
@@ -30,27 +31,11 @@ const loadOracle = (): DeutschOracleId => {
 
 const loadMode = (): DeutschMode => (window.localStorage.getItem(DEUTSCH_MODE_KEY) === "guess" ? "guess" : "select");
 
-const loadBloch = (key: string, fallback: BlochParams): BlochParams => {
-  const raw = window.localStorage.getItem(key);
-  if (!raw) {
-    return fallback;
-  }
-  try {
-    const parsed = JSON.parse(raw) as Partial<BlochParams>;
-    if (typeof parsed.theta !== "number" || typeof parsed.phi !== "number") {
-      return fallback;
-    }
-    return { theta: parsed.theta, phi: parsed.phi };
-  } catch {
-    return fallback;
-  }
-};
-
 export const useDeutschModel = () => {
   const oracleId = ref<DeutschOracleId>(loadOracle());
   const mode = ref<DeutschMode>(loadMode());
-  const q0Bloch = ref<BlochParams>(loadBloch(DEUTSCH_Q0_KEY, { theta: 0, phi: 0 }));
-  const q1Bloch = ref<BlochParams>(loadBloch(DEUTSCH_Q1_KEY, { theta: 0, phi: 0 }));
+  const q0Bloch = ref<BlochParams>(loadBlochParams(DEUTSCH_Q0_KEY, { theta: 0, phi: 0 }));
+  const q1Bloch = ref<BlochParams>(loadBlochParams(DEUTSCH_Q1_KEY, { theta: 0, phi: 0 }));
   const selectedStageIndex = ref(0);
   const sampled = ref<DeutschSampleResult | null>(null);
   const guessRound = ref(startDeutschGuessRound());
@@ -71,7 +56,7 @@ export const useDeutschModel = () => {
   watch(
     q0Bloch,
     (value) => {
-      window.localStorage.setItem(DEUTSCH_Q0_KEY, JSON.stringify(value));
+      saveBlochParams(DEUTSCH_Q0_KEY, value);
       sampled.value = null;
     },
     { deep: true },
@@ -79,7 +64,7 @@ export const useDeutschModel = () => {
   watch(
     q1Bloch,
     (value) => {
-      window.localStorage.setItem(DEUTSCH_Q1_KEY, JSON.stringify(value));
+      saveBlochParams(DEUTSCH_Q1_KEY, value);
       sampled.value = null;
     },
     { deep: true },
