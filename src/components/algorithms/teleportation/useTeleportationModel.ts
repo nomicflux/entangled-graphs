@@ -1,23 +1,20 @@
 import { computed, ref, watch } from "vue";
-import type { BlochParams, EntanglementLink, GateId, Qubit, StageView } from "../../../types";
+import type { BlochParams, GateId, Qubit, StageView } from "../../../types";
 import * as complex from "../../../complex";
 import {
   bloch_pair_from_ensemble,
-  entanglement_delta_links,
-  entanglement_links_from_ensemble,
   measurement_distribution,
   measurement_distribution_for_ensemble,
   sample_circuit_run,
   sample_distribution,
   simulate_columns_ensemble,
-  stage_entanglement_models_from_snapshots,
   tensor_product_qubits,
 } from "../../../quantum";
 import { qubitFromBloch } from "../../../state/qubit-helpers";
 import { resolveOperator } from "../../../state/operators";
 import { X, Z } from "../../../operator";
 import { apply_single_qubit_gate } from "../../../quantum/core";
-import { entanglementArcStyle, pairwiseTooltip } from "../../circuit/entanglement-display";
+import { useAlgorithmEntanglement } from "../shared/useAlgorithmEntanglement";
 import {
   bobQubitFromStateForOutcome,
   buildTeleportationBranchResults,
@@ -318,29 +315,7 @@ export const useTeleportationModel = () => {
     });
   };
 
-  const stageEntanglementLinks = computed(() => ensembleSnapshots.value.map((snapshot) => entanglement_links_from_ensemble(snapshot)));
-  const stageEntanglementModels = computed(() => stage_entanglement_models_from_snapshots(ensembleSnapshots.value));
-
-  const entanglementLinksByColumn = computed<ReadonlyArray<ReadonlyArray<EntanglementLink>>>(() =>
-    stageEntanglementLinks.value.slice(0, -1).map((_, columnIndex) => {
-      const previous = stageEntanglementLinks.value[columnIndex] ?? [];
-      const current = stageEntanglementLinks.value[columnIndex + 1] ?? [];
-      return entanglement_delta_links(previous, current).filter((link) => link.strength > 0.08);
-    }),
-  );
-
-  const entanglementLinksForColumn = (columnIndex: number): EntanglementLink[] => [...(entanglementLinksByColumn.value[columnIndex] ?? [])];
-
-  const rowCenterViewBox = (row: number): number => ((row + 0.5) / TELEPORT_ROWS.length) * 100;
-
-  const entanglementArcPath = (link: EntanglementLink): string => {
-    const startY = rowCenterViewBox(Math.min(link.fromRow, link.toRow));
-    const endY = rowCenterViewBox(Math.max(link.fromRow, link.toRow));
-    const midY = (startY + endY) * 0.5;
-    const startX = 24;
-    const controlX = 16 - (link.strength * 6);
-    return `M ${startX} ${startY} Q ${controlX} ${midY} ${startX} ${endY}`;
-  };
+  const entanglement = useAlgorithmEntanglement({ ensembleSnapshots, rows: TELEPORT_ROWS });
 
   return {
     sourceBloch,
@@ -357,15 +332,15 @@ export const useTeleportationModel = () => {
     circuitColumns,
     rows: TELEPORT_ROWS,
     stageViews,
-    stageEntanglementModels,
+    stageEntanglementModels: entanglement.stageEntanglementModels,
     selectedStageIndex,
     selectedStage,
     applyPreset,
     runSample,
     resampleFrom,
-    entanglementLinksForColumn,
-    entanglementArcPath,
-    entanglementArcStyle,
-    pairwiseTooltip,
+    entanglementLinksForColumn: entanglement.entanglementLinksForColumn,
+    entanglementArcPath: entanglement.entanglementArcPath,
+    entanglementArcStyle: entanglement.entanglementArcStyle,
+    pairwiseTooltip: entanglement.pairwiseTooltip,
   };
 };

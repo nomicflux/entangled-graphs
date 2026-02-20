@@ -7,6 +7,8 @@
 @import "./styles/circuit-tools.css";
 @import "./styles/circuit-grid.css";
 @import "./styles/circuit-stage.css";
+@import "./styles/algorithm-circuit.css";
 @import "./styles/circuit-modal.css";
 @import "./styles/measurement-panel.css";
 @import "./styles/teleportation.css";
+@import "./styles/deutsch.css";

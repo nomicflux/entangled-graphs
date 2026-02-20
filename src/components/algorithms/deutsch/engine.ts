@@ -1,4 +1,4 @@
-import type { BasisProbability, CircuitColumn, Complex, GateId, Operator, Qubit, QubitState } from "../../../types";
+import type { BasisProbability, CircuitColumn, Complex, GateId, Operator, Qubit, QubitState, StateEnsemble } from "../../../types";
 import * as complex from "../../../complex";
 import { makeOperator } from "../../../operator";
 import { measurement_distribution_for_ensemble, sample_circuit_run, simulate_columns_ensemble, tensor_product_qubits } from "../../../quantum";
@@ -109,6 +109,12 @@ const q0Probabilities = (distribution: ReadonlyArray<BasisProbability>): { const
 };
 
 const preparedState = (inputs: DeutschInputs): QubitState => tensor_product_qubits([inputs[0], inputs[1]]);
+export const deutschPreparedState = (inputs: DeutschInputs = DEFAULT_DEUTSCH_INPUTS): QubitState => preparedState(inputs);
+
+export const deutschEnsembleSnapshots = (
+  oracleId: DeutschOracleId,
+  inputs: DeutschInputs = DEFAULT_DEUTSCH_INPUTS,
+): StateEnsemble[] => simulate_columns_ensemble(preparedState(inputs), deutschColumns(), deutschResolver(oracleId), 2);
 
 export const deutschOracleDescriptor = (oracleId: DeutschOracleId): DeutschOracleDescriptor => oracleDescriptorById[oracleId];
 
@@ -124,7 +130,7 @@ export const deutschExpectedResult = (
   inputs: DeutschInputs = DEFAULT_DEUTSCH_INPUTS,
 ): DeutschExpectedResult => {
   const columns = deutschColumns();
-  const snapshots = simulate_columns_ensemble(preparedState(inputs), columns, deutschResolver(oracleId), 2);
+  const snapshots = deutschEnsembleSnapshots(oracleId, inputs);
   const finalEnsemble = snapshots[snapshots.length - 1]!;
   const finalDistribution = measurement_distribution_for_ensemble(finalEnsemble);
   const q0 = q0Probabilities(finalDistribution);

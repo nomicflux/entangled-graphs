@@ -1,35 +1,87 @@
 <template>
-  <main class="panels algorithm-shell">
-    <section class="panel">
-      <div class="panel-header">
-        <h2>Deutsch Input and Oracle</h2>
-        <p>Phase 1 scaffold. Oracle controls and input editing will be added next.</p>
-      </div>
-      <div class="algorithm-notes">
-        <p>Standard oracles planned: f(x)=0, f(x)=1, f(x)=x, and f(x)=not x.</p>
-        <p>Default setup: |00> with an explicit X gate on the lower wire before Hadamards.</p>
-      </div>
-    </section>
+  <main class="deutsch-panels">
+    <DeutschSourcePanel
+      :oracle-id="oracleId"
+      :mode="mode"
+      :oracles="oracles"
+      :oracle-class="oracleClass"
+      :truth-rows="truthRows"
+      :q0-bloch="q0Bloch"
+      :q1-bloch="q1Bloch"
+      @set-oracle="oracleId = $event"
+      @set-mode="mode = $event"
+      @set-bloch="setBloch"
+      @preset="setPreset"
+    />
 
-    <section class="panel panel-center">
-      <div class="panel-header">
-        <h2>Deutsch Circuit</h2>
-        <p>Reusable fixed-circuit rendering lands in the next phase.</p>
-      </div>
-      <div class="algorithm-notes">
-        <p>This panel will show stage snapshots, inspector, and interference-focused views.</p>
-      </div>
-    </section>
+    <FixedCircuitPanel
+      title="Deutsch Algorithm"
+      subtitle="Fixed circuit backbone with selected oracle U_f."
+      slot-title="Fixed Deutsch backbone."
+      :columns="labeledColumns"
+      :rows="[0, 1]"
+      :stage-views="stageViews"
+      :stage-entanglement-models="stageEntanglementModels"
+      :selected-stage-index="selectedStageIndex"
+      :selected-stage="selectedStage"
+      :entanglement-links-for-column="entanglementLinksForColumn"
+      :entanglement-arc-path="entanglementArcPath"
+      :entanglement-arc-style="entanglementArcStyle"
+      :pairwise-tooltip="pairwiseTooltip"
+      @select-stage="selectedStageIndex = $event"
+    />
 
-    <section class="panel">
-      <div class="panel-header">
-        <h2>Deutsch Results</h2>
-        <p>Phase 1 scaffold. Constant/balanced verdict and sampling will be added next.</p>
-      </div>
-      <div class="algorithm-notes">
-        <p>Primary decision output: q0.</p>
-        <p>Full two-qubit distribution will remain visible.</p>
-      </div>
-    </section>
+    <DeutschResultsPanel
+      :mode="mode"
+      :oracle-class="oracleClass"
+      :expected-decision="expectedDecision"
+      :q0-decision-probability="q0DecisionProbability"
+      :final-distribution="expected.finalDistribution"
+      :sampled="sampled"
+      @run-sample="runSample"
+    />
   </main>
 </template>
+
+<script setup lang="ts">
+import type { BlochParams } from "../../types";
+import DeutschResultsPanel from "./deutsch/DeutschResultsPanel.vue";
+import DeutschSourcePanel from "./deutsch/DeutschSourcePanel.vue";
+import { DEUTSCH_ORACLES } from "./deutsch/engine";
+import { useDeutschModel } from "./deutsch/useDeutschModel";
+import FixedCircuitPanel from "./shared/FixedCircuitPanel.vue";
+
+const {
+  oracleId,
+  mode,
+  q0Bloch,
+  q1Bloch,
+  labeledColumns,
+  stageViews,
+  selectedStageIndex,
+  selectedStage,
+  expected,
+  expectedDecision,
+  truthRows,
+  oracleClass,
+  q0DecisionProbability,
+  sampled,
+  runSample,
+  setPreset,
+  stageEntanglementModels,
+  entanglementLinksForColumn,
+  entanglementArcPath,
+  entanglementArcStyle,
+  pairwiseTooltip,
+} = useDeutschModel();
+
+const oracles = DEUTSCH_ORACLES;
+
+const setBloch = (wire: 0 | 1, next: BlochParams) => {
+  if (wire === 0) {
+    q0Bloch.value = next;
+    return;
+  }
+  q1Bloch.value = next;
+};
+</script>

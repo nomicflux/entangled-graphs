@@ -1,0 +1,122 @@
+.deutsch-panels {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(560px, 1.6fr) minmax(320px, 1.05fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.deutsch-controls {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.deutsch-field {
+  display: grid;
+  gap: 6px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.74rem;
+}
+
+.deutsch-field select {
+  min-height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.72rem;
+  padding: 4px 8px;
+}
+
+.deutsch-mode-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.deutsch-toggle-btn {
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.68rem;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.deutsch-toggle-btn.active {
+  border-color: rgba(110, 237, 213, 0.7);
+  background: rgba(110, 237, 213, 0.2);
+}
+
+.deutsch-oracle-summary {
+  margin-bottom: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.deutsch-oracle-summary p {
+  margin: 0 0 4px;
+}
+
+.deutsch-input-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.deutsch-input-card {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px;
+}
+
+.deutsch-input-card h3 {
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+}
+
+.deutsch-note {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.deutsch-result-card {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px;
+  margin-bottom: 10px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.72rem;
+}
+
+.deutsch-result-card p {
+  margin: 0 0 5px;
+}
+
+.deutsch-sample-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.deutsch-sample-head h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 1180px) {
+  .deutsch-panels {
+    grid-template-columns: 1fr;
+  }
+}

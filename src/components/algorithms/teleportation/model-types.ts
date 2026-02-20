@@ -1,15 +1,12 @@
-import type { GateInstance, Qubit, QubitRow } from "../../../types";
+import type { Qubit, QubitRow } from "../../../types";
 import type { BasisProbability } from "../../../types";
 import type { CircuitMeasurementOutcome } from "../../../quantum";
+import type { AlgorithmColumn } from "../shared/model-types";
 
 export type PrepPreset = "zero" | "one" | "half";
 export type BranchOperation = "I" | "X" | "Z" | "XZ";
 
-export type TeleportationColumn = {
-  id: string;
-  label: string;
-  gates: GateInstance[];
-};
+export type TeleportationColumn = AlgorithmColumn;
 
 export type BranchPreview = {
   basis: "00" | "01" | "10" | "11";

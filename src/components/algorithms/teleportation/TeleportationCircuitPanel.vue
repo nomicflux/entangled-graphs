@@ -1,118 +1,27 @@
 <template>
-  <section class="panel panel-center">
-    <div class="panel-header">
-      <h2>Quantum Teleportation</h2>
-      <p>Backbone is fixed. Correction behavior is controlled in the output panel.</p>
-    </div>
-
-    <div class="circuit-shell teleport-circuit-shell">
-      <div class="circuit-columns teleport-circuit-columns">
-        <div
-          v-for="(column, colIndex) in columns"
-          :key="column.id"
-          class="circuit-column teleport-circuit-column"
-          :style="{ gridTemplateRows: `repeat(${rows.length}, minmax(56px, 1fr))` }"
-        >
-          <p class="teleport-column-label">{{ column.label }}</p>
-
-          <svg
-            class="column-entanglement"
-            viewBox="0 0 100 100"
-            preserveAspectRatio="none"
-            aria-hidden="true"
-          >
-            <rect
-              v-for="band in multipartiteBandsForColumn(colIndex)"
-              :key="`tele-band-${colIndex}-${band.id}`"
-              class="entanglement-multipartite-band"
-              :x="band.x"
-              :y="band.y"
-              :width="band.width"
-              :height="band.height"
-              :rx="band.rx"
-              :style="multipartiteBandStyle(band.strength)"
-            >
-              <title>{{ multipartiteTooltip(band.rows, band.strength) }}</title>
-            </rect>
-            <path
-              v-for="(link, linkIndex) in entanglementLinksForColumn(colIndex)"
-              :key="`${colIndex}-${link.fromRow}-${link.toRow}-${linkIndex}`"
-              class="entanglement-arc"
-              :d="entanglementArcPath(link)"
-              :style="entanglementArcStyle(link)"
-            >
-              <title>{{ pairwiseTooltip(link) }}</title>
-            </path>
-          </svg>
-
-          <div class="column-connectors">
-            <div
-              v-for="connector in connectorSegments(column)"
-              :key="connector.id"
-              class="column-connector cnot"
-              :style="connectorStyle(connector)"
-            ></div>
-          </div>
-
-          <div
-            v-for="row in rows"
-            :key="row"
-            class="gate-slot is-teleport-locked"
-            :title="slotTitle"
-          >
-            <span class="gate-slot-label">q{{ row }}</span>
-            <div
-              class="gate-token"
-              :class="{
-                empty: slotInstance(column, row) === null && placeholderToken(column.id, row) === '',
-                'is-cnot-control': isCnotControl(column, row),
-                'is-cnot-target': isCnotTarget(column, row),
-                'is-measurement': isMeasurementToken(column, row),
-                'is-teleport-classical': placeholderToken(column.id, row) !== '',
-              }"
-            >
-              {{ tokenFor(column, row) || placeholderToken(column.id, row) }}
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="circuit-legend">
-        <span class="circuit-legend-time">Time -></span>
-        <span class="circuit-legend-item">
-          <span class="circuit-legend-swatch pairwise"></span>
-          <span title="Pairwise entanglement link; dominant Bell color and Bell-derived strength.">Pairwise</span>
-        </span>
-        <span class="circuit-legend-item">
-          <span class="circuit-legend-swatch multipartite"></span>
-          <span title="Multipartite component; strength is minimum cut entropy across cuts that split the component.">Multipartite</span>
-        </span>
-      </div>
-    </div>
-
-    <CircuitStageSnapshots
-      :stages="stageViews"
-      :selected-stage-index="selectedStageIndex"
-      @select-stage="$emit('select-stage', $event)"
-    />
-
-    <StageInspector :stage="selectedStage" :animated="false" />
-  </section>
+  <FixedCircuitPanel
+    title="Quantum Teleportation"
+    subtitle="Backbone is fixed. Correction behavior is controlled in the output panel."
+    slot-title="Fixed teleportation backbone."
+    :columns="props.columns"
+    :rows="props.rows"
+    :stage-views="props.stageViews"
+    :stage-entanglement-models="props.stageEntanglementModels"
+    :selected-stage-index="props.selectedStageIndex"
+    :selected-stage="props.selectedStage"
+    :entanglement-links-for-column="props.entanglementLinksForColumn"
+    :entanglement-arc-path="props.entanglementArcPath"
+    :entanglement-arc-style="props.entanglementArcStyle"
+    :pairwise-tooltip="props.pairwiseTooltip"
+    :placeholder-token="placeholderToken"
+    @select-stage="$emit('select-stage', $event)"
+  />
 </template>
 
 <script setup lang="ts">
-import type { EntanglementLink, GateInstance, QubitRow, StageEntanglementModel, StageView } from "../../../types";
+import type { EntanglementLink, QubitRow, StageEntanglementModel, StageView } from "../../../types";
 import type { TeleportationColumn } from "./model-types";
-import { multipartiteBandStyle, multipartiteTooltip } from "../../circuit/entanglement-display";
-import { multipartiteBandsForStageColumn } from "../../circuit/entanglement-overlays";
-import type { MultipartiteBand } from "../../circuit/grid-interaction-types";
-import StageInspector from "../../StageInspector.vue";
-import CircuitStageSnapshots from "../../circuit/CircuitStageSnapshots.vue";
-
-type ConnectorSegment = {
-  id: string;
-  fromRow: number;
-  toRow: number;
-};
+import FixedCircuitPanel from "../shared/FixedCircuitPanel.vue";
 
 const props = defineProps<{
   columns: TeleportationColumn[];
@@ -131,22 +40,6 @@ defineEmits<{
   (e: "select-stage", index: number): void;
 }>();
 
-const slotTitle = "Fixed teleportation backbone.";
-
-const slotInstance = (column: TeleportationColumn, row: QubitRow): GateInstance | null =>
-  column.gates.find((entry) => entry.wires.includes(row)) ?? null;
-
-const tokenFor = (column: TeleportationColumn, row: QubitRow): string => {
-  const instance = slotInstance(column, row);
-  if (!instance) {
-    return "";
-  }
-  if (instance.gate === "CNOT") {
-    return "";
-  }
-  return instance.gate;
-};
-
 const placeholderToken = (columnId: string, row: QubitRow): string => {
   if (row !== 2) {
     return "";
@@ -158,44 +51,5 @@ const placeholderToken = (columnId: string, row: QubitRow): string => {
     return "X";
   }
   return "";
-};
-
-const isCnotControl = (column: TeleportationColumn, row: QubitRow): boolean => {
-  const gate = slotInstance(column, row);
-  return gate?.gate === "CNOT" && gate.wires[0] === row;
-};
-
-const isCnotTarget = (column: TeleportationColumn, row: QubitRow): boolean => {
-  const gate = slotInstance(column, row);
-  return gate?.gate === "CNOT" && gate.wires[1] === row;
-};
-
-const isMeasurementToken = (column: TeleportationColumn, row: QubitRow): boolean => {
-  const gate = slotInstance(column, row);
-  return gate?.gate === "M";
-};
-
-const connectorSegments = (column: TeleportationColumn): ConnectorSegment[] =>
-  column.gates.flatMap((gate) => {
-    if (gate.gate !== "CNOT") {
-      return [];
-    }
-
-    return [{ id: gate.id, fromRow: gate.wires[0]!, toRow: gate.wires[1]! }];
-  });
-
-const rowCenterPercent = (row: number): number => ((row + 0.5) / props.rows.length) * 100;
-
-const connectorStyle = (segment: ConnectorSegment): Record<string, string> => {
-  const start = rowCenterPercent(Math.min(segment.fromRow, segment.toRow));
-  const end = rowCenterPercent(Math.max(segment.fromRow, segment.toRow));
-  return {
-    top: `${start}%`,
-    height: `${Math.max(0, end - start)}%`,
-  };
-};
-
-const multipartiteBandsForColumn = (columnIndex: number): MultipartiteBand[] => {
-  return multipartiteBandsForStageColumn(props.stageEntanglementModels, columnIndex, props.rows.length);
 };
 </script>
