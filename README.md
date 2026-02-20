@@ -6,7 +6,7 @@ Live site: [https://nomicflux.github.io/entangled-graphs/](https://nomicflux.git
 
 ## What You’ll See
 
-The app has two top-level tabs:
+The app has three top-level tabs:
 
 1. **Free-Form**
 - Build and run your own circuits.
@@ -27,7 +27,28 @@ The app has two top-level tabs:
 - View output probabilities and recent sample outcomes.
 - If in-circuit measurements exist, you can resample from specific measurement points.
 
-2. **Algorithms**
+2. **p-adic**
+- Free-form circuit workspace with p-adic preparation and model-weighted measurement.
+- The page is also split into:
+- **Prepared State (left)**
+  - Qubit count starts at `2`, can be adjusted from `1..8`.
+  - Per-qubit amplitudes are entered explicitly as raw values (`a`, `b`), including simple `p` expressions.
+  - Prime selector is limited to `p in {2, 3, 5, 7}`.
+- **Circuit (middle)**
+  - Same interaction model as free-form (drag single-qubit, staged multi-wire, in-circuit `M` row lock).
+  - Gate palette only shows p-adic-supported gates:
+    - 1 qubit: `I`, `X`, `Z`, `M`
+    - 2 qubits: plus `CNOT`, `SWAP`
+    - 3+ qubits: plus `TOFFOLI`, `CSWAP`
+  - Custom gate builders are not shown in p-adic v1.
+- **Measurement (right)**
+  - Measurement model is selectable:
+    - `valuation_weight`
+    - `character_based`
+    - `operator_ensemble`
+  - Results are shown as normalized model weights `w_p` and support replay/resample from in-circuit measurement points.
+
+3. **Algorithms**
 - Contains guided algorithm views.
 - Current algorithm views:
   - **Teleportation**
@@ -43,6 +64,17 @@ The app has two top-level tabs:
 - Stage snapshots in the circuit panel
 - Final output distribution in the measurement panel
 - Recent sample history
+
+### p-adic
+1. Switch to **p-adic**.
+2. Set prime `p` (`2`, `3`, `5`, or `7`) and qubit count (`1..8`).
+3. Enter prepared amplitudes for each qubit (`a`, `b`) or use presets.
+4. Build a circuit with the available p-adic gate palette.
+5. Choose a measurement model and click **Measure**.
+6. Compare:
+- Model-weighted stage snapshots and Stage Inspector (`w_p` labels)
+- Final output distribution (`w_p`)
+- In-circuit outcome path and resample points
 
 ### Teleportation (Algorithms tab)
 1. Switch to **Algorithms** and open **Teleportation**.
@@ -82,6 +114,7 @@ The app has two top-level tabs:
 - `M` collapses the state branch at that point (no automatic qubit reset/reprepare).
 - Entanglement effects propagate to other rows through the state.
 - You can replay from any in-circuit measurement point in the Measurement panel.
+- In p-adic mode, branch and final distributions are interpreted as normalized model weights (`w_p`) under the selected measurement model.
 
 ## Entanglement Visualization
 
@@ -110,12 +143,23 @@ In the Deutsch view, overlays and stage snapshots update with oracle/input chang
 - You can create custom single-qubit and multi-qubit gates from the circuit tools.
 - Custom gates are saved and can be reused.
 - Alt-click a custom gate chip to delete it.
+- p-adic workspace does not expose custom gate builders in v1.
+
+## p-adic Known Limitations
+
+- p-adic amplitudes are currently normalized and evolved through the existing complex-number operator pipeline, then re-weighted by the selected p-adic measurement model.
+- Bloch visualization is reused as a generic state projection; it is not a full p-adic geometric analogue.
+- p-adic v1 gate set is intentionally limited to built-ins listed above.
+- No p-adic custom gate builder in v1.
+- Prime choices are restricted to `{2, 3, 5, 7}`.
 
 ## Project Layout
 
 - `src/components/` UI panels and interactions
+- `src/components/padic/` p-adic workspace panels and interactions
 - `src/state/` state model, selectors, and actions
 - `src/quantum/` quantum simulation, measurement, Bloch, and entanglement logic
+- `src/quantum/padic/` p-adic parsing, model weighting, ensemble simulation, and sampling modules
 - `src/operator.ts` built-in and constructed operators
 - `tests/` behavior and regression tests
 - `docs/current-plans/` active implementation plans
