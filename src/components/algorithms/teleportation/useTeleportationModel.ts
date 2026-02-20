@@ -11,7 +11,14 @@ import {
 } from "../../../quantum";
 import { qubitFromBloch } from "../../../state/qubit-helpers";
 import { resolveOperator } from "../../../state/operators";
-import { TELEPORT_ROWS, type PrepPreset, type TauBranch, type TauOperation, type TeleportationColumn } from "./model-types";
+import { buildTeleportationBranchResults, teleportationSummaries } from "./engine";
+import {
+  TELEPORT_ROWS,
+  type PrepPreset,
+  type BranchPreview,
+  type TeleportationBranchResult,
+  type TeleportationColumn,
+} from "./model-types";
 
 const TELEPORT_SOURCE_KEY = "entangled.algorithms.teleportation.source";
 
@@ -30,21 +37,6 @@ const loadSourceBloch = (): BlochParams => {
   } catch {
     return { theta: 0, phi: 0 };
   }
-};
-
-const applyTauOperation = (operation: TauOperation, source: Qubit): Qubit => {
-  if (operation === "I") {
-    return source;
-  }
-  if (operation === "X") {
-    return { a: source.b, b: source.a };
-  }
-  if (operation === "Z") {
-    return { a: source.a, b: complex.scale(source.b, -1) };
-  }
-
-  const zSource = { a: source.a, b: complex.scale(source.b, -1) };
-  return { a: zSource.b, b: zSource.a };
 };
 
 export const useTeleportationModel = () => {
@@ -141,22 +133,23 @@ export const useTeleportationModel = () => {
     { deep: true },
   );
 
-  const tauStageIndex = 4;
-  const tauStageLabel = computed(() => stageViews.value[tauStageIndex]?.label ?? "Alice H");
+  const branchStageIndex = 4;
+  const branchStageLabel = computed(() => stageViews.value[branchStageIndex]?.label ?? "Alice H");
+  const preMeasurementState = computed(() => ensembleSnapshots.value[branchStageIndex]?.[0]?.state ?? preparedState.value);
 
-  const tauBranchSpec: ReadonlyArray<Pick<TauBranch, "basis" | "operation">> = [
-    { basis: "00", operation: "I" },
-    { basis: "01", operation: "X" },
-    { basis: "10", operation: "Z" },
-    { basis: "11", operation: "XZ" },
-  ];
+  const teleportationBranches = computed<TeleportationBranchResult[]>(() =>
+    buildTeleportationBranchResults(preMeasurementState.value, sourceAmplitudes.value),
+  );
 
-  const tauBranches = computed<TauBranch[]>(() =>
-    tauBranchSpec.map((entry) => ({
-      ...entry,
-      state: applyTauOperation(entry.operation, sourceAmplitudes.value),
+  const branchPreviews = computed<BranchPreview[]>(() =>
+    teleportationBranches.value.map((entry) => ({
+      basis: entry.basis,
+      operation: entry.operation,
+      state: entry.withoutCorrection,
     })),
   );
+
+  const teleportationOutput = computed(() => teleportationSummaries(teleportationBranches.value, sourceAmplitudes.value));
 
   const applyPreset = (preset: PrepPreset) => {
     if (preset === "zero") {
@@ -208,8 +201,10 @@ export const useTeleportationModel = () => {
   return {
     sourceBloch,
     sourceAmplitudes,
-    tauStageLabel,
-    tauBranches,
+    branchStageLabel,
+    branchPreviews,
+    teleportationBranches,
+    teleportationOutput,
     circuitColumns,
     rows: TELEPORT_ROWS,
     stageViews,

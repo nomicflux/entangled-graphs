@@ -2,7 +2,7 @@
   <section class="panel">
     <div class="panel-header">
       <h2>Source State</h2>
-      <p>Set the source qubit |q0⟩ directly. Tau is derived by the algorithm.</p>
+      <p>Set source |q0⟩ directly. Branch mapping is derived from the fixed circuit stage.</p>
     </div>
 
     <div class="teleport-role-grid">
@@ -49,17 +49,14 @@
       </div>
     </div>
 
-    <div class="teleport-tau-panel">
-      <h3>Derived Tau (Read-only)</h3>
-      <p class="muted">Shown at stage: {{ tauStageLabel }}</p>
-      <p class="teleport-tau-formula">
-        tau = 1/2(|00>|q0> + |01>X|q0> + |10>Z|q0> + |11>XZ|q0>)
-      </p>
+    <div class="teleport-branch-panel">
+      <h3>Branch Mapping (Read-only)</h3>
+      <p class="muted">Shown at stage: {{ branchStageLabel }}</p>
 
-      <div class="tau-branch-list">
-        <p v-for="entry in tauBranches" :key="entry.basis">
+      <div class="branch-preview-list">
+        <p v-for="entry in branchPreviews" :key="entry.basis">
           <span>|{{ entry.basis }}⟩ → {{ entry.operation }}|q0⟩</span>
-          <span class="tau-branch-amp">
+          <span class="branch-preview-amp">
             (a={{ formatComplex(entry.state.a.real, entry.state.a.imag) }}, b={{ formatComplex(entry.state.b.real, entry.state.b.imag) }})
           </span>
         </p>
@@ -70,13 +67,13 @@
 
 <script setup lang="ts">
 import type { BlochParams, Qubit } from "../../../types";
-import type { PrepPreset, TauBranch } from "./model-types";
+import type { BranchPreview, PrepPreset } from "./model-types";
 
 const props = defineProps<{
   sourceBloch: BlochParams;
   sourceAmplitudes: Qubit;
-  tauStageLabel: string;
-  tauBranches: TauBranch[];
+  branchStageLabel: string;
+  branchPreviews: BranchPreview[];
 }>();
 
 const emit = defineEmits<{

@@ -3,8 +3,8 @@
     <TeleportationSourcePanel
       :source-bloch="sourceBloch"
       :source-amplitudes="sourceAmplitudes"
-      :tau-stage-label="tauStageLabel"
-      :tau-branches="tauBranches"
+      :branch-stage-label="branchStageLabel"
+      :branch-previews="branchPreviews"
       @update-source-bloch="setSourceBloch"
       @apply-preset="applyPreset"
     />
@@ -20,20 +20,29 @@
       :entanglement-arc-style="entanglementArcStyle"
       @select-stage="setSelectedStage"
     />
+
+    <TeleportationResultsPanel
+      :source="sourceAmplitudes"
+      :branches="teleportationBranches"
+      :output="teleportationOutput"
+    />
   </main>
 </template>
 
 <script setup lang="ts">
 import type { BlochParams } from "../../types";
 import TeleportationCircuitPanel from "./teleportation/TeleportationCircuitPanel.vue";
+import TeleportationResultsPanel from "./teleportation/TeleportationResultsPanel.vue";
 import TeleportationSourcePanel from "./teleportation/TeleportationSourcePanel.vue";
 import { useTeleportationModel } from "./teleportation/useTeleportationModel";
 
 const {
   sourceBloch,
   sourceAmplitudes,
-  tauStageLabel,
-  tauBranches,
+  branchStageLabel,
+  branchPreviews,
+  teleportationBranches,
+  teleportationOutput,
   circuitColumns,
   rows,
   stageViews,
