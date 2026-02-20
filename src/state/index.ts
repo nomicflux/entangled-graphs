@@ -21,6 +21,7 @@ export {
   finalDistribution,
   stageViews,
   stageEntanglementLinks,
+  stageEntanglementModels,
   selectedStage,
   gateAt,
   gateLabel,

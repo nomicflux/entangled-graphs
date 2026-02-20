@@ -17,4 +17,10 @@ export type { MeasurementSample } from "./quantum/measurement";
 
 export { basis_to_bloch_pair, bloch_pair_from_ensemble, bloch_pair_from_state } from "./quantum/bloch";
 export { entanglement_delta_links, entanglement_links_from_ensemble } from "./quantum/entanglement";
-export { cut_entanglement_scores_from_ensemble, stage_cut_entanglement_scores } from "./quantum/multipartite";
+export {
+  cut_entanglement_scores_from_ensemble,
+  entanglement_components_from_cut_scores,
+  entanglement_model_from_ensemble,
+  stage_cut_entanglement_scores,
+  stage_entanglement_models_from_snapshots,
+} from "./quantum/multipartite";

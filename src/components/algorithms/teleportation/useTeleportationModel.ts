@@ -10,6 +10,7 @@ import {
   sample_circuit_run,
   sample_distribution,
   simulate_columns_ensemble,
+  stage_entanglement_models_from_snapshots,
   tensor_product_qubits,
 } from "../../../quantum";
 import { qubitFromBloch } from "../../../state/qubit-helpers";
@@ -317,6 +318,7 @@ export const useTeleportationModel = () => {
   };
 
   const stageEntanglementLinks = computed(() => ensembleSnapshots.value.map((snapshot) => entanglement_links_from_ensemble(snapshot)));
+  const stageEntanglementModels = computed(() => stage_entanglement_models_from_snapshots(ensembleSnapshots.value));
 
   const bellColorByState: Record<BellStateId, string> = {
     "phi+": "rgba(255, 122, 102, 0.95)",
@@ -363,6 +365,7 @@ export const useTeleportationModel = () => {
     circuitColumns,
     rows: TELEPORT_ROWS,
     stageViews,
+    stageEntanglementModels,
     selectedStageIndex,
     selectedStage,
     applyPreset,

@@ -84,6 +84,19 @@ export type CutEntanglementScore = {
     entropy: number;
 }
 
+export type EntanglementComponentKind = "single" | "pairwise" | "multipartite";
+
+export type EntanglementComponent = {
+    rows: ReadonlyArray<QubitRow>;
+    kind: EntanglementComponentKind;
+    strength: number;
+}
+
+export type StageEntanglementModel = {
+    cuts: ReadonlyArray<CutEntanglementScore>;
+    components: ReadonlyArray<EntanglementComponent>;
+}
+
 export type StageView = {
     id: string;
     index: number;

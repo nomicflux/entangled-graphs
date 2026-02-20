@@ -14,6 +14,7 @@ import {
   entanglement_links_from_ensemble,
   measurement_distribution_for_ensemble,
   simulate_columns_ensemble,
+  stage_entanglement_models_from_snapshots,
   tensor_product_qubits,
 } from "../quantum";
 import { gateTouchesRow } from "./gate-instance-utils";
@@ -54,6 +55,10 @@ export const stageViews = computed<StageView[]>(() => {
 
 export const stageEntanglementLinks = computed(() =>
   ensembleSnapshots.value.map((snapshot) => entanglement_links_from_ensemble(snapshot)),
+);
+
+export const stageEntanglementModels = computed(() =>
+  stage_entanglement_models_from_snapshots(ensembleSnapshots.value),
 );
 
 export const selectedStage = computed<StageView>(() => stageViews.value[state.selectedStageIndex]!);
