@@ -53,6 +53,16 @@ test("p-adic parser helpers clamp and default invalid values", () => {
   assert.equal(persistence.parsePAdicMeasurementModel("bad-model"), "valuation_weight");
   assert.equal(persistence.parsePAdicMeasurementModel(null), "valuation_weight");
 
+  assert.equal(persistence.parsePAdicGeometryMode("padic_vector"), "padic_vector");
+  assert.equal(persistence.parsePAdicGeometryMode("valuation_ring"), "valuation_ring");
+  assert.equal(persistence.parsePAdicGeometryMode("unknown"), "padic_vector");
+  assert.equal(persistence.parsePAdicGeometryMode(null), "padic_vector");
+
+  assert.equal(persistence.parsePAdicSelectedBasis("0101"), "0101");
+  assert.equal(persistence.parsePAdicSelectedBasis(""), null);
+  assert.equal(persistence.parsePAdicSelectedBasis("abc"), null);
+  assert.equal(persistence.parsePAdicSelectedBasis(null), null);
+
   assert.equal(persistence.parsePAdicQubitCount("1"), 1);
   assert.equal(persistence.parsePAdicQubitCount("8"), 8);
   assert.equal(persistence.parsePAdicQubitCount("0"), 1);
@@ -65,13 +75,19 @@ test("p-adic read/write helpers persist and normalize values", () => {
   persistence.writePAdicPrimeToStorage(storage, 5);
   persistence.writePAdicMeasurementModelToStorage(storage, "operator_ensemble");
   persistence.writePAdicQubitCountToStorage(storage, 9);
+  persistence.writePAdicGeometryModeToStorage(storage, "valuation_ring");
+  persistence.writePAdicSelectedBasisToStorage(storage, "11");
 
   assert.equal(persistence.readPAdicPrimeFromStorage(storage), 5);
   assert.equal(persistence.readPAdicMeasurementModelFromStorage(storage), "operator_ensemble");
   assert.equal(persistence.readPAdicQubitCountFromStorage(storage), 8);
+  assert.equal(persistence.readPAdicGeometryModeFromStorage(storage), "valuation_ring");
+  assert.equal(persistence.readPAdicSelectedBasisFromStorage(storage), "11");
 
   const dump = storage.dump();
   assert.equal(dump[persistence.PADIC_PRIME_STORAGE_KEY], "5");
   assert.equal(dump[persistence.PADIC_MEASUREMENT_MODEL_STORAGE_KEY], "operator_ensemble");
   assert.equal(dump[persistence.PADIC_QUBIT_COUNT_STORAGE_KEY], "8");
+  assert.equal(dump[persistence.PADIC_GEOMETRY_MODE_STORAGE_KEY], "valuation_ring");
+  assert.equal(dump[persistence.PADIC_SELECTED_BASIS_STORAGE_KEY], "11");
 });

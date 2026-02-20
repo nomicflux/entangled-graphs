@@ -1,12 +1,15 @@
 import type { GateId, GateInstance } from "../types";
 import { emptyColumn, nextGateInstanceId, state } from "./store";
 import {
+  DEFAULT_PADIC_GEOMETRY_MODE,
   PADIC_DEFAULT_QUBIT_COUNT,
   PADIC_MAX_QUBITS,
   PADIC_MIN_QUBITS,
   clampPAdicQubitCount,
+  isPAdicGeometryMode,
   isPAdicMeasurementModel,
   isPAdicPrime,
+  type PAdicGeometryMode,
   type PAdicMeasurementModel,
   type PAdicPrime,
 } from "../padic-config";
@@ -23,6 +26,17 @@ const availablePAdicGates = (qubitCount: number): GateId[] => availablePAdicBuil
 
 const enforcePAdicMeasurementLockRules = (): void => {
   enforceMeasurementLockRulesForColumns(state.pAdic.columns);
+};
+
+const normalizePAdicSelectedBasis = (): void => {
+  const basis = state.pAdic.selectedBasis;
+  if (basis === null) {
+    return;
+  }
+
+  if (!/^[01]+$/.test(basis) || basis.length !== state.pAdic.qubitCount) {
+    state.pAdic.selectedBasis = null;
+  }
 };
 
 const sanitizePAdicColumnsForQubitCount = (count: number): void => {
@@ -109,6 +123,13 @@ export const setPAdicMeasurementModel = (model: string): void => {
   state.pAdic.measurementModel = model;
 };
 
+export const setPAdicGeometryMode = (mode: string): void => {
+  if (!isPAdicGeometryMode(mode)) {
+    return;
+  }
+  state.pAdic.geometryMode = mode;
+};
+
 export const setPAdicQubitCount = (nextCount: number): void => {
   const bounded = clampPAdicQubitCount(nextCount);
   state.pAdic.qubitCount = bounded;
@@ -130,6 +151,8 @@ export const setPAdicQubitCount = (nextCount: number): void => {
   if (state.pAdic.selectedStageIndex > state.pAdic.columns.length) {
     state.pAdic.selectedStageIndex = state.pAdic.columns.length;
   }
+
+  normalizePAdicSelectedBasis();
 };
 
 export const setSelectedPAdicGate = (gate: GateId | null): void => {
@@ -213,6 +236,20 @@ export const setPAdicSelectedStage = (index: number): void => {
   state.pAdic.selectedStageIndex = index;
 };
 
+export const setPAdicSelectedBasis = (basis: string | null): void => {
+  if (basis === null) {
+    state.pAdic.selectedBasis = null;
+    return;
+  }
+
+  const trimmed = basis.trim();
+  if (!/^[01]+$/.test(trimmed) || trimmed.length !== state.pAdic.qubitCount) {
+    return;
+  }
+
+  state.pAdic.selectedBasis = trimmed;
+};
+
 export const clearPAdicGateAt = (columnIndex: number, wire: number): void => {
   const column = state.pAdic.columns[columnIndex];
   if (!column) {
@@ -277,12 +314,17 @@ export const placePAdicMultiGate = (columnIndex: number, gate: GateId, wires: nu
 export const resetPAdicWorkspaceState = (
   prime: PAdicPrime,
   measurementModel: PAdicMeasurementModel,
+  geometryMode: PAdicGeometryMode = DEFAULT_PADIC_GEOMETRY_MODE,
   qubitCount: number = PADIC_DEFAULT_QUBIT_COUNT,
+  selectedBasis: string | null = null,
 ): void => {
   state.pAdic.prime = prime;
   state.pAdic.measurementModel = measurementModel;
+  state.pAdic.geometryMode = geometryMode;
   state.pAdic.columns = [emptyColumn(), emptyColumn(), emptyColumn(), emptyColumn()];
   state.pAdic.selectedGate = "X";
   state.pAdic.selectedStageIndex = 0;
+  state.pAdic.selectedBasis = null;
   setPAdicQubitCount(qubitCount);
+  setPAdicSelectedBasis(selectedBasis);
 };

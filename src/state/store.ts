@@ -3,9 +3,11 @@ import type { BlochParams, CircuitColumn, CustomOperator, GateId } from "../type
 import { loadCustomOperators } from "./custom-operator-storage";
 import { zeroBloch } from "./qubit-helpers";
 import {
+  DEFAULT_PADIC_GEOMETRY_MODE,
   DEFAULT_PADIC_MEASUREMENT_MODEL,
   DEFAULT_PADIC_PRIME,
   PADIC_DEFAULT_QUBIT_COUNT,
+  type PAdicGeometryMode,
   type PAdicMeasurementModel,
   type PAdicPrime,
 } from "../padic-config";
@@ -22,11 +24,13 @@ export type PAdicPreparedQubit = {
 export type PAdicWorkspaceState = {
   prime: PAdicPrime;
   measurementModel: PAdicMeasurementModel;
+  geometryMode: PAdicGeometryMode;
   qubitCount: number;
   preparedQubits: PAdicPreparedQubit[];
   columns: CircuitColumn[];
   selectedGate: GateId | null;
   selectedStageIndex: number;
+  selectedBasis: string | null;
 };
 
 export type CircuitState = {
@@ -75,10 +79,12 @@ export const state = reactive<CircuitState>({
   pAdic: {
     prime: DEFAULT_PADIC_PRIME,
     measurementModel: DEFAULT_PADIC_MEASUREMENT_MODEL,
+    geometryMode: DEFAULT_PADIC_GEOMETRY_MODE,
     qubitCount: PADIC_DEFAULT_QUBIT_COUNT,
     preparedQubits: Array.from({ length: PADIC_DEFAULT_QUBIT_COUNT }, () => defaultPAdicPreparedQubit()),
     columns: [emptyColumn(), emptyColumn(), emptyColumn(), emptyColumn()],
     selectedGate: "X",
     selectedStageIndex: 0,
+    selectedBasis: null,
   },
 });

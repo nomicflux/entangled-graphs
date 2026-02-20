@@ -1,5 +1,6 @@
 export type PAdicPrime = 2 | 3 | 5 | 7;
 export type PAdicMeasurementModel = "valuation_weight" | "character_based" | "operator_ensemble";
+export type PAdicGeometryMode = "padic_vector" | "valuation_ring";
 
 export const PADIC_PRIMES: readonly PAdicPrime[] = [2, 3, 5, 7];
 export const PADIC_MEASUREMENT_MODELS: readonly PAdicMeasurementModel[] = [
@@ -7,9 +8,11 @@ export const PADIC_MEASUREMENT_MODELS: readonly PAdicMeasurementModel[] = [
   "character_based",
   "operator_ensemble",
 ];
+export const PADIC_GEOMETRY_MODES: readonly PAdicGeometryMode[] = ["padic_vector", "valuation_ring"];
 
 export const DEFAULT_PADIC_PRIME: PAdicPrime = 2;
 export const DEFAULT_PADIC_MEASUREMENT_MODEL: PAdicMeasurementModel = "valuation_weight";
+export const DEFAULT_PADIC_GEOMETRY_MODE: PAdicGeometryMode = "padic_vector";
 
 export const PADIC_DEFAULT_QUBIT_COUNT = 2;
 export const PADIC_MIN_QUBITS = 1;
@@ -28,3 +31,6 @@ export const isPAdicPrime = (value: number): value is PAdicPrime => PADIC_PRIMES
 
 export const isPAdicMeasurementModel = (value: string): value is PAdicMeasurementModel =>
   PADIC_MEASUREMENT_MODELS.includes(value as PAdicMeasurementModel);
+
+export const isPAdicGeometryMode = (value: string): value is PAdicGeometryMode =>
+  PADIC_GEOMETRY_MODES.includes(value as PAdicGeometryMode);

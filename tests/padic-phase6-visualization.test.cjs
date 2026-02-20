@@ -10,11 +10,13 @@ const clonePAdic = () => JSON.parse(JSON.stringify(store.state.pAdic));
 const restorePAdic = (snapshot) => {
   store.state.pAdic.prime = snapshot.prime;
   store.state.pAdic.measurementModel = snapshot.measurementModel;
+  store.state.pAdic.geometryMode = snapshot.geometryMode;
   store.state.pAdic.qubitCount = snapshot.qubitCount;
   store.state.pAdic.preparedQubits = snapshot.preparedQubits;
   store.state.pAdic.columns = snapshot.columns;
   store.state.pAdic.selectedGate = snapshot.selectedGate;
   store.state.pAdic.selectedStageIndex = snapshot.selectedStageIndex;
+  store.state.pAdic.selectedBasis = snapshot.selectedBasis;
 };
 
 const asProbabilityMap = (distribution) =>

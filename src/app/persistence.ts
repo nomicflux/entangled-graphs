@@ -1,10 +1,13 @@
 import {
+  DEFAULT_PADIC_GEOMETRY_MODE,
   DEFAULT_PADIC_MEASUREMENT_MODEL,
   DEFAULT_PADIC_PRIME,
   PADIC_DEFAULT_QUBIT_COUNT,
   clampPAdicQubitCount,
+  isPAdicGeometryMode,
   isPAdicMeasurementModel,
   isPAdicPrime,
+  type PAdicGeometryMode,
   type PAdicMeasurementModel,
   type PAdicPrime,
 } from "../padic-config";
@@ -22,6 +25,8 @@ export const PADIC_MEASUREMENT_MODEL_STORAGE_KEY = "entangled.padic.measurement-
 export const PADIC_QUBIT_COUNT_STORAGE_KEY = "entangled.padic.qubit-count";
 export const PADIC_PREPARED_STORAGE_KEY = "entangled.padic.prepared.v1";
 export const PADIC_SELECTED_STAGE_STORAGE_KEY = "entangled.padic.selected-stage";
+export const PADIC_GEOMETRY_MODE_STORAGE_KEY = "entangled.padic.geometry-mode";
+export const PADIC_SELECTED_BASIS_STORAGE_KEY = "entangled.padic.selected-basis";
 
 // Keep p-adic workspace opt-in until its UI wiring lands.
 export const PADIC_WORKSPACE_FEATURE_FLAG = true;
@@ -69,6 +74,22 @@ export const parsePAdicMeasurementModel = (value: string | null): PAdicMeasureme
   return DEFAULT_PADIC_MEASUREMENT_MODEL;
 };
 
+export const parsePAdicGeometryMode = (value: string | null): PAdicGeometryMode => {
+  if (value !== null && isPAdicGeometryMode(value)) {
+    return value;
+  }
+  return DEFAULT_PADIC_GEOMETRY_MODE;
+};
+
+export const parsePAdicSelectedBasis = (value: string | null): string | null => {
+  if (value === null) {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return /^[01]+$/.test(trimmed) ? trimmed : null;
+};
+
 export const parsePAdicQubitCount = (value: string | null): number => {
   const parsed = value === null ? NaN : Number.parseInt(value, 10);
   if (!Number.isFinite(parsed)) {
@@ -86,6 +107,12 @@ export const readPAdicMeasurementModelFromStorage = (storage: ReadStorage): PAdi
 export const readPAdicQubitCountFromStorage = (storage: ReadStorage): number =>
   parsePAdicQubitCount(storage.getItem(PADIC_QUBIT_COUNT_STORAGE_KEY));
 
+export const readPAdicGeometryModeFromStorage = (storage: ReadStorage): PAdicGeometryMode =>
+  parsePAdicGeometryMode(storage.getItem(PADIC_GEOMETRY_MODE_STORAGE_KEY));
+
+export const readPAdicSelectedBasisFromStorage = (storage: ReadStorage): string | null =>
+  parsePAdicSelectedBasis(storage.getItem(PADIC_SELECTED_BASIS_STORAGE_KEY));
+
 export const writePAdicPrimeToStorage = (storage: WriteStorage, prime: PAdicPrime): void => {
   storage.setItem(PADIC_PRIME_STORAGE_KEY, String(prime));
 };
@@ -96,4 +123,12 @@ export const writePAdicMeasurementModelToStorage = (storage: WriteStorage, model
 
 export const writePAdicQubitCountToStorage = (storage: WriteStorage, qubitCount: number): void => {
   storage.setItem(PADIC_QUBIT_COUNT_STORAGE_KEY, String(clampPAdicQubitCount(qubitCount)));
+};
+
+export const writePAdicGeometryModeToStorage = (storage: WriteStorage, mode: PAdicGeometryMode): void => {
+  storage.setItem(PADIC_GEOMETRY_MODE_STORAGE_KEY, mode);
+};
+
+export const writePAdicSelectedBasisToStorage = (storage: WriteStorage, basis: string | null): void => {
+  storage.setItem(PADIC_SELECTED_BASIS_STORAGE_KEY, basis ?? "");
 };

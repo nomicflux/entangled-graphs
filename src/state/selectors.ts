@@ -4,6 +4,8 @@ import type {
   GateCell,
   GateId,
   GateInstance,
+  PAdicStageVisualization,
+  PAdicVisualizationNode,
   QubitState,
   Qubit,
   StageView,
@@ -16,6 +18,7 @@ import {
   measurement_distribution_for_ensemble,
   p_adic_prepared_state_from_raw_qubits,
   p_adic_qubit_from_raw,
+  p_adic_stage_visualizations_from_snapshots,
   simulate_padic_columns_ensemble,
   simulate_columns_ensemble,
   stage_entanglement_models_from_snapshots,
@@ -96,6 +99,28 @@ export const pAdicStageEntanglementLinks = computed(() =>
 export const pAdicStageEntanglementModels = computed(() =>
   stage_entanglement_models_from_snapshots(pAdicEnsembleSnapshots.value),
 );
+
+export const pAdicStageVisualizations = computed<ReadonlyArray<PAdicStageVisualization>>(() =>
+  p_adic_stage_visualizations_from_snapshots(
+    pAdicEnsembleSnapshots.value,
+    state.pAdic.prime,
+    state.pAdic.measurementModel,
+    state.pAdic.geometryMode,
+  ),
+);
+
+export const pAdicSelectedStageVisualization = computed<PAdicStageVisualization | null>(() =>
+  pAdicStageVisualizations.value[state.pAdic.selectedStageIndex] ?? null,
+);
+
+export const pAdicSelectedBasisNode = computed<PAdicVisualizationNode | null>(() => {
+  const basis = state.pAdic.selectedBasis;
+  if (basis === null) {
+    return null;
+  }
+
+  return pAdicSelectedStageVisualization.value?.nodes.find((node) => node.basis === basis) ?? null;
+});
 
 export const stageViews = computed<StageView[]>(() => {
   const lastIndex = ensembleSnapshots.value.length - 1;

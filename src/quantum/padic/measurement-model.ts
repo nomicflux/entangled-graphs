@@ -27,6 +27,20 @@ const valuationFromMagnitude = (magnitude: number, p: number): number => {
   return vpInteger(scaled, p) - vpInteger(ROOT_SCALE, p);
 };
 
+export const p_adic_valuation_from_real = (value: number, p: number): number => valuationFromMagnitude(Math.abs(value), p);
+
+export const p_adic_norm_from_real = (value: number, p: number): number => {
+  if (value === 0) {
+    return 0;
+  }
+
+  const valuation = p_adic_valuation_from_real(value, p);
+  if (!Number.isFinite(valuation)) {
+    return 0;
+  }
+  return Math.pow(p, -valuation);
+};
+
 const weightFromAmplitude = (amplitude: { real: number; imag: number }, p: number, model: PAdicMeasurementModel): number => {
   const magnitudeSquared = complex.magnitude_squared(amplitude);
   if (magnitudeSquared <= branchEpsilon) {
@@ -52,6 +66,26 @@ const weightFromAmplitude = (amplitude: { real: number; imag: number }, p: numbe
   const residue = ((Math.round(magnitude * ROOT_SCALE) % p) + p) % p;
   const theta = (2 * Math.PI * residue) / p;
   return 0.25 + (0.75 * Math.abs(Math.cos(theta)));
+};
+
+export const p_adic_raw_weight_totals_for_ensemble = (
+  ensemble: StateEnsemble,
+  p: number,
+  model: PAdicMeasurementModel,
+): number[] => {
+  if (ensemble.length === 0) {
+    return [];
+  }
+
+  const basisCount = ensemble[0]!.state.length;
+  const totals = Array.from({ length: basisCount }, () => 0);
+  for (const branch of ensemble) {
+    for (let index = 0; index < branch.state.length; index += 1) {
+      totals[index]! += branch.weight * weightFromAmplitude(branch.state[index]!, p, model);
+    }
+  }
+
+  return totals;
 };
 
 export const probability_mass_for_model = (state: QubitState, p: number, model: PAdicMeasurementModel): number =>
@@ -180,13 +214,7 @@ export const measurement_distribution_for_padic_ensemble = (
   }
 
   const labels = measurement_distribution(ensemble[0]!.state).map((entry) => entry.basis);
-  const totals = Array.from({ length: labels.length }, () => 0);
-
-  for (const branch of ensemble) {
-    for (let index = 0; index < branch.state.length; index += 1) {
-      totals[index]! += branch.weight * weightFromAmplitude(branch.state[index]!, p, model);
-    }
-  }
+  const totals = p_adic_raw_weight_totals_for_ensemble(ensemble, p, model);
 
   const normalization = totals.reduce((acc, value) => acc + value, 0);
   const normalized = normalization > 0 ? totals.map((value) => value / normalization) : totals;

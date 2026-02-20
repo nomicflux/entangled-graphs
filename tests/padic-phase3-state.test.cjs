@@ -9,11 +9,13 @@ const clonePAdic = () => JSON.parse(JSON.stringify(store.state.pAdic));
 const restorePAdic = (snapshot) => {
   store.state.pAdic.prime = snapshot.prime;
   store.state.pAdic.measurementModel = snapshot.measurementModel;
+  store.state.pAdic.geometryMode = snapshot.geometryMode;
   store.state.pAdic.qubitCount = snapshot.qubitCount;
   store.state.pAdic.preparedQubits = snapshot.preparedQubits;
   store.state.pAdic.columns = snapshot.columns;
   store.state.pAdic.selectedGate = snapshot.selectedGate;
   store.state.pAdic.selectedStageIndex = snapshot.selectedStageIndex;
+  store.state.pAdic.selectedBasis = snapshot.selectedBasis;
 };
 
 test("p-adic qubit count clamps and keeps prepared qubits aligned", () => {
@@ -32,7 +34,7 @@ test("p-adic qubit count clamps and keeps prepared qubits aligned", () => {
   }
 });
 
-test("p-adic prime and measurement model setters reject invalid values", () => {
+test("p-adic prime, model, and geometry setters reject invalid values", () => {
   const original = clonePAdic();
 
   try {
@@ -47,6 +49,12 @@ test("p-adic prime and measurement model setters reject invalid values", () => {
 
     actions.setPAdicMeasurementModel("not-a-model");
     assert.equal(store.state.pAdic.measurementModel, "character_based");
+
+    actions.setPAdicGeometryMode("valuation_ring");
+    assert.equal(store.state.pAdic.geometryMode, "valuation_ring");
+
+    actions.setPAdicGeometryMode("not-a-geometry");
+    assert.equal(store.state.pAdic.geometryMode, "valuation_ring");
   } finally {
     restorePAdic(original);
   }

@@ -51,14 +51,18 @@ import FreeFormWorkbench from "./components/FreeFormWorkbench.vue";
 import PAdicWorkbench from "./components/PAdicWorkbench.vue";
 import AlgorithmsWorkbench from "./components/algorithms/AlgorithmsWorkbench.vue";
 import {
+  readPAdicGeometryModeFromStorage,
   readPAdicMeasurementModelFromStorage,
   readPAdicPrimeFromStorage,
   readPAdicQubitCountFromStorage,
+  readPAdicSelectedBasisFromStorage,
   readAlgorithmFromStorage,
   readWorkspaceFromStorage,
+  writePAdicGeometryModeToStorage,
   writePAdicMeasurementModelToStorage,
   writePAdicPrimeToStorage,
   writePAdicQubitCountToStorage,
+  writePAdicSelectedBasisToStorage,
   writeAlgorithmToStorage,
   writeWorkspaceToStorage,
 } from "./app/persistence";
@@ -69,7 +73,9 @@ const selectedAlgorithm = ref(readAlgorithmFromStorage(window.localStorage));
 resetPAdicWorkspaceState(
   readPAdicPrimeFromStorage(window.localStorage),
   readPAdicMeasurementModelFromStorage(window.localStorage),
+  readPAdicGeometryModeFromStorage(window.localStorage),
   readPAdicQubitCountFromStorage(window.localStorage),
+  readPAdicSelectedBasisFromStorage(window.localStorage),
 );
 
 watch(selectedWorkspace, (value) => {
@@ -98,6 +104,20 @@ watch(
   () => state.pAdic.qubitCount,
   (value) => {
     writePAdicQubitCountToStorage(window.localStorage, value);
+  },
+);
+
+watch(
+  () => state.pAdic.geometryMode,
+  (value) => {
+    writePAdicGeometryModeToStorage(window.localStorage, value);
+  },
+);
+
+watch(
+  () => state.pAdic.selectedBasis,
+  (value) => {
+    writePAdicSelectedBasisToStorage(window.localStorage, value);
   },
 );
 </script>
