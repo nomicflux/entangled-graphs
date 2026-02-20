@@ -91,6 +91,10 @@
   align-items: center;
 }
 
+.geometry-mode-field {
+  min-width: 180px;
+}
+
 .placement-hint {
   margin: 0 0 10px;
   font-size: 0.78rem;

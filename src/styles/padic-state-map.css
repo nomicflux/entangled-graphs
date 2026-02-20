@@ -42,6 +42,20 @@
   stroke-width: 0.35;
 }
 
+.padic-map-residue-axis {
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 0.28;
+  stroke-dasharray: 1.5 1.5;
+}
+
+.padic-map-residue-label {
+  text-anchor: middle;
+  dominant-baseline: middle;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 2.1px;
+  fill: rgba(255, 196, 96, 0.9);
+}
+
 .padic-map-edge {
   fill: none;
   stroke-linecap: round;
@@ -72,4 +86,15 @@
 .padic-map-label.selected {
   fill: rgba(102, 245, 214, 1);
   font-weight: 600;
+}
+
+.padic-map-legend {
+  margin-top: 3px;
+  display: grid;
+  gap: 4px;
+  font-size: 0.75rem;
+}
+
+.padic-map-legend p {
+  margin: 0;
 }

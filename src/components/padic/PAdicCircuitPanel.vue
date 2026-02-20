@@ -18,6 +18,14 @@
       />
 
       <div class="column-controls">
+        <label class="qubit-count-field geometry-mode-field">
+          Geometry
+          <select :value="state.pAdic.geometryMode" @change="handleGeometryMode">
+            <option v-for="mode in PADIC_GEOMETRY_MODES" :key="mode" :value="mode">
+              {{ mode }}
+            </option>
+          </select>
+        </label>
         <button class="column-btn" type="button" @click="appendPAdicColumn">Add column</button>
         <button class="column-btn" type="button" :disabled="state.pAdic.columns.length === 0" @click="removeLastPAdicColumn">
           Remove column
@@ -140,11 +148,13 @@ import {
   pAdicSelectedStage,
   pAdicStageViews,
   removeLastPAdicColumn,
+  setPAdicGeometryMode,
   setPAdicSelectedBasis,
   setPAdicSelectedStage,
   state,
 } from "../../state";
 import type { GateId } from "../../types";
+import { PADIC_GEOMETRY_MODES } from "../../padic-config";
 import CircuitGatePalette from "../circuit/CircuitGatePalette.vue";
 import CircuitStageSnapshots from "../circuit/CircuitStageSnapshots.vue";
 import StageInspector from "../StageInspector.vue";
@@ -180,5 +190,10 @@ const {
 
 const startPaletteDrag = (gate: GateId, event: DragEvent) => {
   startPaletteDragRaw(gate, event, isPaletteDraggable);
+};
+
+const handleGeometryMode = (event: Event) => {
+  const target = event.target as HTMLSelectElement;
+  setPAdicGeometryMode(target.value);
 };
 </script>

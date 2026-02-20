@@ -16,6 +16,26 @@
       <circle cx="50" cy="50" r="43" class="padic-map-ring" />
       <circle cx="50" cy="50" r="30" class="padic-map-ring" />
       <circle cx="50" cy="50" r="16" class="padic-map-ring" />
+      <template v-if="geometryMode === 'valuation_ring'">
+        <line
+          v-for="residue in residueAngles"
+          :key="`residue-axis-${residue.residue}`"
+          class="padic-map-residue-axis"
+          :x1="50"
+          :y1="50"
+          :x2="xFor(Math.cos(residue.angle) * 0.96)"
+          :y2="yFor(Math.sin(residue.angle) * 0.96)"
+        />
+        <text
+          v-for="residue in residueAngles"
+          :key="`residue-label-${residue.residue}`"
+          class="padic-map-residue-label"
+          :x="xFor(Math.cos(residue.angle) * 1.06)"
+          :y="yFor(Math.sin(residue.angle) * 1.06)"
+        >
+          r{{ residue.residue }}
+        </text>
+      </template>
 
       <line
         v-for="edge in transitions"
@@ -55,6 +75,15 @@
         </text>
       </g>
     </svg>
+
+    <div v-if="geometryMode === 'valuation_ring'" class="padic-map-legend">
+      <p>
+        <strong>Valuation-Ring:</strong> radius encodes valuation-derived norm, angle encodes residue class mod p.
+      </p>
+      <p class="muted">
+        Rings shown for the current stage: {{ valuationSummary }}
+      </p>
+    </div>
   </section>
 </template>
 
@@ -86,6 +115,19 @@ const nodes = computed(() => props.stage?.nodes ?? []);
 const transitions = computed(() => props.stage?.transitions ?? []);
 const geometryMode = computed<PAdicGeometryMode>(() => props.stage?.geometryMode ?? "padic_vector");
 const geometryModeLabel = computed(() => (geometryMode.value === "padic_vector" ? "Digit-Vector" : "Valuation-Ring"));
+const residueAngles = computed(() =>
+  Array.from({ length: Math.max(2, props.prime) }, (_, residue) => ({
+    residue,
+    angle: (2 * Math.PI * residue) / Math.max(2, props.prime),
+  })),
+);
+const valuationSummary = computed(() => {
+  const valuations = [...new Set(nodes.value.map((node) => (Number.isFinite(node.valuation) ? node.valuation : Number.POSITIVE_INFINITY)))];
+  return valuations
+    .slice(0, 6)
+    .map((value) => (Number.isFinite(value) ? `v_p=${value}` : "v_p=+∞"))
+    .join(" • ");
+});
 
 const xFor = (x: number): number => 50 + (x * 42);
 const yFor = (y: number): number => 50 - (y * 42);
