@@ -37,6 +37,10 @@
   mix-blend-mode: screen;
 }
 
+.entanglement-multipartite-band {
+  mix-blend-mode: screen;
+}
+
 .column-connectors {
   position: absolute;
   left: 50%;

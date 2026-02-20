@@ -21,6 +21,17 @@
             preserveAspectRatio="none"
             aria-hidden="true"
           >
+            <rect
+              v-for="band in multipartiteBandsForColumn(colIndex)"
+              :key="`tele-band-${colIndex}-${band.id}`"
+              class="entanglement-multipartite-band"
+              :x="band.x"
+              :y="band.y"
+              :width="band.width"
+              :height="band.height"
+              :rx="band.rx"
+              :style="multipartiteBandStyle(band.strength)"
+            />
             <path
               v-for="(link, linkIndex) in entanglementLinksForColumn(colIndex)"
               :key="`${colIndex}-${link.fromRow}-${link.toRow}-${linkIndex}`"
@@ -77,7 +88,7 @@
 </template>
 
 <script setup lang="ts">
-import type { EntanglementLink, GateInstance, QubitRow, StageView } from "../../../types";
+import type { EntanglementLink, GateInstance, QubitRow, StageEntanglementModel, StageView } from "../../../types";
 import type { TeleportationColumn } from "./model-types";
 import StageInspector from "../../StageInspector.vue";
 import CircuitStageSnapshots from "../../circuit/CircuitStageSnapshots.vue";
@@ -88,10 +99,21 @@ type ConnectorSegment = {
   toRow: number;
 };
 
+type MultipartiteBand = {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rx: number;
+  strength: number;
+};
+
 const props = defineProps<{
   columns: TeleportationColumn[];
   rows: readonly QubitRow[];
   stageViews: StageView[];
+  stageEntanglementModels: StageEntanglementModel[];
   selectedStageIndex: number;
   selectedStage: StageView;
   entanglementLinksForColumn: (columnIndex: number) => EntanglementLink[];
@@ -166,4 +188,40 @@ const connectorStyle = (segment: ConnectorSegment): Record<string, string> => {
     height: `${Math.max(0, end - start)}%`,
   };
 };
+
+const multipartiteBandsForColumn = (columnIndex: number): MultipartiteBand[] => {
+  const previous = props.stageEntanglementModels[columnIndex]?.components ?? [];
+  const current = props.stageEntanglementModels[columnIndex + 1]?.components ?? [];
+  const previousStrengthByRows = new Map(
+    previous
+      .filter((component) => component.kind === "multipartite")
+      .map((component) => [component.rows.join("-"), component.strength]),
+  );
+
+  return current
+    .filter((component) => component.kind === "multipartite")
+    .filter((component) => component.strength > 0.06)
+    .filter((component) => component.strength > ((previousStrengthByRows.get(component.rows.join("-")) ?? 0) + 0.015))
+    .map((component) => {
+      const minRow = Math.min(...component.rows);
+      const maxRow = Math.max(...component.rows);
+      const top = ((minRow / props.rows.length) * 100) + 3.5;
+      const bottom = (((maxRow + 1) / props.rows.length) * 100) - 3.5;
+      return {
+        id: component.rows.join("-"),
+        x: 7,
+        y: top,
+        width: 30,
+        height: bottom - top,
+        rx: 4,
+        strength: component.strength,
+      };
+    });
+};
+
+const multipartiteBandStyle = (strength: number): Record<string, string> => ({
+  fill: `rgba(255, 203, 118, ${0.08 + (strength * 0.24)})`,
+  stroke: `rgba(255, 223, 162, ${0.22 + (strength * 0.45)})`,
+  strokeWidth: `${0.25 + (strength * 0.9)}`,
+});
 </script>

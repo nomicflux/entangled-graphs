@@ -13,6 +13,7 @@
       :columns="circuitColumns"
       :rows="rows"
       :stage-views="stageViews"
+      :stage-entanglement-models="stageEntanglementModels"
       :selected-stage-index="selectedStageIndex"
       :selected-stage="selectedStage"
       :entanglement-links-for-column="entanglementLinksForColumn"
@@ -61,6 +62,7 @@ const {
   circuitColumns,
   rows,
   stageViews,
+  stageEntanglementModels,
   selectedStageIndex,
   selectedStage,
   applyPreset,
