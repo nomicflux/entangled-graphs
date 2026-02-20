@@ -1,18 +1,55 @@
 <template>
-  <main class="algorithm-shell">
-    <section class="panel">
-      <div class="panel-header">
-        <h2>Quantum Teleportation</h2>
-        <p>Phase 1 scaffold: algorithm-specific layout and controls will be added in the next phase.</p>
-      </div>
+  <main class="teleportation-panels">
+    <TeleportationSourcePanel
+      :source-bloch="sourceBloch"
+      :source-amplitudes="sourceAmplitudes"
+      :tau-stage-label="tauStageLabel"
+      :tau-branches="tauBranches"
+      @update-source-bloch="setSourceBloch"
+      @apply-preset="applyPreset"
+    />
 
-      <div class="algorithm-notes">
-        <p><strong>Locked Roles</strong></p>
-        <p>`q0` tau/source qubit, `q1` Alice qubit, `q2` Bob qubit</p>
-
-        <p><strong>Target Relation</strong></p>
-        <p>tau = 1/2(|00>|q0> + |01>X|q0> + |10>Z|q0> + |11>XZ|q0>)</p>
-      </div>
-    </section>
+    <TeleportationCircuitPanel
+      :columns="circuitColumns"
+      :rows="rows"
+      :stage-views="stageViews"
+      :selected-stage-index="selectedStageIndex"
+      :selected-stage="selectedStage"
+      :entanglement-links-for-column="entanglementLinksForColumn"
+      :entanglement-arc-path="entanglementArcPath"
+      :entanglement-arc-style="entanglementArcStyle"
+      @select-stage="setSelectedStage"
+    />
   </main>
 </template>
+
+<script setup lang="ts">
+import type { BlochParams } from "../../types";
+import TeleportationCircuitPanel from "./teleportation/TeleportationCircuitPanel.vue";
+import TeleportationSourcePanel from "./teleportation/TeleportationSourcePanel.vue";
+import { useTeleportationModel } from "./teleportation/useTeleportationModel";
+
+const {
+  sourceBloch,
+  sourceAmplitudes,
+  tauStageLabel,
+  tauBranches,
+  circuitColumns,
+  rows,
+  stageViews,
+  selectedStageIndex,
+  selectedStage,
+  applyPreset,
+  entanglementLinksForColumn,
+  entanglementArcPath,
+  entanglementArcStyle,
+} = useTeleportationModel();
+
+const setSourceBloch = (next: BlochParams) => {
+  sourceBloch.value = next;
+};
+
+const setSelectedStage = (index: number) => {
+  selectedStageIndex.value = index;
+};
+</script>

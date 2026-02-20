@@ -14,13 +14,10 @@ Use the existing visualization assets wherever possible and build a clear demons
 2. Teleportation appears inside Algorithms.
 3. Teleportation state persists when switching tabs.
 4. Teleportation circuit is editable only in limited places:
-   - tau prep segment
    - manual correction controls (`X/Z`)
-5. Tau prep supports both:
-   - Bloch sliders
-   - prep gates
+5. Source state `|q0⟩` is provided directly (Bloch sliders), not by prep-gate editing.
 6. Qubit roles are fixed:
-   - `q0`: tau/source qubit
+   - `q0`: source qubit
    - `q1`: Alice entangled qubit
    - `q2`: Bob qubit
 7. Fixed Bell pair step: `H(q1)` then `CNOT(q1 -> q2)`
@@ -52,13 +49,14 @@ Manual review before teleportation-specific math/UI.
 ### Work
 1. Build teleportation page layout using reused panel/circuit assets.
 2. Add fixed three-wire backbone with role labels.
-3. Add tau prep segment on q0 (sliders + prep gates).
-4. Keep core algorithm stages fixed and visually labeled.
-5. Keep entanglement overlays active.
+3. Add direct source-state input on q0 (sliders only).
+4. Add read-only derived tau decomposition panel.
+5. Keep core algorithm stages fixed and visually labeled.
+6. Keep entanglement overlays active.
 
 ### Deliverable
 1. Teleportation page is navigable and visually complete.
-2. Tau prep segment is editable; backbone is fixed.
+2. Source-state input is direct; backbone is fixed.
 3. Entanglement and stage visuals are visible.
 
 ### Stop Point
