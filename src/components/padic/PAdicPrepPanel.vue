@@ -34,7 +34,7 @@
         <div class="qubit-top">
           <div>
             <h3>Q{{ index }}</h3>
-            <p class="muted">Local states over S<sub>p</sub>={{ localStateSetLabel }}</p>
+            <p class="muted">Local states over S<sub>p</sub>={{ localStateSetLabel }} (|S<sub>p</sub>|={{ q.localStates.length }})</p>
           </div>
         </div>
 
@@ -70,12 +70,16 @@
         </div>
 
         <div class="local-weights">
-          <h4>Local weighting (w_raw / w_p)</h4>
+          <h4>Local weighting (w_raw / w_norm)</h4>
           <div v-for="weight in localWeightRows(q.localStates)" :key="`w-${index}-${weight.value}`" class="local-weight-row">
             <span>|{{ weight.value }}></span>
             <span>w_raw={{ formatWeight(weight.rawWeight) }}</span>
-            <span>w_p={{ formatPercent(weight.weight) }}</span>
+            <span>w_norm={{ formatScalar(weight.weight) }}</span>
           </div>
+          <p class="local-weight-summary">
+            balanced target: w_norm = 1/|S<sub>p</sub>| = {{ formatScalar(uniformWeight(q.localStates.length)) }}
+            <span class="local-weight-spread">spread Δ={{ formatScalar(weightSpread(q.localStates)) }}</span>
+          </p>
         </div>
 
         <div class="preset-row">
@@ -84,7 +88,7 @@
           <button type="button" class="preset-btn" @click="applyPAdicPreset(index, 'balanced')">balanced</button>
         </div>
         <p class="preset-note">
-          <code>balanced</code> sets every local state in S<sub>p</sub> to equal raw weight, so w<sub>p</sub> is uniform across the full local set.
+          <code>balanced</code> sets every local state in S<sub>p</sub> to equal raw weight, so normalized weight is uniform across the full local set.
         </p>
       </div>
     </div>
@@ -175,7 +179,32 @@ const localWeightRows = (localStates: ReadonlyArray<{ value: number; amplitude: 
   }));
 };
 
-const formatPercent = (value: number): string => `${(value * 100).toFixed(1)}%`;
+const uniformWeight = (count: number): number => {
+  if (!Number.isFinite(count) || count <= 0) {
+    return 0;
+  }
+  return 1 / count;
+};
+
+const weightSpread = (localStates: ReadonlyArray<{ value: number; amplitude: { raw: string } }>): number => {
+  const rows = localWeightRows(localStates).map((entry) => entry.weight);
+  if (rows.length === 0) {
+    return 0;
+  }
+  const minimum = Math.min(...rows);
+  const maximum = Math.max(...rows);
+  return maximum - minimum;
+};
+
+const formatScalar = (value: number): string => {
+  if (value === 0) {
+    return "0";
+  }
+  if (Math.abs(value) < 1e-6 || Math.abs(value) > 1e4) {
+    return value.toExponential(2);
+  }
+  return value.toFixed(6);
+};
 const formatWeight = (value: number): string => {
   if (!Number.isFinite(value)) {
     return value > 0 ? "+∞" : "-∞";

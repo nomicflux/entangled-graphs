@@ -124,3 +124,35 @@ test("p-adic prep model is local-state based and not a/b amplitude based", () =>
     restorePAdic(original);
   }
 });
+
+test("balanced preset is uniform across the full visible local set for each qubit", () => {
+  const original = clonePAdic();
+
+  try {
+    actions.setPAdicPrime(7);
+    actions.setPAdicQubitCount(3);
+
+    for (let qubitIndex = 0; qubitIndex < store.state.pAdic.preparedQubits.length; qubitIndex += 1) {
+      actions.applyPAdicPreset(qubitIndex, "balanced");
+    }
+
+    for (const qubit of store.state.pAdic.preparedQubits) {
+      assert.equal(qubit.localStates.length, 7);
+      assert.deepEqual(
+        qubit.localStates.map((entry) => entry.amplitude.raw),
+        ["1", "1", "1", "1", "1", "1", "1"],
+      );
+    }
+
+    actions.setPAdicPrime(3);
+    for (const qubit of store.state.pAdic.preparedQubits) {
+      assert.equal(qubit.localStates.length, 3);
+      assert.deepEqual(
+        qubit.localStates.map((entry) => entry.amplitude.raw),
+        ["1", "1", "1"],
+      );
+    }
+  } finally {
+    restorePAdic(original);
+  }
+});
