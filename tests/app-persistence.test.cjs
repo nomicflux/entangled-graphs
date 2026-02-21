@@ -59,6 +59,7 @@ test("p-adic parser helpers clamp and default invalid values", () => {
   assert.equal(persistence.parsePAdicGeometryMode(null), "padic_vector");
 
   assert.equal(persistence.parsePAdicSelectedBasis("0101"), "0101");
+  assert.equal(persistence.parsePAdicSelectedBasis("223"), "223");
   assert.equal(persistence.parsePAdicSelectedBasis(""), null);
   assert.equal(persistence.parsePAdicSelectedBasis("abc"), null);
   assert.equal(persistence.parsePAdicSelectedBasis(null), null);

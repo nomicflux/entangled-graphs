@@ -23,7 +23,17 @@ const seqRandom = (...values) => {
 };
 
 test("p-adic measurement models produce deterministic normalized distributions", () => {
-  const prepared = padic.p_adic_prepared_state_from_raw_qubits([{ a: { raw: "3" }, b: { raw: "1" } }], 2);
+  const prepared = padic.p_adic_prepared_state_from_raw_qubits(
+    [
+      {
+        localStates: [
+          { value: 0, amplitude: { raw: "1" } },
+          { value: 1, amplitude: { raw: "4" } },
+        ],
+      },
+    ],
+    2,
+  );
   const ensemble = [{ weight: 1, state: prepared }];
 
   const valuation = asMap(padic.measurement_distribution_for_padic_ensemble(ensemble, 2, "valuation_weight"));
@@ -40,7 +50,17 @@ test("p-adic measurement models produce deterministic normalized distributions",
 });
 
 test("sampled p-adic run supports replay and resample-from-point", () => {
-  const prepared = padic.p_adic_prepared_state_from_raw_qubits([{ a: { raw: "3" }, b: { raw: "1" } }], 2);
+  const prepared = padic.p_adic_prepared_state_from_raw_qubits(
+    [
+      {
+        localStates: [
+          { value: 0, amplitude: { raw: "3" } },
+          { value: 1, amplitude: { raw: "1" } },
+        ],
+      },
+    ],
+    2,
+  );
   const columns = [
     { gates: [{ id: "m1", gate: "M", wires: [0] }] },
     { gates: [{ id: "x1", gate: "X", wires: [0] }] },

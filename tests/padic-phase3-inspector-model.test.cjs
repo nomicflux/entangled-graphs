@@ -27,8 +27,18 @@ test("p-adic inspector selectors follow selected stage and basis details", () =>
     actions.setPAdicMeasurementModel("valuation_weight");
     actions.setPAdicGeometryMode("padic_vector");
     store.state.pAdic.preparedQubits = [
-      { a: { raw: "1" }, b: { raw: "0" } },
-      { a: { raw: "1" }, b: { raw: "0" } },
+      {
+        localStates: [
+          { value: 0, amplitude: { raw: "1" } },
+          { value: 1, amplitude: { raw: "0" } },
+        ],
+      },
+      {
+        localStates: [
+          { value: 0, amplitude: { raw: "1" } },
+          { value: 1, amplitude: { raw: "0" } },
+        ],
+      },
     ];
     store.state.pAdic.columns = [
       { gates: [{ id: "x", gate: "X", wires: [0] }] },
@@ -45,22 +55,23 @@ test("p-adic inspector selectors follow selected stage and basis details", () =>
 
     actions.setPAdicSelectedStage(1);
     const stage1Node = selectors.pAdicSelectedBasisNode.value;
-    assert.ok(stage1Node);
-    assert.equal(stage1Node.basis, "00");
-    assert.equal(stage1Node.weight, 0);
-    assert.equal(stage1Node.norm, 0);
-    assert.equal(stage1Node.valuation, Number.POSITIVE_INFINITY);
+    assert.equal(stage1Node, null);
+
+    actions.setPAdicSelectedBasis("10");
+    const movedNode = selectors.pAdicSelectedBasisNode.value;
+    assert.ok(movedNode);
+    assert.equal(movedNode.basis, "10");
+    assert.ok(movedNode.weight > 0.99);
 
     actions.setPAdicGeometryMode("valuation_ring");
     const ringNode = selectors.pAdicSelectedBasisNode.value;
     assert.ok(ringNode);
-    assert.equal(ringNode.basis, "00");
-    assert.equal(ringNode.weight, 0);
+    assert.equal(ringNode.basis, "10");
 
     actions.setPAdicMeasurementModel("operator_ensemble");
     const modelNode = selectors.pAdicSelectedBasisNode.value;
     assert.ok(modelNode);
-    assert.equal(modelNode.basis, "00");
+    assert.equal(modelNode.basis, "10");
   } finally {
     restorePAdic(original);
   }

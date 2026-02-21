@@ -25,11 +25,24 @@ test("switching p-adic geometry mode changes coordinates but preserves stage wei
   const original = clonePAdic();
 
   try {
+    actions.setPAdicPrime(3);
     actions.setPAdicQubitCount(2);
     actions.setPAdicMeasurementModel("valuation_weight");
     store.state.pAdic.preparedQubits = [
-      { a: { raw: "1" }, b: { raw: "1" } },
-      { a: { raw: "1" }, b: { raw: "0" } },
+      {
+        localStates: [
+          { value: 0, amplitude: { raw: "1" } },
+          { value: 1, amplitude: { raw: "1" } },
+          { value: 2, amplitude: { raw: "1" } },
+        ],
+      },
+      {
+        localStates: [
+          { value: 0, amplitude: { raw: "1" } },
+          { value: 1, amplitude: { raw: "1" } },
+          { value: 2, amplitude: { raw: "1" } },
+        ],
+      },
     ];
     store.state.pAdic.columns = [
       { gates: [{ id: "cx", gate: "CNOT", wires: [0, 1] }] },

@@ -30,8 +30,18 @@ test("p-adic stage selectors expose model-weighted stages and entanglement overl
     actions.setPAdicMeasurementModel("operator_ensemble");
 
     store.state.pAdic.preparedQubits = [
-      { a: { raw: "1" }, b: { raw: "1" } },
-      { a: { raw: "1" }, b: { raw: "0" } },
+      {
+        localStates: [
+          { value: 0, amplitude: { raw: "1" } },
+          { value: 1, amplitude: { raw: "1" } },
+        ],
+      },
+      {
+        localStates: [
+          { value: 0, amplitude: { raw: "1" } },
+          { value: 1, amplitude: { raw: "0" } },
+        ],
+      },
     ];
     store.state.pAdic.columns = [{ gates: [{ id: "cx-bell", gate: "CNOT", wires: [0, 1] }] }];
 

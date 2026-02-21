@@ -33,10 +33,22 @@ const approx = (left, right, tolerance = 1e-9) => Math.abs(left - right) <= tole
 test("p-adic stage visualization payload is deterministic and cache-keyed by mode/model/prime", () => {
   const prepared = quantum.p_adic_prepared_state_from_raw_qubits(
     [
-      { a: { raw: "1" }, b: { raw: "1" } },
-      { a: { raw: "1" }, b: { raw: "0" } },
+      {
+        localStates: [
+          { value: 0, amplitude: { raw: "1" } },
+          { value: 1, amplitude: { raw: "1" } },
+          { value: 2, amplitude: { raw: "1" } },
+        ],
+      },
+      {
+        localStates: [
+          { value: 0, amplitude: { raw: "1" } },
+          { value: 1, amplitude: { raw: "2" } },
+          { value: 2, amplitude: { raw: "3" } },
+        ],
+      },
     ],
-    2,
+    3,
   );
 
   const columns = [
@@ -44,33 +56,56 @@ test("p-adic stage visualization payload is deterministic and cache-keyed by mod
     { gates: [{ id: "m", gate: "M", wires: [0] }] },
   ];
 
-  const snapshots = quantum.simulate_padic_columns_ensemble(prepared, columns, resolver, 2, 2, "valuation_weight");
+  const snapshots = quantum.simulate_padic_columns_ensemble(prepared, columns, resolver, 2, 3, "valuation_weight");
 
-  const vectorA = quantum.p_adic_stage_visualizations_from_snapshots(snapshots, 2, "valuation_weight", "padic_vector");
-  const vectorB = quantum.p_adic_stage_visualizations_from_snapshots(snapshots, 2, "valuation_weight", "padic_vector");
+  const vectorA = quantum.p_adic_stage_visualizations_from_snapshots(snapshots, 3, "valuation_weight", "padic_vector");
+  const vectorB = quantum.p_adic_stage_visualizations_from_snapshots(snapshots, 3, "valuation_weight", "padic_vector");
   assert.equal(vectorA, vectorB);
   assert.equal(vectorA[1], vectorB[1]);
 
-  const ring = quantum.p_adic_stage_visualizations_from_snapshots(snapshots, 2, "valuation_weight", "valuation_ring");
+  const ring = quantum.p_adic_stage_visualizations_from_snapshots(snapshots, 3, "valuation_weight", "valuation_ring");
   assert.notEqual(vectorA, ring);
 
-  const vectorNode = vectorA[1].nodes.find((node) => node.basis === "01");
-  const ringNode = ring[1].nodes.find((node) => node.basis === "01");
-  assert.ok(vectorNode);
-  assert.ok(ringNode);
-  assert.ok(!approx(vectorNode.point.x, ringNode.point.x) || !approx(vectorNode.point.y, ringNode.point.y));
+  const ringByBasis = new Map(ring[1].nodes.map((node) => [node.basis, node]));
+  let geometryChanged = false;
+  for (const vectorNode of vectorA[1].nodes) {
+    const ringNode = ringByBasis.get(vectorNode.basis);
+    assert.ok(ringNode);
+    if (!approx(vectorNode.point.x, ringNode.point.x) || !approx(vectorNode.point.y, ringNode.point.y)) {
+      geometryChanged = true;
+    }
+  }
+  assert.equal(geometryChanged, true);
 
-  const primeThree = quantum.p_adic_stage_visualizations_from_snapshots(snapshots, 3, "valuation_weight", "padic_vector");
-  assert.notEqual(vectorA, primeThree);
-  assert.equal(primeThree[1].nodes[2].residue, 2);
-  assert.equal(vectorA[1].nodes[2].residue, 0);
+  const primeFive = quantum.p_adic_stage_visualizations_from_snapshots(snapshots, 5, "valuation_weight", "padic_vector");
+  assert.notEqual(vectorA, primeFive);
+  const primeFiveByBasis = new Map(primeFive[1].nodes.map((node) => [node.basis, node]));
+  let primeGeometryChanged = false;
+  for (const vectorNode of vectorA[1].nodes) {
+    const primeNode = primeFiveByBasis.get(vectorNode.basis);
+    assert.ok(primeNode);
+    if (!approx(primeNode.point.x, vectorNode.point.x) || !approx(primeNode.point.y, vectorNode.point.y)) {
+      primeGeometryChanged = true;
+    }
+  }
+  assert.equal(primeGeometryChanged, true);
 });
 
 test("p-adic visualization node metrics are normalized and valuation-consistent", () => {
   const prepared = quantum.p_adic_prepared_state_from_raw_qubits(
     [
-      { a: { raw: "3" }, b: { raw: "1" } },
-      { a: { raw: "1" }, b: { raw: "1" } },
+      {
+        localStates: [
+          { value: 0, amplitude: { raw: "3" } },
+          { value: 1, amplitude: { raw: "1" } },
+        ],
+      },
+      {
+        localStates: [
+          { value: 0, amplitude: { raw: "1" } },
+          { value: 1, amplitude: { raw: "1" } },
+        ],
+      },
     ],
     2,
   );
@@ -105,15 +140,18 @@ test("p-adic selected basis is qubit-width validated and selector-backed", () =>
 
   try {
     actions.setPAdicQubitCount(2);
+    actions.setPAdicPrime(3);
+    actions.applyPAdicPreset(0, "balanced");
+    actions.applyPAdicPreset(1, "balanced");
     actions.setPAdicSelectedStage(0);
-    actions.setPAdicSelectedBasis("01");
+    actions.setPAdicSelectedBasis("22");
 
-    assert.equal(store.state.pAdic.selectedBasis, "01");
+    assert.equal(store.state.pAdic.selectedBasis, "22");
     assert.ok(selectors.pAdicSelectedBasisNode.value);
-    assert.equal(selectors.pAdicSelectedBasisNode.value.basis, "01");
+    assert.equal(selectors.pAdicSelectedBasisNode.value.basis, "22");
 
-    actions.setPAdicSelectedBasis("1");
-    assert.equal(store.state.pAdic.selectedBasis, "01");
+    actions.setPAdicSelectedBasis("29");
+    assert.equal(store.state.pAdic.selectedBasis, "22");
 
     actions.setPAdicQubitCount(1);
     assert.equal(store.state.pAdic.selectedBasis, null);
