@@ -3,6 +3,18 @@
 ## Goal
 Make p-adic mode visually express p-adic mathematics directly in the UI, not just circuit parity with different labels.
 
+## Progress Checkpoint
+Completed:
+1. Phase 1 (Mathematical UI contract)
+2. Phase 2 (Visualization data model + deterministic selector payload)
+3. Phase 3 (p-adic value inspector panel)
+4. Phase 4 (digit-vector state map rendering)
+5. Phase 5 (valuation-ring mode controls/visual semantics)
+6. Phase 6 (stage transition animation + replay control)
+
+Next:
+1. Phase 7 hardening/release gate completion.
+
 ## Non-Negotiable Product Constraint
 The p-adic workspace must visibly expose p-adic values and p-adic structure at every stage:
 1. Show p-adic quantities (`v_p`, `|x|_p`, residue/base-`p` digits, model weight `w_p`) as first-class UI data.
@@ -136,4 +148,3 @@ The p-adic workspace must visibly expose p-adic values and p-adic structure at e
 3. Switching geometry mode changes coordinates only, not computed stage distributions.
 4. Measurement branch replay changes branch paths while preserving pre-replay history.
 5. p-adic view is visually distinguishable from normal free-form at first glance.
-

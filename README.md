@@ -36,6 +36,11 @@ The app has three top-level tabs:
   - Prime selector is limited to `p in {2, 3, 5, 7}`.
 - **Circuit (middle)**
   - Same interaction model as free-form (drag single-qubit, staged multi-wire, in-circuit `M` row lock).
+  - Includes a `p-adic State Map` tied to selected stage snapshots.
+  - Geometry modes:
+    - `padic_vector` (digit-vector/fractal-style embedding from base-`p` digits)
+    - `valuation_ring` (radius from valuation-derived norm, angle from residue class)
+  - Includes transition replay animation between stage selections.
   - Gate palette only shows p-adic-supported gates:
     - 1 qubit: `I`, `X`, `Z`, `M`
     - 2 qubits: plus `CNOT`, `SWAP`
@@ -47,6 +52,8 @@ The app has three top-level tabs:
     - `character_based`
     - `operator_ensemble`
   - Results are shown as normalized model weights `w_p` and support replay/resample from in-circuit measurement points.
+  - Includes a `p-adic Value Inspector` table with per-basis:
+    - `w_raw`, `w_p`, `v_p`, `|.|_p`, residue class, base-`p` digits.
 
 3. **Algorithms**
 - Contains guided algorithm views.
@@ -73,6 +80,8 @@ The app has three top-level tabs:
 5. Choose a measurement model and click **Measure**.
 6. Compare:
 - Model-weighted stage snapshots and Stage Inspector (`w_p` labels)
+- p-adic State Map geometry + transition flow
+- p-adic Value Inspector per-basis metrics
 - Final output distribution (`w_p`)
 - In-circuit outcome path and resample points
 
@@ -115,6 +124,7 @@ The app has three top-level tabs:
 - Entanglement effects propagate to other rows through the state.
 - You can replay from any in-circuit measurement point in the Measurement panel.
 - In p-adic mode, branch and final distributions are interpreted as normalized model weights (`w_p`) under the selected measurement model.
+- In p-adic mode, stage-map coordinates come from selected geometry mode and do not change computed `w_p`.
 
 ## Entanglement Visualization
 
@@ -148,7 +158,8 @@ In the Deutsch view, overlays and stage snapshots update with oracle/input chang
 ## p-adic Known Limitations
 
 - p-adic amplitudes are currently normalized and evolved through the existing complex-number operator pipeline, then re-weighted by the selected p-adic measurement model.
-- Bloch visualization is reused as a generic state projection; it is not a full p-adic geometric analogue.
+- Stage map geometry is a deterministic embedding proxy (`padic_vector` / `valuation_ring`), not a full p-adic manifold reconstruction.
+- Bloch visualization is retained as a secondary derived projection; p-adic map + inspector are the primary views.
 - p-adic v1 gate set is intentionally limited to built-ins listed above.
 - No p-adic custom gate builder in v1.
 - Prime choices are restricted to `{2, 3, 5, 7}`.
