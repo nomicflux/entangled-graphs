@@ -87,7 +87,7 @@ export const parsePAdicSelectedBasis = (value: string | null): string | null => 
   }
 
   const trimmed = value.trim();
-  return /^[01]+$/.test(trimmed) ? trimmed : null;
+  return /^[0-9]+$/.test(trimmed) ? trimmed : null;
 };
 
 export const parsePAdicQubitCount = (value: string | null): number => {

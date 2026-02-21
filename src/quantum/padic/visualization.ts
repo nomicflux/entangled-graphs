@@ -1,45 +1,28 @@
 import type {
-  BasisLabel,
   PAdicStageVisualization,
   PAdicVisualizationNode,
   PAdicVisualizationPoint,
   PAdicVisualizationTransition,
-  StateEnsemble,
 } from "../../types";
 import type { PAdicGeometryMode, PAdicMeasurementModel } from "../../padic-config";
-import { measurement_distribution } from "../measurement";
-import {
-  p_adic_norm_from_real,
-  p_adic_raw_weight_totals_for_ensemble,
-  p_adic_valuation_from_real,
-} from "./measurement-model";
+import { p_adic_norm_from_real, p_adic_raw_weight_totals_for_ensemble, p_adic_valuation_from_real } from "./measurement-model";
+import type { PAdicStateEnsemble } from "./types";
 
 const EPSILON = 1e-12;
 
 export type { PAdicStageVisualization, PAdicVisualizationNode, PAdicVisualizationTransition } from "../../types";
 
-const stageVisualizationCache = new WeakMap<ReadonlyArray<StateEnsemble>, Map<string, ReadonlyArray<PAdicStageVisualization>>>();
-const stageNodeCache = new WeakMap<StateEnsemble, Map<string, ReadonlyArray<PAdicVisualizationNode>>>();
+const stageVisualizationCache = new WeakMap<ReadonlyArray<PAdicStateEnsemble>, Map<string, ReadonlyArray<PAdicStageVisualization>>>();
+const stageNodeCache = new WeakMap<PAdicStateEnsemble, Map<string, ReadonlyArray<PAdicVisualizationNode>>>();
 
-const basisLabelsForEnsemble = (ensemble: StateEnsemble): BasisLabel[] => {
-  if (ensemble.length === 0) {
-    return [];
-  }
+const sortedBasisWeights = (ensemble: PAdicStateEnsemble, p: number, model: PAdicMeasurementModel): Array<[string, number]> =>
+  [...p_adic_raw_weight_totals_for_ensemble(ensemble, p, model).entries()].sort((left, right) => left[0].localeCompare(right[0]));
 
-  return measurement_distribution(ensemble[0]!.state).map((entry) => entry.basis);
-};
-
-const basePDigits = (index: number, p: number, depth: number): number[] => {
-  const digits: number[] = [];
-  let value = Math.max(0, Math.trunc(index));
-
-  for (let offset = 0; offset < depth; offset += 1) {
-    digits.push(value % p);
-    value = Math.floor(value / p);
-  }
-
-  return digits;
-};
+const basisDigits = (basis: string): number[] =>
+  [...basis].map((char) => {
+    const parsed = Number.parseInt(char, 10);
+    return Number.isFinite(parsed) ? parsed : 0;
+  });
 
 const normalizePoints = (points: ReadonlyArray<PAdicVisualizationPoint>): PAdicVisualizationPoint[] => {
   if (points.length === 0) {
@@ -67,14 +50,6 @@ const normalizePoints = (points: ReadonlyArray<PAdicVisualizationPoint>): PAdicV
   }));
 };
 
-const digitDepthForBasisCount = (basisCount: number, p: number): number => {
-  if (basisCount <= 1) {
-    return 1;
-  }
-
-  return Math.max(1, Math.ceil(Math.log(basisCount) / Math.log(p)));
-};
-
 const pointsForDigits = (digitRows: ReadonlyArray<ReadonlyArray<number>>, p: number): PAdicVisualizationPoint[] => {
   const rawPoints = digitRows.map((digits) => {
     let x = 0;
@@ -96,7 +71,7 @@ const pointsForDigits = (digitRows: ReadonlyArray<ReadonlyArray<number>>, p: num
 
 const pointsForValuationRing = (
   rawWeights: ReadonlyArray<number>,
-  basisCount: number,
+  residues: ReadonlyArray<number>,
   p: number,
 ): PAdicVisualizationPoint[] => {
   const norms = rawWeights.map((weight) => p_adic_norm_from_real(weight, p));
@@ -106,7 +81,8 @@ const pointsForValuationRing = (
   const rawPoints = norms.map((norm, index) => {
     const radial = norm / denominator;
     const radius = radial <= EPSILON ? 0 : (0.08 + (0.92 * radial));
-    const angle = basisCount <= 0 ? 0 : (2 * Math.PI * index) / Math.max(1, basisCount);
+    const residue = residues[index] ?? 0;
+    const angle = (2 * Math.PI * residue) / Math.max(2, p);
     return {
       x: radius * Math.cos(angle),
       y: radius * Math.sin(angle),
@@ -122,7 +98,7 @@ const nodeCacheKey = (p: number, model: PAdicMeasurementModel, geometryMode: PAd
   `${p}|${model}|${geometryMode}`;
 
 const buildStageNodes = (
-  ensemble: StateEnsemble,
+  ensemble: PAdicStateEnsemble,
   p: number,
   model: PAdicMeasurementModel,
   geometryMode: PAdicGeometryMode,
@@ -138,20 +114,22 @@ const buildStageNodes = (
     return cached;
   }
 
-  const labels = basisLabelsForEnsemble(ensemble);
-  const basisCount = labels.length;
-  const rawWeights = p_adic_raw_weight_totals_for_ensemble(ensemble, p, model);
+  const basisWeights = sortedBasisWeights(ensemble, p, model);
+  const labels = basisWeights.map(([basis]) => basis);
+  const rawWeights = basisWeights.map(([, weight]) => weight);
   const normalization = rawWeights.reduce((acc, value) => acc + value, 0);
-  const digitDepth = digitDepthForBasisCount(Math.max(1, basisCount), p);
-  const digitsByIndex = Array.from({ length: basisCount }, (_, index) => basePDigits(index, p, digitDepth));
+  const digitsByBasis = labels.map((basis) => basisDigits(basis));
+  const residues = digitsByBasis.map((digits) => digits[digits.length - 1] ?? 0);
   const points =
     geometryMode === "padic_vector"
-      ? pointsForDigits(digitsByIndex, p)
-      : pointsForValuationRing(rawWeights, basisCount, p);
+      ? pointsForDigits(digitsByBasis, p)
+      : pointsForValuationRing(rawWeights, residues, p);
 
   const nodes = labels.map((basis, index) => {
     const rawWeight = rawWeights[index] ?? 0;
     const point = points[index] ?? emptyPoint();
+    const digits = digitsByBasis[index] ?? [];
+    const residue = residues[index] ?? 0;
 
     return {
       basis,
@@ -160,8 +138,8 @@ const buildStageNodes = (
       weight: normalization > EPSILON ? rawWeight / normalization : 0,
       valuation: p_adic_valuation_from_real(rawWeight, p),
       norm: p_adic_norm_from_real(rawWeight, p),
-      residue: ((index % p) + p) % p,
-      digits: digitsByIndex[index] ?? [],
+      residue,
+      digits,
       point,
     };
   });
@@ -204,7 +182,7 @@ const transitionsForStages = (
 };
 
 export const p_adic_stage_visualizations_from_snapshots = (
-  snapshots: ReadonlyArray<StateEnsemble>,
+  snapshots: ReadonlyArray<PAdicStateEnsemble>,
   p: number,
   model: PAdicMeasurementModel,
   geometryMode: PAdicGeometryMode,

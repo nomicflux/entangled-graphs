@@ -81,7 +81,7 @@
 import { computed, onUnmounted, ref, watch } from "vue";
 import { measurement_distribution_for_padic_ensemble, sample_padic_circuit_run } from "../../quantum";
 import type { BasisLabel, BasisProbability, GateId } from "../../types";
-import type { CircuitMeasurementOutcome } from "../../quantum";
+import type { PAdicCircuitMeasurementOutcome } from "../../quantum";
 import { PADIC_MEASUREMENT_MODELS } from "../../padic-config";
 import {
   pAdicFinalDistribution,
@@ -101,7 +101,7 @@ const latestBasis = ref<BasisLabel | null>(null);
 const history = ref<Array<{ basis: BasisLabel; path: string }>>([]);
 const highlightBasis = ref<BasisLabel | null>(null);
 const sampledDistribution = ref<BasisProbability[] | null>(null);
-const latestRunOutcomes = ref<CircuitMeasurementOutcome[]>([]);
+const latestRunOutcomes = ref<PAdicCircuitMeasurementOutcome[]>([]);
 const maxHistory = 6;
 let highlightTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -125,9 +125,9 @@ const latestProbability = computed(() => {
 
 const formatPercent = (value: number): string => `${(value * 100).toFixed(1)}%`;
 const probabilityForBasis = (basis: BasisLabel): number => probabilityByBasis.value.get(basis) ?? 0;
-const formatPath = (outcomes: ReadonlyArray<{ wire: number; value: 0 | 1 }>): string =>
+const formatPath = (outcomes: ReadonlyArray<{ wire: number; value: number }>): string =>
   outcomes.map((outcome) => `M(q${outcome.wire})=${outcome.value}`).join("  ");
-const formatMeasurementPoint = (entry: CircuitMeasurementOutcome): string => `t${entry.column} • M(q${entry.wire})=${entry.value}`;
+const formatMeasurementPoint = (entry: PAdicCircuitMeasurementOutcome): string => `t${entry.column} • M(q${entry.wire})=${entry.value}`;
 const resolveGate = (gate: GateId) => resolveOperator(gate, []);
 
 const applySampledRun = (sampled: ReturnType<typeof sample_padic_circuit_run>): void => {

@@ -1,5 +1,5 @@
 import type { GateId, GateInstance } from "../types";
-import { emptyColumn, nextGateInstanceId, state } from "./store";
+import { defaultPAdicPreparedQubitForPrime, emptyColumn, nextGateInstanceId, state } from "./store";
 import {
   DEFAULT_PADIC_GEOMETRY_MODE,
   PADIC_DEFAULT_QUBIT_COUNT,
@@ -17,15 +17,21 @@ import { availablePAdicBuiltinGatesForQubitCount, operatorArityForGate } from ".
 import { enforceDisjoint, gateTouchesRow, gateWires, removeOverlaps } from "./gate-instance-utils";
 import { enforceMeasurementLockRulesForColumns } from "./action-helpers";
 
-const defaultPAdicPreparedQubit = () => ({
-  a: { raw: "1" },
-  b: { raw: "0" },
-});
-
 const availablePAdicGates = (qubitCount: number): GateId[] => availablePAdicBuiltinGatesForQubitCount(qubitCount);
 
 const enforcePAdicMeasurementLockRules = (): void => {
   enforceMeasurementLockRulesForColumns(state.pAdic.columns);
+};
+
+const isValidPAdicBasis = (basis: string, qubitCount: number, prime: number): boolean => {
+  if (basis.length !== qubitCount || basis.length === 0) {
+    return false;
+  }
+
+  return [...basis].every((char) => {
+    const digit = Number.parseInt(char, 10);
+    return Number.isInteger(digit) && digit >= 0 && digit < prime;
+  });
 };
 
 const normalizePAdicSelectedBasis = (): void => {
@@ -34,9 +40,32 @@ const normalizePAdicSelectedBasis = (): void => {
     return;
   }
 
-  if (!/^[01]+$/.test(basis) || basis.length !== state.pAdic.qubitCount) {
+  if (!isValidPAdicBasis(basis, state.pAdic.qubitCount, state.pAdic.prime)) {
     state.pAdic.selectedBasis = null;
   }
+};
+
+const normalizePreparedQubitForPrime = (
+  qubit: (typeof state.pAdic.preparedQubits)[number],
+  prime: number,
+): (typeof state.pAdic.preparedQubits)[number] => {
+  const byValue = new Map<number, string>();
+  for (const local of qubit.localStates) {
+    byValue.set(local.value, local.amplitude.raw);
+  }
+
+  return {
+    localStates: Array.from({ length: prime }, (_, value) => ({
+      value,
+      amplitude: {
+        raw: byValue.get(value) ?? "0",
+      },
+    })),
+  };
+};
+
+const normalizePreparedQubitsForPrime = (prime: number): void => {
+  state.pAdic.preparedQubits = state.pAdic.preparedQubits.map((entry) => normalizePreparedQubitForPrime(entry, prime));
 };
 
 const sanitizePAdicColumnsForQubitCount = (count: number): void => {
@@ -113,7 +142,10 @@ export const setPAdicPrime = (prime: number): void => {
   if (!isPAdicPrime(prime)) {
     return;
   }
+
   state.pAdic.prime = prime;
+  normalizePreparedQubitsForPrime(prime);
+  normalizePAdicSelectedBasis();
 };
 
 export const setPAdicMeasurementModel = (model: string): void => {
@@ -135,7 +167,7 @@ export const setPAdicQubitCount = (nextCount: number): void => {
   state.pAdic.qubitCount = bounded;
 
   while (state.pAdic.preparedQubits.length < bounded) {
-    state.pAdic.preparedQubits.push(defaultPAdicPreparedQubit());
+    state.pAdic.preparedQubits.push(defaultPAdicPreparedQubitForPrime(state.pAdic.prime));
   }
 
   while (state.pAdic.preparedQubits.length > bounded) {
@@ -183,34 +215,70 @@ export const removePAdicQubit = (): void => {
   setPAdicQubitCount(state.pAdic.qubitCount - 1);
 };
 
-export const setPAdicAmplitude = (qubitIndex: number, amplitudeKey: "a" | "b", raw: string): void => {
+export const setPAdicLocalAmplitude = (qubitIndex: number, localValue: number, raw: string): void => {
   const target = state.pAdic.preparedQubits[qubitIndex];
   if (!target) {
     return;
   }
-  target[amplitudeKey].raw = raw;
+
+  const local = target.localStates.find((entry) => entry.value === localValue);
+  if (!local) {
+    return;
+  }
+
+  local.amplitude.raw = raw;
+};
+
+const pAdicRawFromValuation = (unit: number, valuation: number): string => {
+  const normalizedUnit = Number.isFinite(unit) ? Math.trunc(unit) : 1;
+  const normalizedValuation = Number.isFinite(valuation) ? Math.trunc(valuation) : 0;
+
+  if (normalizedValuation === 0) {
+    return String(normalizedUnit);
+  }
+
+  if (normalizedUnit === 1) {
+    return normalizedValuation === 1 ? "p" : `p^${normalizedValuation}`;
+  }
+  if (normalizedUnit === -1) {
+    return normalizedValuation === 1 ? "-p" : `-p^${normalizedValuation}`;
+  }
+
+  return normalizedValuation === 1 ? `${normalizedUnit}p` : `${normalizedUnit}p^${normalizedValuation}`;
+};
+
+export const setPAdicLocalAmplitudeByValuation = (
+  qubitIndex: number,
+  localValue: number,
+  valuation: number,
+  unit: number = 1,
+): void => {
+  setPAdicLocalAmplitude(qubitIndex, localValue, pAdicRawFromValuation(unit, valuation));
+};
+
+const applyPAdicLocalPreset = (qubitIndex: number, nextRawForValue: (value: number) => string): void => {
+  const target = state.pAdic.preparedQubits[qubitIndex];
+  if (!target) {
+    return;
+  }
+
+  for (const local of target.localStates) {
+    local.amplitude.raw = nextRawForValue(local.value);
+  }
 };
 
 export const applyPAdicPreset = (qubitIndex: number, preset: "zero" | "one" | "balanced"): void => {
-  const target = state.pAdic.preparedQubits[qubitIndex];
-  if (!target) {
-    return;
-  }
-
   if (preset === "zero") {
-    target.a.raw = "1";
-    target.b.raw = "0";
+    applyPAdicLocalPreset(qubitIndex, (value) => (value === 0 ? "1" : "0"));
     return;
   }
 
   if (preset === "one") {
-    target.a.raw = "0";
-    target.b.raw = "1";
+    applyPAdicLocalPreset(qubitIndex, (value) => (value === 1 ? "1" : "0"));
     return;
   }
 
-  target.a.raw = "1";
-  target.b.raw = "1";
+  applyPAdicLocalPreset(qubitIndex, () => "1");
 };
 
 export const appendPAdicColumn = (): void => {
@@ -243,7 +311,7 @@ export const setPAdicSelectedBasis = (basis: string | null): void => {
   }
 
   const trimmed = basis.trim();
-  if (!/^[01]+$/.test(trimmed) || trimmed.length !== state.pAdic.qubitCount) {
+  if (!isValidPAdicBasis(trimmed, state.pAdic.qubitCount, state.pAdic.prime)) {
     return;
   }
 
@@ -326,5 +394,6 @@ export const resetPAdicWorkspaceState = (
   state.pAdic.selectedStageIndex = 0;
   state.pAdic.selectedBasis = null;
   setPAdicQubitCount(qubitCount);
+  normalizePreparedQubitsForPrime(prime);
   setPAdicSelectedBasis(selectedBasis);
 };

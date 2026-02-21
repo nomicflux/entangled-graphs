@@ -16,9 +16,13 @@ export type PAdicAmplitudeInput = {
   raw: string;
 };
 
+export type PAdicPreparedLocalState = {
+  value: number;
+  amplitude: PAdicAmplitudeInput;
+};
+
 export type PAdicPreparedQubit = {
-  a: PAdicAmplitudeInput;
-  b: PAdicAmplitudeInput;
+  localStates: PAdicPreparedLocalState[];
 };
 
 export type PAdicWorkspaceState = {
@@ -50,9 +54,11 @@ export const nextGateInstanceId = (): string => {
 };
 
 export const emptyColumn = (): CircuitColumn => ({ gates: [] });
-const defaultPAdicPreparedQubit = (): PAdicPreparedQubit => ({
-  a: { raw: "1" },
-  b: { raw: "0" },
+export const defaultPAdicPreparedQubitForPrime = (prime: number): PAdicPreparedQubit => ({
+  localStates: Array.from({ length: Math.max(2, Math.trunc(prime)) }, (_, value) => ({
+    value,
+    amplitude: { raw: value === 0 ? "1" : "0" },
+  })),
 });
 
 export const state = reactive<CircuitState>({
@@ -81,7 +87,7 @@ export const state = reactive<CircuitState>({
     measurementModel: DEFAULT_PADIC_MEASUREMENT_MODEL,
     geometryMode: DEFAULT_PADIC_GEOMETRY_MODE,
     qubitCount: PADIC_DEFAULT_QUBIT_COUNT,
-    preparedQubits: Array.from({ length: PADIC_DEFAULT_QUBIT_COUNT }, () => defaultPAdicPreparedQubit()),
+    preparedQubits: Array.from({ length: PADIC_DEFAULT_QUBIT_COUNT }, () => defaultPAdicPreparedQubitForPrime(DEFAULT_PADIC_PRIME)),
     columns: [emptyColumn(), emptyColumn(), emptyColumn(), emptyColumn()],
     selectedGate: "X",
     selectedStageIndex: 0,

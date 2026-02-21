@@ -1,14 +1,44 @@
-import type { BasisProbability, GateId, Operator, QubitState } from "../../types";
-import type { CircuitMeasurementOutcome } from "../simulators";
+import type { BasisProbability, GateId, Operator } from "../../types";
 
 export type PAdicGateResolver = (gate: GateId) => Operator | null;
 export type RandomSource = () => number;
 
+export type PAdicRawPreparedLocalState = {
+  value: number;
+  amplitude: { raw: string };
+};
+
+export type PAdicRawPreparedQubit = {
+  localStates: ReadonlyArray<PAdicRawPreparedLocalState>;
+};
+
+export type PAdicState = Map<string, number>;
+
+export type PAdicWeightedStateBranch = {
+  weight: number;
+  state: PAdicState;
+};
+
+export type PAdicStateEnsemble = PAdicWeightedStateBranch[];
+
+export type PAdicCircuitMeasurementOutcome = {
+  column: number;
+  gateId: string;
+  wire: number;
+  value: number;
+  probability: number;
+};
+
+export type PAdicSamplingReplayOptions = {
+  priorOutcomes?: ReadonlyArray<Pick<PAdicCircuitMeasurementOutcome, "gateId" | "value">>;
+  resampleFromGateId?: string;
+};
+
 export type PAdicSampledCircuitRun = {
-  finalState: QubitState;
+  finalState: PAdicState;
   finalSample: {
     basis: BasisProbability["basis"];
     probability: number;
   };
-  outcomes: ReadonlyArray<CircuitMeasurementOutcome>;
+  outcomes: ReadonlyArray<PAdicCircuitMeasurementOutcome>;
 };

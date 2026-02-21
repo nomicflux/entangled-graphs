@@ -1,8 +1,7 @@
-import type { BasisProbability, QubitState, StateEnsemble, WeightedStateBranch } from "../../types";
+import type { BasisProbability } from "../../types";
 import type { PAdicMeasurementModel } from "../../padic-config";
-import * as complex from "../../complex";
-import { measurement_distribution } from "../measurement";
 import { branchEpsilon, ROOT_SCALE } from "./constants";
+import type { PAdicState, PAdicStateEnsemble } from "./types";
 
 const vpInteger = (value: number, p: number): number => {
   if (value === 0) {
@@ -41,17 +40,15 @@ export const p_adic_norm_from_real = (value: number, p: number): number => {
   return Math.pow(p, -valuation);
 };
 
-const weightFromAmplitude = (amplitude: { real: number; imag: number }, p: number, model: PAdicMeasurementModel): number => {
-  const magnitudeSquared = complex.magnitude_squared(amplitude);
-  if (magnitudeSquared <= branchEpsilon) {
+const weightFromRawAmplitude = (amplitude: number, p: number, model: PAdicMeasurementModel): number => {
+  const magnitude = Math.abs(amplitude);
+  if (magnitude <= branchEpsilon) {
     return 0;
   }
 
   if (model === "operator_ensemble") {
-    return magnitudeSquared;
+    return magnitude * magnitude;
   }
-
-  const magnitude = Math.sqrt(magnitudeSquared);
 
   if (model === "valuation_weight") {
     const valuation = valuationFromMagnitude(magnitude, p);
@@ -68,128 +65,147 @@ const weightFromAmplitude = (amplitude: { real: number; imag: number }, p: numbe
   return 0.25 + (0.75 * Math.abs(Math.cos(theta)));
 };
 
+const sortedBasisEntries = (weightByBasis: Map<string, number>): Array<[string, number]> =>
+  [...weightByBasis.entries()].sort((left, right) => left[0].localeCompare(right[0]));
+
 export const p_adic_raw_weight_totals_for_ensemble = (
-  ensemble: StateEnsemble,
+  ensemble: PAdicStateEnsemble,
   p: number,
   model: PAdicMeasurementModel,
-): number[] => {
-  if (ensemble.length === 0) {
-    return [];
-  }
+): Map<string, number> => {
+  const totals = new Map<string, number>();
 
-  const basisCount = ensemble[0]!.state.length;
-  const totals = Array.from({ length: basisCount }, () => 0);
   for (const branch of ensemble) {
-    for (let index = 0; index < branch.state.length; index += 1) {
-      totals[index]! += branch.weight * weightFromAmplitude(branch.state[index]!, p, model);
+    for (const [basis, amplitude] of branch.state.entries()) {
+      const prior = totals.get(basis) ?? 0;
+      totals.set(basis, prior + (branch.weight * weightFromRawAmplitude(amplitude, p, model)));
     }
   }
 
   return totals;
 };
 
-export const probability_mass_for_model = (state: QubitState, p: number, model: PAdicMeasurementModel): number =>
-  state.reduce((acc, amplitude) => acc + weightFromAmplitude(amplitude, p, model), 0);
+export const probability_mass_for_model = (state: PAdicState, p: number, model: PAdicMeasurementModel): number => {
+  let total = 0;
+  for (const amplitude of state.values()) {
+    total += weightFromRawAmplitude(amplitude, p, model);
+  }
+  return total;
+};
 
-export const normalize_state_for_model = (state: QubitState, p: number, model: PAdicMeasurementModel): QubitState => {
+export const normalize_state_for_model = (state: PAdicState, p: number, model: PAdicMeasurementModel): PAdicState => {
   const mass = probability_mass_for_model(state, p, model);
   if (mass <= branchEpsilon) {
-    return state.map(() => complex.from_real(0));
+    return new Map();
   }
 
   const factor = 1 / Math.sqrt(mass);
-  return state.map((amplitude) => complex.scale(amplitude, factor));
+  return new Map([...state.entries()].map(([basis, amplitude]) => [basis, amplitude * factor]));
 };
 
-const projectStateOnWire = (
-  state: QubitState,
+const digitForWire = (basis: string, wire: number, qubitCount: number): number => {
+  const index = Math.max(0, Math.min(qubitCount - 1, wire));
+  const parsed = Number.parseInt(basis[index] ?? "0", 10);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const projectStateOnWireValue = (
+  state: PAdicState,
   wire: number,
-  measuredValue: 0 | 1,
   qubitCount: number,
-): QubitState => {
-  const wireMask = 1 << (qubitCount - 1 - wire);
-  return state.map((amplitude, index) => {
-    const bit = (index & wireMask) === 0 ? 0 : 1;
-    return bit === measuredValue ? amplitude : complex.from_real(0);
-  });
+  value: number,
+): PAdicState => {
+  const next: PAdicState = new Map();
+  for (const [basis, amplitude] of state.entries()) {
+    if (digitForWire(basis, wire, qubitCount) !== value) {
+      continue;
+    }
+    next.set(basis, amplitude);
+  }
+  return next;
 };
 
 export const measure_state_on_wire_for_model = (
-  state: QubitState,
+  state: PAdicState,
   wire: number,
   qubitCount: number,
   p: number,
   model: PAdicMeasurementModel,
-): Array<WeightedStateBranch & { value: 0 | 1 }> => {
-  const projectedZero = projectStateOnWire(state, wire, 0, qubitCount);
-  const projectedOne = projectStateOnWire(state, wire, 1, qubitCount);
-  const zeroMass = probability_mass_for_model(projectedZero, p, model);
-  const oneMass = probability_mass_for_model(projectedOne, p, model);
-  const branches: Array<WeightedStateBranch & { value: 0 | 1 }> = [];
+): Array<{ weight: number; value: number; state: PAdicState }> => {
+  const branches: Array<{ weight: number; value: number; state: PAdicState }> = [];
 
-  if (zeroMass > branchEpsilon) {
-    branches.push({ weight: zeroMass, value: 0, state: normalize_state_for_model(projectedZero, p, model) });
-  }
-  if (oneMass > branchEpsilon) {
-    branches.push({ weight: oneMass, value: 1, state: normalize_state_for_model(projectedOne, p, model) });
+  for (let value = 0; value < p; value += 1) {
+    const projected = projectStateOnWireValue(state, wire, qubitCount, value);
+    const mass = probability_mass_for_model(projected, p, model);
+    if (mass <= branchEpsilon) {
+      continue;
+    }
+
+    branches.push({
+      value,
+      weight: mass,
+      state: normalize_state_for_model(projected, p, model),
+    });
   }
 
   return branches;
 };
 
 export const sample_measurement_on_wire_for_model = (
-  state: QubitState,
+  state: PAdicState,
   wire: number,
   qubitCount: number,
   p: number,
   model: PAdicMeasurementModel,
   randomValue: number,
 ): {
-  value: 0 | 1;
+  value: number;
   probability: number;
-  state: QubitState;
+  state: PAdicState;
 } => {
-  const projectedZero = projectStateOnWire(state, wire, 0, qubitCount);
-  const projectedOne = projectStateOnWire(state, wire, 1, qubitCount);
-  const zeroMass = probability_mass_for_model(projectedZero, p, model);
-  const oneMass = probability_mass_for_model(projectedOne, p, model);
-  const total = zeroMass + oneMass;
+  const outcomes = measure_state_on_wire_for_model(state, wire, qubitCount, p, model);
+  const total = outcomes.reduce((acc, outcome) => acc + outcome.weight, 0);
 
-  if (total <= branchEpsilon) {
+  if (total <= branchEpsilon || outcomes.length === 0) {
     return {
       value: 0,
       probability: 0,
-      state: state.map((amplitude) => ({ ...amplitude })),
+      state: new Map(state),
     };
   }
 
   const threshold = randomValue * total;
-  if (threshold <= zeroMass || oneMass <= branchEpsilon) {
-    return {
-      value: 0,
-      probability: zeroMass / total,
-      state: normalize_state_for_model(projectedZero, p, model),
-    };
+  let running = 0;
+  for (const outcome of outcomes) {
+    running += outcome.weight;
+    if (running >= threshold) {
+      return {
+        value: outcome.value,
+        probability: outcome.weight / total,
+        state: outcome.state,
+      };
+    }
   }
 
+  const fallback = outcomes[outcomes.length - 1]!;
   return {
-    value: 1,
-    probability: oneMass / total,
-    state: normalize_state_for_model(projectedOne, p, model),
+    value: fallback.value,
+    probability: fallback.weight / total,
+    state: fallback.state,
   };
 };
 
 export const select_measurement_on_wire_for_model = (
-  state: QubitState,
+  state: PAdicState,
   wire: number,
   qubitCount: number,
   p: number,
   model: PAdicMeasurementModel,
-  selectedValue: 0 | 1,
+  selectedValue: number,
 ): {
-  value: 0 | 1;
+  value: number;
   probability: number;
-  state: QubitState;
+  state: PAdicState;
 } | null => {
   const outcomes = measure_state_on_wire_for_model(state, wire, qubitCount, p, model);
   const selected = outcomes.find((outcome) => outcome.value === selectedValue);
@@ -197,30 +213,24 @@ export const select_measurement_on_wire_for_model = (
     return null;
   }
 
+  const total = outcomes.reduce((acc, outcome) => acc + outcome.weight, 0);
   return {
     value: selected.value,
-    probability: selected.weight,
+    probability: total > branchEpsilon ? selected.weight / total : 0,
     state: selected.state,
   };
 };
 
 export const measurement_distribution_for_padic_ensemble = (
-  ensemble: StateEnsemble,
+  ensemble: PAdicStateEnsemble,
   p: number,
   model: PAdicMeasurementModel,
 ): BasisProbability[] => {
-  if (ensemble.length === 0) {
-    return [];
-  }
-
-  const labels = measurement_distribution(ensemble[0]!.state).map((entry) => entry.basis);
   const totals = p_adic_raw_weight_totals_for_ensemble(ensemble, p, model);
+  const normalization = [...totals.values()].reduce((acc, value) => acc + value, 0);
 
-  const normalization = totals.reduce((acc, value) => acc + value, 0);
-  const normalized = normalization > 0 ? totals.map((value) => value / normalization) : totals;
-
-  return labels.map((basis, index) => ({
+  return sortedBasisEntries(totals).map(([basis, rawWeight]) => ({
     basis,
-    probability: normalized[index]!,
+    probability: normalization > branchEpsilon ? rawWeight / normalization : 0,
   }));
 };

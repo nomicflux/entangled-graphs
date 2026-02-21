@@ -1,30 +1,62 @@
-import type { CircuitColumn, QubitState } from "../../types";
+import type { CircuitColumn } from "../../types";
 import type { PAdicMeasurementModel } from "../../padic-config";
-import { apply_operator_on_wires, apply_single_qubit_gate, isSingleQubitOperator } from "../core";
-import { sample_distribution } from "../measurement";
-import type { CircuitMeasurementOutcome, SamplingReplayOptions } from "../simulators";
 import { isMeasurementGate } from "./constants";
+import { apply_padic_gate_to_state } from "./gates";
 import {
   measurement_distribution_for_padic_ensemble,
   sample_measurement_on_wire_for_model,
   select_measurement_on_wire_for_model,
 } from "./measurement-model";
-import type { PAdicGateResolver, PAdicSampledCircuitRun, RandomSource } from "./types";
+import type {
+  PAdicGateResolver,
+  PAdicSampledCircuitRun,
+  PAdicSamplingReplayOptions,
+  PAdicState,
+  PAdicCircuitMeasurementOutcome,
+  RandomSource,
+} from "./types";
+
+const sampleDistribution = (distribution: ReadonlyArray<{ basis: string; probability: number }>, randomValue: number) => {
+  if (distribution.length === 0) {
+    return {
+      basis: "",
+      probability: 0,
+    };
+  }
+
+  const threshold = randomValue;
+  let running = 0;
+  for (const entry of distribution) {
+    running += entry.probability;
+    if (running >= threshold) {
+      return {
+        basis: entry.basis,
+        probability: entry.probability,
+      };
+    }
+  }
+
+  const last = distribution[distribution.length - 1]!;
+  return {
+    basis: last.basis,
+    probability: last.probability,
+  };
+};
 
 export const sample_padic_circuit_run = (
-  prepared: QubitState,
+  prepared: PAdicState,
   columns: CircuitColumn[],
   resolveGate: PAdicGateResolver,
   qubitCount: number,
   p: number,
   model: PAdicMeasurementModel,
   random: RandomSource = Math.random,
-  replay: SamplingReplayOptions = {},
+  replay: PAdicSamplingReplayOptions = {},
 ): PAdicSampledCircuitRun => {
   const replayByGateId = new Map((replay.priorOutcomes ?? []).map((entry) => [entry.gateId, entry.value]));
   let replayLocked = replay.resampleFromGateId !== undefined;
-  let current = prepared;
-  const outcomes: CircuitMeasurementOutcome[] = [];
+  let current = new Map(prepared);
+  const outcomes: PAdicCircuitMeasurementOutcome[] = [];
 
   for (let columnIndex = 0; columnIndex < columns.length; columnIndex += 1) {
     const column = columns[columnIndex]!;
@@ -55,22 +87,16 @@ export const sample_padic_circuit_run = (
         continue;
       }
 
-      const operator = resolveGate(gate.gate);
-      if (operator === null) {
+      if (resolveGate(gate.gate) === null) {
         continue;
       }
 
-      if (isSingleQubitOperator(operator)) {
-        current = apply_single_qubit_gate(current, operator, gate.wires[0]!, qubitCount);
-        continue;
-      }
-
-      current = apply_operator_on_wires(current, operator, gate.wires, qubitCount);
+      current = apply_padic_gate_to_state(current, gate.gate, gate.wires, p);
     }
   }
 
   const finalDistribution = measurement_distribution_for_padic_ensemble([{ weight: 1, state: current }], p, model);
-  const finalSample = sample_distribution(finalDistribution, random());
+  const finalSample = sampleDistribution(finalDistribution, random());
   return {
     finalState: current,
     finalSample,

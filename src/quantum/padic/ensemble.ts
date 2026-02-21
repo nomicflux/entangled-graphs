@@ -1,11 +1,11 @@
-import type { CircuitColumn, Operator, StateEnsemble, WeightedStateBranch } from "../../types";
+import type { CircuitColumn } from "../../types";
 import type { PAdicMeasurementModel } from "../../padic-config";
-import { apply_operator_on_wires, apply_single_qubit_gate, isSingleQubitOperator } from "../core";
 import { branchEpsilon, isMeasurementGate } from "./constants";
+import { apply_padic_gate_to_state } from "./gates";
 import { measure_state_on_wire_for_model } from "./measurement-model";
-import type { PAdicGateResolver } from "./types";
+import type { PAdicGateResolver, PAdicState, PAdicStateEnsemble, PAdicWeightedStateBranch } from "./types";
 
-const normalizeEnsembleWeights = (ensemble: StateEnsemble): StateEnsemble => {
+const normalizeEnsembleWeights = (ensemble: PAdicStateEnsemble): PAdicStateEnsemble => {
   const total = ensemble.reduce((acc, branch) => acc + branch.weight, 0);
   if (total <= branchEpsilon) {
     return [];
@@ -18,33 +18,25 @@ const normalizeEnsembleWeights = (ensemble: StateEnsemble): StateEnsemble => {
   return ensemble.map((branch) => ({ ...branch, weight: branch.weight / total }));
 };
 
-const applyUnitaryToEnsemble = (
-  ensemble: StateEnsemble,
-  operator: Operator,
+const applyGateToEnsemble = (
+  ensemble: PAdicStateEnsemble,
+  gate: string,
   wires: ReadonlyArray<number>,
-  qubitCount: number,
-): StateEnsemble => {
-  if (isSingleQubitOperator(operator)) {
-    return ensemble.map((branch) => ({
-      weight: branch.weight,
-      state: apply_single_qubit_gate(branch.state, operator, wires[0]!, qubitCount),
-    }));
-  }
-
-  return ensemble.map((branch) => ({
+  p: number,
+): PAdicStateEnsemble =>
+  ensemble.map((branch) => ({
     weight: branch.weight,
-    state: apply_operator_on_wires(branch.state, operator, wires, qubitCount),
+    state: apply_padic_gate_to_state(branch.state, gate, wires, p),
   }));
-};
 
 const applyMeasurementToEnsembleForModel = (
-  ensemble: StateEnsemble,
+  ensemble: PAdicStateEnsemble,
   wire: number,
   qubitCount: number,
   p: number,
   model: PAdicMeasurementModel,
-): StateEnsemble => {
-  const next: WeightedStateBranch[] = [];
+): PAdicStateEnsemble => {
+  const next: PAdicWeightedStateBranch[] = [];
 
   for (const branch of ensemble) {
     const outcomes = measure_state_on_wire_for_model(branch.state, wire, qubitCount, p, model);
@@ -65,13 +57,13 @@ const applyMeasurementToEnsembleForModel = (
 };
 
 const applyColumnToEnsembleForModel = (
-  ensemble: StateEnsemble,
+  ensemble: PAdicStateEnsemble,
   column: CircuitColumn,
   resolveGate: PAdicGateResolver,
   qubitCount: number,
   p: number,
   model: PAdicMeasurementModel,
-): StateEnsemble => {
+): PAdicStateEnsemble => {
   let next = ensemble;
 
   for (const gate of column.gates) {
@@ -80,27 +72,26 @@ const applyColumnToEnsembleForModel = (
       continue;
     }
 
-    const operator = resolveGate(gate.gate);
-    if (operator === null) {
+    if (resolveGate(gate.gate) === null) {
       continue;
     }
 
-    next = applyUnitaryToEnsemble(next, operator, gate.wires, qubitCount);
+    next = applyGateToEnsemble(next, gate.gate, gate.wires, p);
   }
 
   return next;
 };
 
 export const simulate_padic_columns_ensemble = (
-  prepared: WeightedStateBranch["state"],
+  prepared: PAdicState,
   columns: CircuitColumn[],
   resolveGate: PAdicGateResolver,
   qubitCount: number,
   p: number,
   model: PAdicMeasurementModel,
-): StateEnsemble[] => {
-  const snapshots: StateEnsemble[] = [[{ weight: 1, state: prepared }]];
-  let current: StateEnsemble = snapshots[0]!;
+): PAdicStateEnsemble[] => {
+  const snapshots: PAdicStateEnsemble[] = [[{ weight: 1, state: prepared }]];
+  let current: PAdicStateEnsemble = snapshots[0]!;
 
   for (const column of columns) {
     current = applyColumnToEnsembleForModel(current, column, resolveGate, qubitCount, p, model);
