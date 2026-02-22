@@ -15,7 +15,10 @@
             type="button"
             class="gate-chip"
             :class="{ selected: pAdicFaithfulState.selectedGate === gate, 'measurement-chip': gate === 'M' }"
+            draggable="true"
             @click="setFaithfulSelectedGate(pAdicFaithfulState.selectedGate === gate ? null : gate)"
+            @dragstart="startPaletteDrag(gate, $event)"
+            @dragend="endDrag"
           >
             {{ gate }}
           </button>
@@ -44,10 +47,20 @@
             v-for="row in rows"
             :key="`padic-slot-${columnIndex}-${row}`"
             class="gate-slot"
+            :class="{ 'is-drop-target': isDropTarget(columnIndex, row) }"
+            @dragover.prevent="handleDragOver(columnIndex, row)"
+            @dragleave="handleDragLeave(columnIndex, row)"
+            @drop.prevent="handleDrop(columnIndex, row)"
             @click="handleSlotClick($event, columnIndex, row)"
           >
             <span class="gate-slot-label">q{{ row }}</span>
-            <div class="gate-token" :class="tokenClasses(column.gates[row] ?? null)">
+            <div
+              class="gate-token"
+              :class="tokenClasses(column.gates[row] ?? null, columnIndex, row)"
+              :draggable="isDraggableToken(column.gates[row] ?? null)"
+              @dragstart="startCellDrag(columnIndex, row, $event)"
+              @dragend="endDrag"
+            >
               {{ column.gates[row] ?? "·" }}
             </div>
           </div>
@@ -61,13 +74,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import {
   addFaithfulColumn,
   pAdicFaithfulState,
   removeFaithfulColumn,
   setFaithfulColumnGate,
   setFaithfulSelectedGate,
+  type PAdicCircuitGate,
 } from "../../padic-faithful";
 
 const gates = ["I", "X", "Z", "M"] as const;
@@ -75,6 +89,19 @@ const gates = ["I", "X", "Z", "M"] as const;
 const rows = computed(() =>
   Array.from({ length: pAdicFaithfulState.qubitCount }, (_, index) => index),
 );
+
+type PAdicDragSource = {
+  columnIndex: number;
+  rowIndex: number;
+};
+
+type PAdicDragPayload = {
+  gate: Exclude<PAdicCircuitGate, null>;
+  from?: PAdicDragSource;
+};
+
+const dragging = ref<PAdicDragPayload | null>(null);
+const dropTarget = ref<PAdicDragSource | null>(null);
 
 const handleSlotClick = (event: MouseEvent, columnIndex: number, rowIndex: number): void => {
   if (event.altKey) {
@@ -89,8 +116,85 @@ const handleSlotClick = (event: MouseEvent, columnIndex: number, rowIndex: numbe
   setFaithfulColumnGate(columnIndex, rowIndex, selected);
 };
 
-const tokenClasses = (gate: (typeof gates)[number] | null): Record<string, boolean> => ({
+const isDraggableToken = (gate: PAdicCircuitGate): gate is Exclude<PAdicCircuitGate, null> =>
+  gate !== null;
+
+const startPaletteDrag = (gate: (typeof gates)[number], event: DragEvent): void => {
+  dragging.value = { gate };
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = "copyMove";
+    event.dataTransfer.setData("text/plain", gate);
+  }
+};
+
+const startCellDrag = (columnIndex: number, rowIndex: number, event: DragEvent): void => {
+  const gate = pAdicFaithfulState.columns[columnIndex]?.gates[rowIndex] ?? null;
+  if (!isDraggableToken(gate)) {
+    event.preventDefault();
+    return;
+  }
+
+  dragging.value = {
+    gate,
+    from: { columnIndex, rowIndex },
+  };
+
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", gate);
+  }
+};
+
+const handleDragOver = (columnIndex: number, rowIndex: number): void => {
+  if (!dragging.value) {
+    return;
+  }
+  dropTarget.value = { columnIndex, rowIndex };
+};
+
+const handleDragLeave = (columnIndex: number, rowIndex: number): void => {
+  if (
+    dropTarget.value?.columnIndex === columnIndex &&
+    dropTarget.value?.rowIndex === rowIndex
+  ) {
+    dropTarget.value = null;
+  }
+};
+
+const handleDrop = (columnIndex: number, rowIndex: number): void => {
+  if (!dragging.value) {
+    return;
+  }
+
+  const { gate, from } = dragging.value;
+  setFaithfulColumnGate(columnIndex, rowIndex, gate);
+  if (from && (from.columnIndex !== columnIndex || from.rowIndex !== rowIndex)) {
+    setFaithfulColumnGate(from.columnIndex, from.rowIndex, null);
+  }
+  setFaithfulSelectedGate(gate);
+  dragging.value = null;
+  dropTarget.value = null;
+};
+
+const endDrag = (): void => {
+  dragging.value = null;
+  dropTarget.value = null;
+};
+
+const isDropTarget = (columnIndex: number, rowIndex: number): boolean =>
+  dropTarget.value?.columnIndex === columnIndex && dropTarget.value?.rowIndex === rowIndex;
+
+const isDragSource = (columnIndex: number, rowIndex: number): boolean =>
+  dragging.value?.from?.columnIndex === columnIndex && dragging.value?.from?.rowIndex === rowIndex;
+
+const tokenClasses = (
+  gate: (typeof gates)[number] | null,
+  columnIndex: number,
+  rowIndex: number,
+): Record<string, boolean> => ({
   empty: gate === null,
+  draggable: gate !== null,
+  "is-drag-source": isDragSource(columnIndex, rowIndex),
   "is-measurement": gate === "M",
 });
 

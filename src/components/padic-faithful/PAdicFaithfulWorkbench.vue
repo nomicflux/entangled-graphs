@@ -15,6 +15,7 @@
       <PAdicOutputsPanel />
       <PAdicOutcomeInspector />
       <PAdicSovmPanel />
+      <PAdicSourcesPanel />
     </section>
   </main>
 </template>
@@ -28,4 +29,5 @@ import PAdicOutputsPanel from "./PAdicOutputsPanel.vue";
 import PAdicRhoPanel from "./PAdicRhoPanel.vue";
 import PAdicSovmPanel from "./PAdicSovmPanel.vue";
 import PAdicStageCards from "./PAdicStageCards.vue";
+import PAdicSourcesPanel from "./PAdicSourcesPanel.vue";
 </script>

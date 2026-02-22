@@ -23,7 +23,7 @@
         type="button"
         @click="selectedWorkspace = 'p-adic'"
       >
-        p-adic
+        p-adic (experimental)
       </button>
       <button
         class="top-tab-btn"

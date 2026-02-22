@@ -93,6 +93,8 @@
           <p v-else>primary map: valuation_ring over full rho[i,j] entries</p>
           <p>position: descriptor digits (row/column) plus p-adic entry digits</p>
           <p>node intensity: |rho[i,j]|_p (no filtering)</p>
+          <p>node color: residue class u (mod p), with |rho[i,j]|_p increasing saturation</p>
+          <p>node stroke: diagonal entries use light outline, off-diagonal entries use amber outline</p>
         </div>
       </div>
 

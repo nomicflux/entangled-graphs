@@ -5,24 +5,33 @@
       <p>Choose an input-state preset and set wire count for the p-adic circuit workspace.</p>
     </div>
 
-    <div class="qubit-controls">
-      <span class="qubit-controls-label">Qubit Controls</span>
-      <label class="qubit-count-field">
-        Prime p
-        <select :value="pAdicFaithfulState.prime" @change="handlePrimeChange">
-          <option v-for="prime in PADIC_FAITHFUL_PRIMES" :key="prime" :value="prime">{{ prime }}</option>
-        </select>
-      </label>
-      <button type="button" class="qubit-count-btn" @click="setFaithfulQubitCount(pAdicFaithfulState.qubitCount - 1)" :disabled="pAdicFaithfulState.qubitCount <= 1">
-        - Qubit
-      </button>
-      <label class="qubit-count-field">
-        Qubit Count
-        <input :value="pAdicFaithfulState.qubitCount" type="number" min="1" max="8" @change="handleCountInput" />
-      </label>
-      <button type="button" class="qubit-count-btn" @click="setFaithfulQubitCount(pAdicFaithfulState.qubitCount + 1)" :disabled="pAdicFaithfulState.qubitCount >= 8">
-        + Qubit
-      </button>
+    <div class="qubit-controls padic-input-controls">
+      <div class="padic-prime-row">
+        <div class="padic-prime-banner">
+          <span class="qubit-controls-label">Prime Basis</span>
+          <p class="padic-prime-value">p = {{ pAdicFaithfulState.prime }}</p>
+        </div>
+        <label class="qubit-count-field padic-prime-field">
+          Prime p
+          <select :value="pAdicFaithfulState.prime" @change="handlePrimeChange">
+            <option v-for="prime in PADIC_FAITHFUL_PRIMES" :key="prime" :value="prime">{{ prime }}</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="padic-qubit-row">
+        <span class="qubit-controls-label">Qubit Controls</span>
+        <button type="button" class="qubit-count-btn" @click="setFaithfulQubitCount(pAdicFaithfulState.qubitCount - 1)" :disabled="pAdicFaithfulState.qubitCount <= 1">
+          - Qubit
+        </button>
+        <label class="qubit-count-field padic-qubit-count-field">
+          Qubit Count
+          <input :value="pAdicFaithfulState.qubitCount" type="number" min="1" max="8" @change="handleCountInput" />
+        </label>
+        <button type="button" class="qubit-count-btn" @click="setFaithfulQubitCount(pAdicFaithfulState.qubitCount + 1)" :disabled="pAdicFaithfulState.qubitCount >= 8">
+          + Qubit
+        </button>
+      </div>
     </div>
 
     <p class="muted padic-input-note">

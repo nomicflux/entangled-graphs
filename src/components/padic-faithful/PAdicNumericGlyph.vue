@@ -44,7 +44,6 @@
       >
         <title>{{ node.tooltip }}</title>
       </circle>
-      <text v-if="detail" :x="node.x" :y="node.y + 0.8" class="padic-stage-node-label">{{ node.label }}</text>
     </g>
   </svg>
 </template>
@@ -76,7 +75,6 @@ type GlyphNode = {
   fill: string;
   stroke: string;
   strokeWidth: number;
-  label: string;
   tooltip: string;
 };
 
@@ -124,14 +122,23 @@ const absScale = (value: number): number => {
   return value / (1 + value);
 };
 
-const residueColor = (residue: number | null): string => {
+const fillColorForEntry = (
+  residue: number | null,
+  isDiagonal: boolean,
+  absScaled: number,
+): string => {
   if (residue === null) {
-    return "rgba(182, 190, 206, 0.84)";
+    const lightness = 20 + (34 * absScaled);
+    return `hsl(212 18% ${lightness.toFixed(1)}%)`;
   }
+
   const slotCount = Math.max(2, props.prime);
   const normalized = ((residue % slotCount) + slotCount) % slotCount;
-  const hue = (normalized / slotCount) * 360;
-  return `hsl(${hue.toFixed(1)} 66% 60%)`;
+  const baseHue = (normalized / slotCount) * 360;
+  const hue = isDiagonal ? baseHue : ((baseHue + 26) % 360);
+  const saturation = 54 + (32 * absScaled);
+  const lightness = 28 + (36 * absScaled);
+  return `hsl(${hue.toFixed(1)} ${saturation.toFixed(1)}% ${lightness.toFixed(1)}%)`;
 };
 
 const visibleEntries = computed(() =>
@@ -152,13 +159,13 @@ const nodes = computed<ReadonlyArray<GlyphNode>>(() =>
     const absP = entry?.abs_p ?? 0;
     const wNorm = entry?.w_norm ?? 0;
     const absScaled = absScale(absP);
-    const alpha = 0.02 + (0.96 * absScaled);
-    const radius = 0.3 + (5.1 * absScaled);
-    const label = `r${entry?.row ?? 0}c${entry?.column ?? 0}`;
+    const isDiagonal = entry?.isDiagonal ?? false;
+    const alpha = 0.06 + (0.9 * absScaled);
+    const radius = 0.8 + (4.6 * absScaled);
     const residueLabel = entry?.unitResidue === null || entry?.unitResidue === undefined
       ? "0"
       : `u ≡ ${entry.unitResidue} (mod ${props.prime})`;
-    const diagonalLabel = entry?.isDiagonal ? "diagonal" : "off-diagonal";
+    const diagonalLabel = isDiagonal ? "diagonal" : "off-diagonal";
     const tooltip = `${entry?.label ?? node.id} (${diagonalLabel}): value=${entry?.value_text ?? "0"}, v_p=${formatValuation(entry?.v_p ?? Number.POSITIVE_INFINITY)}, |.|_p=${formatScalar(absP)}, ${residueLabel}, digits=${entry?.digits.text ?? "0"}, w_norm (Derived)=${formatScalar(wNorm)}`;
 
     return {
@@ -167,10 +174,9 @@ const nodes = computed<ReadonlyArray<GlyphNode>>(() =>
       y: yFor(node.y),
       radius,
       alpha,
-      fill: residueColor(entry?.unitResidue ?? null),
-      stroke: "rgba(255, 255, 255, 0.78)",
-      strokeWidth: 0.18 + (0.86 * absScaled),
-      label,
+      fill: fillColorForEntry(entry?.unitResidue ?? null, isDiagonal, absScaled),
+      stroke: isDiagonal ? "rgba(242, 248, 255, 0.92)" : "rgba(255, 194, 106, 0.92)",
+      strokeWidth: 0.25 + (0.72 * absScaled),
       tooltip,
     } satisfies GlyphNode;
   }),

@@ -20,15 +20,18 @@ test("faithful output panel uses valuation-shell-first p-adic columns with deriv
 });
 
 test("faithful workbench keeps operator and sovm primary labels", () => {
+  const app = readSource("src/App.vue");
   const workbench = readSource("src/components/padic-faithful/PAdicFaithfulWorkbench.vue");
   const rho = readSource("src/components/padic-faithful/PAdicRhoPanel.vue");
   const sovm = readSource("src/components/padic-faithful/PAdicSovmPanel.vue");
+  const sources = readSource("src/components/padic-faithful/PAdicSourcesPanel.vue");
   const input = readSource("src/components/padic-faithful/PAdicGeneralInputPanel.vue");
   const circuit = readSource("src/components/padic-faithful/PAdicCircuitPanel.vue");
   const stages = readSource("src/components/padic-faithful/PAdicStageCards.vue");
   const glyph = readSource("src/components/padic-faithful/PAdicNumericGlyph.vue");
   const derivedMap = readSource("src/components/padic-faithful/PAdicDerivedMap.vue");
 
+  assert.match(app, /p-adic \(experimental\)/);
   assert.match(rho, /State Operator rho/);
   assert.match(rho, /support omega_i/);
   assert.match(rho, /non-zero entries/);
@@ -37,6 +40,8 @@ test("faithful workbench keeps operator and sovm primary labels", () => {
   assert.match(sovm, /SOVM Effects F_i/);
   assert.match(input, /General Qubit Input/);
   assert.match(input, /Prime p/);
+  assert.match(input, /Prime Basis/);
+  assert.match(input, /p = \{\{ pAdicFaithfulState\.prime \}\}/);
   assert.match(input, /Configure each qubit separately/);
   assert.match(input, /preparedInputs/);
   assert.match(input, /Q\{\{ index \}\}/);
@@ -50,6 +55,11 @@ test("faithful workbench keeps operator and sovm primary labels", () => {
   assert.match(circuit, /selectedGate === gate \? null : gate/);
   assert.match(circuit, /Alt\+Click a slot clears that slot/);
   assert.match(circuit, /setFaithfulColumnGate\(columnIndex, rowIndex, null\)/);
+  assert.match(circuit, /@dragstart="startPaletteDrag\(gate, \$event\)"/);
+  assert.match(circuit, /@dragover\.prevent="handleDragOver\(columnIndex, row\)"/);
+  assert.match(circuit, /@drop\.prevent="handleDrop\(columnIndex, row\)"/);
+  assert.match(circuit, /@dragstart="startCellDrag\(columnIndex, row, \$event\)"/);
+  assert.match(circuit, /isDropTarget\(columnIndex, row\)/);
   assert.match(stages, /Circuit Stages/);
   assert.match(stages, /Stage Inspector/);
   assert.match(stages, /PAdicNumericGlyph/);
@@ -58,6 +68,8 @@ test("faithful workbench keeps operator and sovm primary labels", () => {
   assert.match(stages, /Outcome shell and digit detail/);
   assert.match(stages, /position: descriptor digits \(row\/column\) plus p-adic entry digits/);
   assert.match(stages, /node intensity: \|rho\[i,j\]\|_p \(no filtering\)/);
+  assert.match(stages, /node color: residue class u \(mod p\), with \|rho\[i,j\]\|_p increasing saturation/);
+  assert.match(stages, /node stroke: diagonal entries use light outline, off-diagonal entries use amber outline/);
   assert.equal(stages.includes("changed from previous stage"), false);
   assert.equal(stages.includes("highlight-ids"), false);
   assert.match(stages, /padic-output-table/);
@@ -74,11 +86,15 @@ test("faithful workbench keeps operator and sovm primary labels", () => {
   assert.match(glyph, /padic-numeric-glyph-svg/);
   assert.match(glyph, /padic-stage-shell-ring/);
   assert.match(glyph, /padic-stage-residue-axis/);
-  assert.match(glyph, /padic-stage-node-label/);
+  assert.equal(glyph.includes("padic-stage-node-label"), false);
   assert.equal(glyph.includes("highlightIds"), false);
   assert.match(derivedMap, /Derived Geometry/);
   assert.match(derivedMap, /PAdicNumericGlyph/);
   assert.equal(derivedMap.includes("highlight-ids"), false);
+  assert.match(sources, /Entropy 25\(1\):86/);
+  assert.match(sources, /PubMed PMID 36673227/);
+  assert.match(sources, /PMCID PMC9857597/);
+  assert.match(sources, /Emergent Mind topic page/);
   assert.equal(stages.includes("Bloch"), false);
   assert.equal(stages.includes("BlochPairView"), false);
   assert.equal(stages.includes("CircuitStageSnapshots"), false);
@@ -86,6 +102,7 @@ test("faithful workbench keeps operator and sovm primary labels", () => {
   assert.equal(stages.toLowerCase().includes("probability"), false);
   assert.match(workbench, /PAdicGeneralInputPanel/);
   assert.match(workbench, /PAdicCircuitPanel/);
+  assert.match(workbench, /PAdicSourcesPanel/);
   assert.match(workbench, /PAdicCircuitPanel[\s\S]*PAdicStageCards/);
   assert.equal(workbench.includes("PAdicStageCards />\n      <PAdicCircuitPanel"), false);
 });
