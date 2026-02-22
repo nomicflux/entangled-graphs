@@ -97,7 +97,7 @@ test("faithful shell grouping includes shared-prefix buckets within a valuation 
     assert.equal(shells[0].prefixGroups.length, 2);
 
     const groupedIds = shells[0].prefixGroups.map((group) => group.rows.map((row) => row.id).join(","));
-    assert.deepEqual(groupedIds, ["omega_a", "omega_b"]);
+    assert.deepEqual(groupedIds, ["omega_b", "omega_a"]);
   } finally {
     restoreState(original);
   }

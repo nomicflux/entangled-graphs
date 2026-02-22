@@ -69,6 +69,7 @@ const forbiddenRealFallbackTokens = [
   "pAdicValuationFromReal",
   "pAdicNormFromReal",
   "unitResidueFromReal",
+  "pAdicDigitsFromReal",
   "real-valued implementation",
   "parseFloat(",
 ];

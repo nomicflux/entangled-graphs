@@ -25,6 +25,7 @@ export {
   unitResidueFromReal,
 } from "./engine/valuation";
 export {
+  pAdicDigitsFromScalar,
   pAdicDigitsFromReal,
 } from "./engine/digits";
 export {

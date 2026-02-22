@@ -1,5 +1,5 @@
 import type { Matrix2, PAdicOutcomeRow, PAdicPrime, PAdicSovm, PAdicStatisticalOperator } from "../types";
-import { pAdicDigitsFromReal } from "./digits";
+import { pAdicDigitsFromScalar } from "./digits";
 import {
   addPAdicScalars,
   isZeroPAdicScalar,
@@ -70,7 +70,7 @@ export const outcomeRowsFromPairing = (
     const valuation = pAdicValuationOfScalar(omegaScalar, prime);
     const norm = pAdicNormFromScalar(omegaScalar, prime);
     const residue = pAdicUnitResidueOfScalar(omegaScalar, prime);
-    const digits = pAdicDigitsFromReal(omega, prime);
+    const digits = pAdicDigitsFromScalar(omegaScalar, prime);
 
     return {
       id: effect.id,
