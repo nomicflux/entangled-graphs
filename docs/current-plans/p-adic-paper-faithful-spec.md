@@ -18,34 +18,41 @@ Completed (current tree):
    - `/Users/demouser/Code/entangled-graphs/src/quantum/padic/`
    - `/Users/demouser/Code/entangled-graphs/src/state/padic-actions.ts`
    - `/Users/demouser/Code/entangled-graphs/src/styles/padic-state-map.css`
-4. p-adic UI is valuation-shell-first and p-adic-primary (`omega_i`, `v_p`, `|.|_p`, residue, digits; `w_norm` labeled `Derived`):
+4. p-adic outcome contract is now UI-facing and valuation-first (`basis`, `w_raw`, `v_p`, `|.|_p`, residue, digits; `w_norm` labeled `Derived`):
+   - `/Users/demouser/Code/entangled-graphs/src/padic-faithful/types.ts`
+   - `/Users/demouser/Code/entangled-graphs/src/padic-faithful/engine/pairing.ts`
    - `/Users/demouser/Code/entangled-graphs/src/components/padic-faithful/PAdicOutputsPanel.vue`
-   - `/Users/demouser/Code/entangled-graphs/src/components/padic-faithful/PAdicStageCards.vue`
    - `/Users/demouser/Code/entangled-graphs/src/components/padic-faithful/PAdicOutcomeInspector.vue`
-5. Static/regression coverage exists to block regressions to legacy paths and complex-era p-adic visuals:
+   - `/Users/demouser/Code/entangled-graphs/src/components/padic-faithful/PAdicDerivedMap.vue`
+5. Engine core now computes with exact scalar algebra through parse -> operator/SOVM -> trace pairing path:
+   - `/Users/demouser/Code/entangled-graphs/src/padic-faithful/engine/scalar.ts`
+   - `/Users/demouser/Code/entangled-graphs/src/padic-faithful/engine/parse.ts`
+   - `/Users/demouser/Code/entangled-graphs/src/padic-faithful/engine/operator.ts`
+   - `/Users/demouser/Code/entangled-graphs/src/padic-faithful/engine/sovm.ts`
+   - `/Users/demouser/Code/entangled-graphs/src/padic-faithful/engine/pairing.ts`
+   - `/Users/demouser/Code/entangled-graphs/src/padic-faithful/engine/digits.ts`
+6. In-shell grouping by shared digit prefix is implemented and rendered:
+   - `/Users/demouser/Code/entangled-graphs/src/padic-faithful/state/selectors.ts`
+   - `/Users/demouser/Code/entangled-graphs/src/components/padic-faithful/PAdicOutputsPanel.vue`
+7. Static/regression coverage was expanded for fallback guards, payload contract, exact valuation/digit behavior, and shell-prefix ordering:
    - `/Users/demouser/Code/entangled-graphs/tests/padic-faithful-static-boundary.test.cjs`
    - `/Users/demouser/Code/entangled-graphs/tests/padic-faithful-no-legacy-paths.test.cjs`
    - `/Users/demouser/Code/entangled-graphs/tests/padic-faithful-ui-contract.test.cjs`
    - `/Users/demouser/Code/entangled-graphs/tests/padic-faithful-state.test.cjs`
    - `/Users/demouser/Code/entangled-graphs/tests/padic-faithful-engine.test.cjs`
+   - `/Users/demouser/Code/entangled-graphs/tests/padic-faithful-derived-ordering.test.cjs`
+   - `/Users/demouser/Code/entangled-graphs/tests/padic-faithful-scalar-core.test.cjs`
+   - `/Users/demouser/Code/entangled-graphs/tests/padic-faithful-parse-valuation.test.cjs`
 
 Remaining (strict paper-faithful blockers):
-1. Replace numeric-real approximation internals with true p-adic value objects (or explicit finite truncation objects with algebraic semantics).
-   Current non-compliant files:
+1. Parse-error handling is still permissive in one path: invalid scalar tokens currently coerce to `0` instead of surfacing an explicit error.
+   Current file:
    - `/Users/demouser/Code/entangled-graphs/src/padic-faithful/engine/parse.ts`
-   - `/Users/demouser/Code/entangled-graphs/src/padic-faithful/engine/valuation.ts`
-   - `/Users/demouser/Code/entangled-graphs/src/padic-faithful/engine/digits.ts`
-2. Replace real-symmetric 2x2 operator handling with p-adic Hermitian/operator primitives consistent with the model contract.
-   Current non-compliant file:
+2. Operator selfadjoint handling currently assumes the rational-subfield case (`a_12 = a_21`) and does not yet model conjugation over the quadratic extension (`Q_p(eta)`) described in the reference.
+   Current file:
    - `/Users/demouser/Code/entangled-graphs/src/padic-faithful/engine/operator.ts`
-3. Update p-adic outcome row contract to match this spec exactly (`basis`, `w_raw` naming, and full UI-facing payload contract).
-   Current file:
-   - `/Users/demouser/Code/entangled-graphs/src/padic-faithful/types.ts`
-4. Complete in-shell grouping rule by shared digit prefix (current ordering is valuation then residue/id only).
-   Current file:
-   - `/Users/demouser/Code/entangled-graphs/src/padic-faithful/engine/pairing.ts`
-5. Wire hard checks into CI release workflow (currently build-only, no test/static-faithful gate on deploy workflow).
-   Current file:
+3. Deploy workflow quality-gate wiring (test/static faithful checks before pages deploy) was intentionally deferred in this session to keep scope limited to p-adic page/math correctness.
+   Deferred file:
    - `/Users/demouser/Code/entangled-graphs/.github/workflows/deploy-pages.yml`
 
 ## 1) Non-Negotiable Goal
