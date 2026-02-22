@@ -19,10 +19,9 @@
           >
             {{ gate }}
           </button>
-          <button type="button" class="gate-chip" :class="{ selected: pAdicFaithfulState.selectedGate === null }" @click="setFaithfulSelectedGate(null)">
-            Erase
-          </button>
         </div>
+        <p class="padic-circuit-tool-label">active tool: {{ activeToolLabel }}</p>
+        <p class="padic-circuit-tool-note">I is identity. Alt+Click a slot clears that slot.</p>
       </div>
 
       <div class="column-controls">
@@ -45,7 +44,7 @@
             v-for="row in rows"
             :key="`padic-slot-${columnIndex}-${row}`"
             class="gate-slot"
-            @click="setFaithfulColumnGate(columnIndex, row, pAdicFaithfulState.selectedGate)"
+            @click="handleSlotClick($event, columnIndex, row)"
           >
             <span class="gate-slot-label">q{{ row }}</span>
             <div class="gate-token" :class="tokenClasses(column.gates[row] ?? null)">
@@ -77,8 +76,32 @@ const rows = computed(() =>
   Array.from({ length: pAdicFaithfulState.qubitCount }, (_, index) => index),
 );
 
+const handleSlotClick = (event: MouseEvent, columnIndex: number, rowIndex: number): void => {
+  if (event.altKey) {
+    setFaithfulColumnGate(columnIndex, rowIndex, null);
+    return;
+  }
+
+  const selected = pAdicFaithfulState.selectedGate;
+  if (!selected) {
+    return;
+  }
+  setFaithfulColumnGate(columnIndex, rowIndex, selected);
+};
+
 const tokenClasses = (gate: (typeof gates)[number] | null): Record<string, boolean> => ({
   empty: gate === null,
   "is-measurement": gate === "M",
+});
+
+const activeToolLabel = computed(() => {
+  const selected = pAdicFaithfulState.selectedGate;
+  if (selected === null) {
+    return "none";
+  }
+  if (selected === "I") {
+    return "I (identity)";
+  }
+  return selected;
 });
 </script>

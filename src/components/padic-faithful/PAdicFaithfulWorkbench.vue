@@ -1,13 +1,21 @@
 <template>
   <main class="panels padic-faithful-panels">
-    <PAdicStageCards />
-    <PAdicGeneralInputPanel />
-    <PAdicCircuitPanel />
-    <PAdicRhoPanel />
-    <PAdicSovmPanel />
-    <PAdicOutputsPanel />
-    <PAdicOutcomeInspector />
-    <PAdicDerivedMap />
+    <section class="padic-faithful-column padic-faithful-column-left">
+      <PAdicGeneralInputPanel />
+      <PAdicRhoPanel />
+    </section>
+
+    <section class="padic-faithful-column padic-faithful-column-center">
+      <PAdicCircuitPanel />
+      <PAdicStageCards />
+      <PAdicDerivedMap />
+    </section>
+
+    <section class="padic-faithful-column padic-faithful-column-right">
+      <PAdicOutputsPanel />
+      <PAdicOutcomeInspector />
+      <PAdicSovmPanel />
+    </section>
   </main>
 </template>
 

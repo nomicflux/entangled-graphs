@@ -38,21 +38,20 @@ export {
   outcomeRowsFromPairing,
   sortOutcomeRowsByShell,
 } from "./engine/pairing";
+export {
+  operatorEntryRowsFromOperator,
+  stateOperatorFromPreparedInputsAndCircuit,
+  stageOperatorsFromPreparedInputsAndCircuit,
+  outcomeRowsFromDensityDiagonal,
+} from "./engine/system";
 
 export { pAdicFaithfulState } from "./state/store";
 export {
   setFaithfulPrime,
   setFaithfulViewMode,
-  setFaithfulRhoEntry,
-  setFaithfulEffectId,
-  setFaithfulEffectLabel,
-  setFaithfulEffectEntry,
-  addFaithfulEffect,
-  removeFaithfulEffect,
+  setFaithfulPreparedPreset,
   setFaithfulSelectedOutcome,
   setFaithfulQubitCount,
-  setFaithfulBlochTheta,
-  setFaithfulBlochPhi,
   setFaithfulSelectedGate,
   addFaithfulColumn,
   removeFaithfulColumn,
@@ -66,6 +65,7 @@ export {
   faithfulOutcomeShells,
   faithfulSelectedOutcome,
   faithfulStageCards,
+  faithfulStageViews,
   faithfulDerivedNodes,
   faithfulDisplay,
 } from "./state/selectors";

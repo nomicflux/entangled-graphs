@@ -1,7 +1,5 @@
 import { reactive } from "vue";
 import {
-  DEFAULT_RHO_ROWS,
-  DEFAULT_SOVM_EFFECTS,
   PADIC_FAITHFUL_DEFAULT_PRIME,
   PADIC_FAITHFUL_DEFAULT_QUBIT_COUNT,
   PADIC_FAITHFUL_DEFAULT_VIEW_MODE,
@@ -10,24 +8,13 @@ import {
   isPAdicFaithfulPrime,
   isPAdicFaithfulViewMode,
 } from "../config";
-import type { PAdicCircuitGate, PAdicFaithfulState, PAdicRawEffect, RawMatrix2 } from "../types";
+import type { PAdicCircuitGate, PAdicFaithfulState, PAdicInputPreset } from "../types";
 
-const cloneMatrix2Raw = (rows: RawMatrix2): RawMatrix2 => [
-  [rows[0][0], rows[0][1]],
-  [rows[1][0], rows[1][1]],
-];
+const defaultPreparedInputs = (count: number): Array<{ preset: PAdicInputPreset }> =>
+  Array.from({ length: count }, () => ({ preset: "basis_0" }));
 
-const cloneEffect = (effect: PAdicRawEffect): PAdicRawEffect => ({
-  id: effect.id,
-  label: effect.label,
-  rows: cloneMatrix2Raw(effect.rows),
-});
-
-const defaultBloch = (count: number): Array<{ theta: number; phi: number }> =>
-  Array.from({ length: count }, () => ({ theta: Math.PI / 2, phi: 0 }));
-
-const cloneBloch = (entries: ReadonlyArray<{ theta: number; phi: number }>): Array<{ theta: number; phi: number }> =>
-  entries.map((entry) => ({ theta: entry.theta, phi: entry.phi }));
+const clonePreparedInputs = (entries: ReadonlyArray<{ preset: PAdicInputPreset }>): Array<{ preset: PAdicInputPreset }> =>
+  entries.map((entry) => ({ preset: entry.preset }));
 
 const cloneColumn = (column: { gates: PAdicCircuitGate[] }): { gates: PAdicCircuitGate[] } => ({
   gates: [...column.gates],
@@ -40,41 +27,26 @@ const defaultState = (): PAdicFaithfulState => ({
   prime: PADIC_FAITHFUL_DEFAULT_PRIME,
   viewMode: PADIC_FAITHFUL_DEFAULT_VIEW_MODE,
   qubitCount: PADIC_FAITHFUL_DEFAULT_QUBIT_COUNT,
-  preparedBloch: defaultBloch(PADIC_FAITHFUL_DEFAULT_QUBIT_COUNT),
+  preparedInputs: defaultPreparedInputs(PADIC_FAITHFUL_DEFAULT_QUBIT_COUNT),
   columns: defaultColumns(PADIC_FAITHFUL_DEFAULT_QUBIT_COUNT),
   selectedGate: "X",
-  rhoRows: cloneMatrix2Raw(DEFAULT_RHO_ROWS),
-  effects: DEFAULT_SOVM_EFFECTS.map(cloneEffect),
   selectedOutcomeId: null,
 });
 
-const isRawMatrix2 = (value: unknown): value is RawMatrix2 => {
-  if (!Array.isArray(value) || value.length !== 2) {
-    return false;
-  }
+const isInputPreset = (value: unknown): value is PAdicInputPreset =>
+  value === "basis_0" ||
+  value === "basis_1" ||
+  value === "diag_balanced" ||
+  value === "offdiag_pos" ||
+  value === "offdiag_neg" ||
+  value === "shell_weighted";
 
-  return value.every((row) =>
-    Array.isArray(row) &&
-    row.length === 2 &&
-    row.every((entry) => typeof entry === "string"),
-  );
-};
-
-const isRawEffect = (value: unknown): value is PAdicRawEffect => {
+const isPreparedInput = (value: unknown): value is { preset: PAdicInputPreset } => {
   if (!value || typeof value !== "object") {
     return false;
   }
-
-  const cast = value as Partial<PAdicRawEffect>;
-  return typeof cast.id === "string" && typeof cast.label === "string" && isRawMatrix2(cast.rows);
-};
-
-const isBlochEntry = (value: unknown): value is { theta: number; phi: number } => {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-  const cast = value as { theta?: number; phi?: number };
-  return typeof cast.theta === "number" && Number.isFinite(cast.theta) && typeof cast.phi === "number" && Number.isFinite(cast.phi);
+  const cast = value as { preset?: unknown };
+  return isInputPreset(cast.preset);
 };
 
 const isCircuitGate = (value: unknown): value is Exclude<PAdicCircuitGate, null> =>
@@ -111,14 +83,14 @@ const readFromStorage = (): PAdicFaithfulState => {
 
   if (typeof parsed.qubitCount === "number") {
     defaults.qubitCount = clampPAdicFaithfulQubitCount(parsed.qubitCount);
-    defaults.preparedBloch = defaultBloch(defaults.qubitCount);
+    defaults.preparedInputs = defaultPreparedInputs(defaults.qubitCount);
     defaults.columns = defaultColumns(defaults.qubitCount);
   }
 
-  if (Array.isArray(parsed.preparedBloch) && parsed.preparedBloch.length > 0 && parsed.preparedBloch.every((entry) => isBlochEntry(entry))) {
-    defaults.preparedBloch = cloneBloch(parsed.preparedBloch).slice(0, defaults.qubitCount);
-    while (defaults.preparedBloch.length < defaults.qubitCount) {
-      defaults.preparedBloch.push({ theta: Math.PI / 2, phi: 0 });
+  if (Array.isArray(parsed.preparedInputs) && parsed.preparedInputs.length > 0 && parsed.preparedInputs.every((entry) => isPreparedInput(entry))) {
+    defaults.preparedInputs = clonePreparedInputs(parsed.preparedInputs).slice(0, defaults.qubitCount);
+    while (defaults.preparedInputs.length < defaults.qubitCount) {
+      defaults.preparedInputs.push({ preset: "basis_0" });
     }
   }
 
@@ -130,14 +102,6 @@ const readFromStorage = (): PAdicFaithfulState => {
 
   if (parsed.selectedGate === null || isCircuitGate(parsed.selectedGate)) {
     defaults.selectedGate = parsed.selectedGate;
-  }
-
-  if (isRawMatrix2(parsed.rhoRows)) {
-    defaults.rhoRows = cloneMatrix2Raw(parsed.rhoRows);
-  }
-
-  if (Array.isArray(parsed.effects) && parsed.effects.length > 0 && parsed.effects.every((entry) => isRawEffect(entry))) {
-    defaults.effects = parsed.effects.map(cloneEffect);
   }
 
   if (typeof parsed.selectedOutcomeId === "string" || parsed.selectedOutcomeId === null) {
@@ -158,11 +122,9 @@ export const persistPAdicFaithfulState = (): void => {
     prime: pAdicFaithfulState.prime,
     viewMode: pAdicFaithfulState.viewMode,
     qubitCount: pAdicFaithfulState.qubitCount,
-    preparedBloch: cloneBloch(pAdicFaithfulState.preparedBloch),
+    preparedInputs: clonePreparedInputs(pAdicFaithfulState.preparedInputs),
     columns: pAdicFaithfulState.columns.map(cloneColumn),
     selectedGate: pAdicFaithfulState.selectedGate,
-    rhoRows: cloneMatrix2Raw(pAdicFaithfulState.rhoRows),
-    effects: pAdicFaithfulState.effects.map(cloneEffect),
     selectedOutcomeId: pAdicFaithfulState.selectedOutcomeId,
   };
 

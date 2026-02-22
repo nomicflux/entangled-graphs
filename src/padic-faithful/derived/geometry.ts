@@ -1,89 +1,96 @@
-import type { PAdicDerivedNode, PAdicOutcomeRow, PAdicPrime, PAdicViewMode } from "../types";
+import type { PAdicDerivedNode, PAdicOperatorEntryRow, PAdicPrime, PAdicViewMode } from "../types";
 
-const EPSILON = 1e-12;
-
-const normalizePoints = (points: ReadonlyArray<{ x: number; y: number }>): Array<{ x: number; y: number }> => {
-  if (points.length === 0) {
-    return [];
+const absScaleFromNorm = (value: number): number => {
+  if (!Number.isFinite(value) || value <= 0) {
+    return 0;
   }
-
-  const xs = points.map((point) => point.x);
-  const ys = points.map((point) => point.y);
-  const minX = Math.min(...xs);
-  const maxX = Math.max(...xs);
-  const minY = Math.min(...ys);
-  const maxY = Math.max(...ys);
-  const span = Math.max(maxX - minX, maxY - minY);
-
-  if (span <= EPSILON) {
-    return points.map(() => ({ x: 0, y: 0 }));
-  }
-
-  const centerX = (minX + maxX) * 0.5;
-  const centerY = (minY + maxY) * 0.5;
-  const scale = 2 / span;
-
-  return points.map((point) => ({
-    x: (point.x - centerX) * scale,
-    y: (point.y - centerY) * scale,
-  }));
+  return value / (1 + value);
 };
 
-const pointsForValuationRing = (rows: ReadonlyArray<PAdicOutcomeRow>, prime: PAdicPrime): Array<{ x: number; y: number }> => {
-  const maxNorm = rows.reduce((best, row) => Math.max(best, row.abs_p), 0);
-  const normScale = maxNorm > 0 ? maxNorm : 1;
+const digitsForIndex = (index: number, prime: PAdicPrime, depth: number): number[] => {
+  const out: number[] = [];
+  let remaining = Math.max(0, Math.trunc(index));
+  for (let i = 0; i < depth; i += 1) {
+    out.push(remaining % prime);
+    remaining = Math.floor(remaining / prime);
+  }
+  return out;
+};
 
-  const points = rows.map((row, index) => {
-    const residue = row.unitResidue ?? index;
-    const angle = (2 * Math.PI * residue) / Math.max(2, prime);
-    const radial = row.abs_p / normScale;
-    const radius = radial <= EPSILON ? 0 : 0.08 + (0.92 * radial);
+const pointsForValuationRing = (
+  entries: ReadonlyArray<PAdicOperatorEntryRow>,
+  prime: PAdicPrime,
+): Array<{ x: number; y: number }> => {
+  const residueSlots = Math.max(2, prime);
+  const dimension = Math.max(1, Math.round(Math.sqrt(entries.length)));
+  return entries.map((entry) => {
+    const linearIndex = (entry.row * dimension) + entry.column;
+    const residueSeed = entry.unitResidue ?? (linearIndex % residueSlots);
+    const residue = ((residueSeed % residueSlots) + residueSlots) % residueSlots;
+    const angle = ((2 * Math.PI * residue) / residueSlots) - (Math.PI / 2);
+    const radius = Number.isFinite(entry.v_p) && entry.abs_p > 0
+      ? 0.12 + (0.82 * absScaleFromNorm(entry.abs_p))
+      : 0.045;
     return {
       x: radius * Math.cos(angle),
       y: radius * Math.sin(angle),
     };
   });
-
-  return normalizePoints(points);
 };
 
-const pointsForDigitVector = (rows: ReadonlyArray<PAdicOutcomeRow>, prime: PAdicPrime): Array<{ x: number; y: number }> => {
-  const points = rows.map((row) => {
+const pointsForDigitVector = (
+  entries: ReadonlyArray<PAdicOperatorEntryRow>,
+  prime: PAdicPrime,
+): Array<{ x: number; y: number }> => {
+  const dimension = Math.max(1, Math.round(Math.sqrt(entries.length)));
+  const descriptorDepth = Math.max(1, Math.ceil(Math.log(dimension) / Math.log(prime)));
+
+  return entries.map((entry) => {
+    const rowDigits = digitsForIndex(entry.row, prime, descriptorDepth);
+    const columnDigits = digitsForIndex(entry.column, prime, descriptorDepth);
+    const descriptorDigits: number[] = [];
+    for (let i = 0; i < descriptorDepth; i += 1) {
+      descriptorDigits.push(rowDigits[i] ?? 0);
+      descriptorDigits.push(columnDigits[i] ?? 0);
+    }
+    const allDigits = [...descriptorDigits, ...entry.digits.digits];
+
     let x = 0;
     let y = 0;
-
-    for (let index = 0; index < row.digits.digits.length; index += 1) {
-      const digit = row.digits.digits[index] ?? 0;
+    for (let index = 0; index < allDigits.length; index += 1) {
+      const digit = allDigits[index] ?? 0;
       const radius = 1 / Math.pow(prime, index + 1);
-      const angle = (2 * Math.PI * digit) / prime;
+      const signOffset = entry.digits.sign < 0 ? Math.PI / prime : 0;
+      const angle = ((2 * Math.PI * digit) / prime) + signOffset - (Math.PI / 2);
       x += radius * Math.cos(angle);
       y += radius * Math.sin(angle);
     }
 
-    return { x, y };
+    return {
+      x,
+      y,
+    };
   });
-
-  return normalizePoints(points);
 };
 
-export const derivedNodesFromRows = (
-  rows: ReadonlyArray<PAdicOutcomeRow>,
+export const derivedNodesFromEntries = (
+  entries: ReadonlyArray<PAdicOperatorEntryRow>,
   prime: PAdicPrime,
   mode: PAdicViewMode,
 ): ReadonlyArray<PAdicDerivedNode> => {
   const points =
     mode === "valuation_ring"
-      ? pointsForValuationRing(rows, prime)
-      : pointsForDigitVector(rows, prime);
+      ? pointsForValuationRing(entries, prime)
+      : pointsForDigitVector(entries, prime);
 
-  return rows.map((row, index) => ({
-    id: row.id,
-    label: row.label,
+  return entries.map((entry, index) => ({
+    id: entry.id,
+    label: entry.label,
     x: points[index]?.x ?? 0,
     y: points[index]?.y ?? 0,
-    abs_p: row.abs_p,
-    w_norm: row.w_norm,
-    v_p: row.v_p,
-    residue: row.unitResidue,
+    abs_p: entry.abs_p,
+    w_norm: entry.w_norm,
+    v_p: entry.v_p,
+    residue: entry.unitResidue,
   }));
 };

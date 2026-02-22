@@ -6,12 +6,21 @@ export type PAdicViewMode = "valuation_ring" | "digit_vector";
 
 export type PAdicCircuitGate = "I" | "X" | "Z" | "M" | null;
 
-export type Matrix2 = [[PAdicScalar, PAdicScalar], [PAdicScalar, PAdicScalar]];
+export type Matrix2 = PAdicScalar[][];
 
-export type RawMatrix2 = [[string, string], [string, string]];
+export type RawMatrix2 = string[][];
+
+export type PAdicInputPreset =
+  | "basis_0"
+  | "basis_1"
+  | "diag_balanced"
+  | "offdiag_pos"
+  | "offdiag_neg"
+  | "shell_weighted";
 
 export type PAdicStatisticalOperator = {
   entries: Matrix2;
+  dimension: number;
   traceScalar: PAdicScalar;
   trace: number;
 };
@@ -45,6 +54,23 @@ export type PAdicOutcomeRow = {
   w_norm: number;
 };
 
+export type PAdicOperatorEntryRow = {
+  id: string;
+  label: string;
+  row: number;
+  column: number;
+  basisRow: string;
+  basisColumn: string;
+  isDiagonal: boolean;
+  value_raw: number;
+  value_text: string;
+  v_p: number;
+  abs_p: number;
+  unitResidue: number | null;
+  digits: PAdicDigitExpansion;
+  w_norm: number;
+};
+
 export type PAdicOutcomeShell = {
   key: string;
   valuation: number;
@@ -65,6 +91,22 @@ export type PAdicStageCard = {
   subtitle: string;
   primary: string;
   secondary: string;
+};
+
+export type PAdicStageView = {
+  id: string;
+  index: number;
+  label: string;
+  columnIndex: number | null;
+  dimension: number;
+  trace: number;
+  rows: ReadonlyArray<PAdicOutcomeRow>;
+  entries: ReadonlyArray<PAdicOperatorEntryRow>;
+  shells: ReadonlyArray<PAdicOutcomeShell>;
+  dominantOutcomeLabel: string;
+  dominantWeight: number;
+  nonZeroEntryCount: number;
+  nonZeroOffDiagonalCount: number;
 };
 
 export type PAdicDerivedNode = {
@@ -88,10 +130,8 @@ export type PAdicFaithfulState = {
   prime: PAdicPrime;
   viewMode: PAdicViewMode;
   qubitCount: number;
-  preparedBloch: Array<{ theta: number; phi: number }>;
+  preparedInputs: Array<{ preset: PAdicInputPreset }>;
   columns: Array<{ gates: PAdicCircuitGate[] }>;
   selectedGate: PAdicCircuitGate;
-  rhoRows: RawMatrix2;
-  effects: PAdicRawEffect[];
   selectedOutcomeId: string | null;
 };

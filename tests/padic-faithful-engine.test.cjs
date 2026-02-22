@@ -145,3 +145,23 @@ test("faithful engine uses exact scalar checks for trace and p-adic valuation", 
   assert.equal(byId.get("omega_0").unitResidue, 2);
   assert.equal(byId.get("omega_1").unitResidue, 1);
 });
+
+test("faithful engine returns full stage operator sequence across circuit columns", () => {
+  const staged = faithful.stageOperatorsFromPreparedInputsAndCircuit(
+    [{ preset: "basis_0" }],
+    [
+      { gates: ["X"] },
+      { gates: ["M"] },
+    ],
+    1,
+    3,
+  );
+
+  assert.equal(staged.error, null);
+  assert.equal(staged.stages.length, 3);
+  assert.equal(staged.stages[0].label, "Input");
+  assert.equal(staged.stages[1].label, "After C1");
+  assert.equal(staged.stages[2].label, "After C2");
+  assert.equal(staged.stages[0].operator.dimension, 2);
+  assert.equal(staged.stages[2].operator.trace, 1);
+});

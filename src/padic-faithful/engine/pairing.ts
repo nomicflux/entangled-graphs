@@ -1,42 +1,17 @@
 import type { Matrix2, PAdicOutcomeRow, PAdicPrime, PAdicSovm, PAdicStatisticalOperator } from "../types";
 import { pAdicDigitsFromScalar } from "./digits";
 import {
-  addPAdicScalars,
   isZeroPAdicScalar,
-  multiplyPAdicScalars,
   pAdicNormExponentOfScalar,
   pAdicScalarToNumber,
   pAdicUnitResidueOfScalar,
   pAdicValuationOfScalar,
   type PAdicScalar,
 } from "./scalar";
+import { matrixMultiply, matrixTrace } from "./matrix";
 
-const product2x2 = (left: Matrix2, right: Matrix2): Matrix2 => [
-  [
-    addPAdicScalars(
-      multiplyPAdicScalars(left[0][0], right[0][0]),
-      multiplyPAdicScalars(left[0][1], right[1][0]),
-    ),
-    addPAdicScalars(
-      multiplyPAdicScalars(left[0][0], right[0][1]),
-      multiplyPAdicScalars(left[0][1], right[1][1]),
-    ),
-  ],
-  [
-    addPAdicScalars(
-      multiplyPAdicScalars(left[1][0], right[0][0]),
-      multiplyPAdicScalars(left[1][1], right[1][0]),
-    ),
-    addPAdicScalars(
-      multiplyPAdicScalars(left[1][0], right[0][1]),
-      multiplyPAdicScalars(left[1][1], right[1][1]),
-    ),
-  ],
-];
-
-const trace2x2 = (rows: Matrix2): PAdicScalar => addPAdicScalars(rows[0][0], rows[1][1]);
-
-const tracePairing = (rho: Matrix2, effect: Matrix2): PAdicScalar => trace2x2(product2x2(rho, effect));
+const tracePairing = (rho: Matrix2, effect: Matrix2): PAdicScalar =>
+  matrixTrace(matrixMultiply(rho, effect));
 
 const pAdicNormFromScalar = (value: PAdicScalar, prime: number): number => {
   if (isZeroPAdicScalar(value)) {

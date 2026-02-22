@@ -1,50 +1,21 @@
 .padic-faithful-panels {
-  align-items: stretch;
-  grid-template-columns: minmax(320px, 1fr) minmax(460px, 1.4fr);
-  grid-template-areas:
-    "stage stage"
-    "input outputs"
-    "circuit outputs"
-    "rho inspector"
-    "sovm inspector"
-    "derived derived";
-  gap: 18px;
+  align-items: start;
+  grid-template-columns: minmax(280px, 1fr) minmax(440px, 1.45fr) minmax(300px, 1fr);
+  gap: 20px;
 }
 
 .padic-faithful-panels .panel-center {
   min-height: auto;
 }
 
-.padic-stage-cards {
-  grid-area: stage;
+.padic-faithful-column {
+  display: grid;
+  gap: 18px;
+  align-content: start;
 }
 
-.padic-rho-panel {
-  grid-area: rho;
-}
-
-.padic-general-input-panel {
-  grid-area: input;
-}
-
-.padic-circuit-panel {
-  grid-area: circuit;
-}
-
-.padic-sovm-panel {
-  grid-area: sovm;
-}
-
-.padic-outputs-panel {
-  grid-area: outputs;
-}
-
-.padic-inspector-panel {
-  grid-area: inspector;
-}
-
-.padic-derived-panel {
-  grid-area: derived;
+.padic-faithful-column-center .padic-circuit-panel .circuit-columns {
+  min-height: 220px;
 }
 
 .padic-faithful-controls {
@@ -161,16 +132,21 @@
   font-size: 0.78rem;
 }
 
-.padic-circuit-panel .circuit-columns {
-  min-height: 180px;
-}
-
 .padic-outputs-panel .padic-output-table {
   width: 100%;
   min-width: 880px;
   border-collapse: collapse;
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.81rem;
+  line-height: 1.4;
+}
+
+.padic-stage-cards .padic-output-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.8rem;
   line-height: 1.4;
 }
 
@@ -182,7 +158,27 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.padic-stage-cards .padic-output-table th,
+.padic-stage-cards .padic-output-table td {
+  text-align: left;
+  white-space: nowrap;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 .padic-outputs-panel .padic-output-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.74);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(11, 16, 32, 0.95);
+  backdrop-filter: blur(4px);
+}
+
+.padic-stage-cards .padic-output-table thead th {
   position: sticky;
   top: 0;
   z-index: 3;
@@ -257,72 +253,121 @@
   font-size: 0.8rem;
 }
 
-.padic-map-svg {
+.padic-stage-cards .snapshot-card {
+  display: grid;
+  gap: 8px;
+}
+
+.padic-circuit-tool-label,
+.padic-circuit-tool-note {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.padic-circuit-tool-note {
+  margin-top: 4px;
+}
+
+.padic-numeric-glyph-svg {
   width: 100%;
-  height: clamp(240px, 33vw, 360px);
-  border-radius: 14px;
+  border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background:
-    radial-gradient(circle at 50% 50%, rgba(102, 245, 214, 0.09), rgba(7, 12, 26, 0.08));
+    radial-gradient(circle at 50% 50%, rgba(102, 245, 214, 0.11), rgba(7, 12, 26, 0.14));
 }
 
-.padic-map-ring {
+.padic-numeric-glyph-svg-compact {
+  height: 112px;
+}
+
+.padic-numeric-glyph-svg-detail {
+  height: clamp(250px, 28vw, 340px);
+}
+
+.padic-stage-shell-ring {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.1);
-  stroke-width: 0.35;
+  stroke: rgba(255, 255, 255, 0.16);
+  stroke-width: 0.5;
 }
 
-.padic-map-residue-axis {
-  stroke: rgba(255, 255, 255, 0.11);
-  stroke-width: 0.28;
-  stroke-dasharray: 1.5 1.5;
+.padic-stage-residue-axis {
+  stroke: rgba(255, 255, 255, 0.14);
+  stroke-width: 0.34;
+  stroke-dasharray: 1.6 1.6;
 }
 
-.padic-map-node {
-  cursor: pointer;
+.padic-stage-node circle {
+  fill: rgba(102, 245, 214, 0.45);
+  stroke: rgba(246, 255, 255, 0.84);
+  stroke-width: 0.5;
 }
 
-.padic-map-node circle {
-  fill: rgba(102, 245, 214, 0.36);
-  stroke: rgba(255, 255, 255, 0.62);
-  stroke-width: 0.55;
-}
-
-.padic-map-label {
+.padic-stage-node-label {
   text-anchor: middle;
   dominant-baseline: middle;
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 3.2px;
-  fill: rgba(255, 255, 255, 0.92);
   pointer-events: none;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 3.1px;
+  fill: rgba(255, 255, 255, 0.92);
 }
 
-@media (max-width: 1180px) {
+.padic-stage-visual-wrap {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.padic-stage-visual-legend {
+  display: grid;
+  gap: 4px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 10px;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.padic-stage-visual-legend p {
+  margin: 0;
+}
+
+.padic-stage-table-heading {
+  margin: 0 0 8px;
+  font-size: 0.76rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+@media (max-width: 1240px) {
   .padic-faithful-panels {
-    grid-template-columns: minmax(280px, 1fr) minmax(380px, 1.2fr);
-    grid-template-areas:
-      "stage stage"
-      "input outputs"
-      "circuit outputs"
-      "rho outputs"
-      "sovm outputs"
-      "inspector inspector"
-      "derived derived";
+    grid-template-columns: minmax(280px, 1fr) minmax(420px, 1.25fr);
+  }
+
+  .padic-faithful-column-left {
+    grid-column: 1;
+  }
+
+  .padic-faithful-column-center {
+    grid-column: 2;
+  }
+
+  .padic-faithful-column-right {
+    grid-column: 1 / -1;
   }
 }
 
 @media (max-width: 980px) {
   .padic-faithful-panels {
     grid-template-columns: 1fr;
-    grid-template-areas:
-      "stage"
-      "input"
-      "circuit"
-      "rho"
-      "sovm"
-      "outputs"
-      "inspector"
-      "derived";
+  }
+
+  .padic-faithful-column-left,
+  .padic-faithful-column-center,
+  .padic-faithful-column-right {
+    grid-column: 1;
   }
 
   .padic-effect-head {
@@ -332,4 +377,9 @@
   .padic-outputs-panel .padic-output-table {
     min-width: 760px;
   }
+
+  .padic-stage-cards .padic-output-table {
+    min-width: 700px;
+  }
+
 }
