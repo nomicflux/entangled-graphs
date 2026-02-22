@@ -24,7 +24,10 @@
 
 .measurement-readout {
   display: grid;
-  gap: 8px;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .measurement-context {
@@ -45,7 +48,7 @@
   display: flex;
   justify-content: space-between;
   font-family: "IBM Plex Mono", monospace;
-  font-size: 0.85rem;
+  font-size: 0.78rem;
 }
 
 .measurement-visual {
@@ -60,7 +63,7 @@
 .probability-list {
   margin-top: 14px;
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .probability-list h3 {
@@ -72,18 +75,61 @@
   margin: 0 0 2px;
   font-size: 0.72rem;
   color: var(--muted);
-  letter-spacing: 0.03em;
+  line-height: 1.35;
+}
+
+.padic-output-wrap {
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.padic-output-table {
+  width: 100%;
+  min-width: 700px;
+  border-collapse: collapse;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.74rem;
+}
+
+.padic-output-table th,
+.padic-output-table td {
+  text-align: left;
+  white-space: nowrap;
+  padding: 7px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.padic-output-table thead th {
+  font-size: 0.68rem;
+  color: var(--muted);
   text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-.prob-row.is-highlighted {
-  background: rgba(102, 245, 214, 0.12);
-  border-radius: 8px;
-  padding: 4px 6px;
+.padic-shell-heading th {
+  font-size: 0.69rem;
+  color: rgba(255, 196, 96, 0.95);
+  background: rgba(255, 196, 96, 0.08);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
-.prob-row.is-highlighted .prob-bar {
-  box-shadow: 0 0 14px rgba(102, 245, 214, 0.55);
+.padic-output-row {
+  cursor: pointer;
+}
+
+.padic-output-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.padic-output-row.selected {
+  background: rgba(102, 245, 214, 0.14);
+}
+
+.padic-output-row.is-highlighted {
+  background: rgba(252, 165, 255, 0.12);
 }
 
 .history-list {
@@ -175,26 +221,11 @@
   letter-spacing: 0.03em;
 }
 
-.padic-inspector-badges {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.padic-badge {
-  font-size: 0.68rem;
-  padding: 3px 7px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  letter-spacing: 0.02em;
-}
-
-.padic-badge.primary {
-  background: rgba(102, 245, 214, 0.18);
-}
-
-.padic-badge.derived {
-  background: rgba(255, 196, 96, 0.18);
+.padic-inspector-context {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.35;
 }
 
 .padic-table-wrap {
@@ -215,6 +246,10 @@
   text-align: left;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   white-space: nowrap;
+}
+
+.padic-shell-heading th {
+  border-bottom: 1px solid rgba(255, 196, 96, 0.15);
 }
 
 .padic-value-row {

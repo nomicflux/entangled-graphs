@@ -3,7 +3,7 @@
     <div class="padic-state-map-head">
       <div>
         <h3>p-adic State Map</h3>
-        <p>{{ stageLabel }} • {{ geometryModeLabel }} • p={{ prime }}</p>
+        <p>{{ stageLabel }} • {{ geometryModeLabel }} • p={{ prime }} • nodes={{ nodes.length }}</p>
       </div>
       <button class="column-btn padic-replay-btn" type="button" :disabled="!canReplay" @click="replayTransition">
         Replay transition
@@ -53,7 +53,7 @@
         :style="edgeStyle(edge.weight, edge.delta)"
       >
         <title>
-          {{ edge.basis }}: Δw_p={{ edge.delta.toFixed(4) }}
+          {{ edge.basis }}: Δw_norm={{ edge.delta.toFixed(6) }}
         </title>
       </line>
 
@@ -61,13 +61,14 @@
         <circle
           :cx="xFor(node.point.x)"
           :cy="yFor(node.point.y)"
-          :r="nodeRadius(node.weight)"
+          :r="nodeRadius(node.norm)"
           :class="{ selected: selectedBasis === node.basis }"
           :style="nodeStyle(node.weight, node.norm)"
         >
           <title>
-            |{{ node.basis }}>: w_p={{ node.weight.toFixed(4) }}, v_p={{ formatValuation(node.valuation) }},
-            residue={{ node.residue }}, digits={{ node.digits.join(' ') }}
+            |{{ node.basis }}>: ω_i={{ formatScalar(node.rawWeight) }}, w_norm={{ formatScalar(node.weight) }},
+            v_p={{ formatValuation(node.valuation) }}, |.|_p={{ formatScalar(node.norm) }},
+            residue={{ node.residue }}, digits={{ node.digits.join(" ") }}
           </title>
         </circle>
         <text
@@ -83,10 +84,10 @@
 
     <div v-if="geometryMode === 'valuation_ring'" class="padic-map-legend">
       <p>
-        <strong>Valuation-Ring:</strong> radius encodes valuation-derived norm, angle encodes residue class mod p.
+        <strong>Valuation-Ring:</strong> radius encodes |ω_i|_p shell and angle encodes residue class mod p.
       </p>
       <p class="muted">
-        Rings shown for the current stage: {{ valuationSummary }}
+        Shells shown for the current stage: {{ valuationSummary }}
       </p>
     </div>
   </section>
@@ -121,7 +122,7 @@ const emit = defineEmits<{
 const nodes = computed<ReadonlyArray<PAdicVisualizationNode>>(() => props.stage?.nodes ?? []);
 const transitions = computed<ReadonlyArray<PAdicVisualizationTransition>>(() => props.stage?.transitions ?? []);
 const geometryMode = computed<PAdicGeometryMode>(() => props.stage?.geometryMode ?? "padic_vector");
-const geometryModeLabel = computed(() => (geometryMode.value === "padic_vector" ? "Digit-Vector" : "Valuation-Ring"));
+const geometryModeLabel = computed(() => (geometryMode.value === "padic_vector" ? "Digit-Vector (Derived)" : "Valuation-Ring"));
 const residueAngles = computed(() =>
   Array.from({ length: Math.max(2, props.prime) }, (_, residue) => ({
     residue,
@@ -248,12 +249,12 @@ const canReplay = computed(() => nodes.value.length > 0 && fromNodes.value.lengt
 const xFor = (x: number): number => 50 + (x * 42);
 const yFor = (y: number): number => 50 - (y * 42);
 
-const nodeRadius = (weight: number): number => 1.7 + (Math.min(1, Math.max(0, weight)) * 5.8);
+const nodeRadius = (norm: number): number => 1.7 + (normScale(norm) * 5.8);
 
 const nodeStyle = (weight: number, norm: number): Record<string, string> => ({
-  fill: `rgba(102, 245, 214, ${0.18 + (Math.min(1, weight) * 0.72)})`,
-  stroke: `rgba(252, 165, 255, ${0.25 + (Math.min(1, norm) * 0.45)})`,
-  strokeWidth: `${0.18 + (Math.min(1, weight) * 0.6)}`,
+  fill: `rgba(102, 245, 214, ${0.15 + (normScale(norm) * 0.65)})`,
+  stroke: `rgba(252, 165, 255, ${0.22 + (Math.min(1, weight) * 0.55)})`,
+  strokeWidth: `${0.18 + (normScale(norm) * 0.6)}`,
 });
 
 const edgeStyle = (weight: number, delta: number): Record<string, string> => ({
@@ -267,6 +268,24 @@ const formatValuation = (value: number): string => {
     return "+∞";
   }
   return Number.isInteger(value) ? String(value) : value.toFixed(3);
+};
+const formatScalar = (value: number): string => {
+  if (!Number.isFinite(value)) {
+    return value > 0 ? "+∞" : "-∞";
+  }
+  if (value === 0) {
+    return "0";
+  }
+  if (Math.abs(value) < 1e-6 || Math.abs(value) > 1e4) {
+    return value.toExponential(3);
+  }
+  return value.toFixed(6);
+};
+const normScale = (norm: number): number => {
+  if (!Number.isFinite(norm) || norm <= 0) {
+    return 0;
+  }
+  return Math.min(1, norm / (1 + norm));
 };
 
 const emitSelect = (basis: string) => {
