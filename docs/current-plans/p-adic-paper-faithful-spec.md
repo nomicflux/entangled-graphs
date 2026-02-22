@@ -7,53 +7,46 @@ Authority: `/Users/demouser/Code/entangled-graphs/docs/p-adic-qubits-reference.m
 ## 0) Delivery Status (Snapshot: February 22, 2026)
 This section tracks implementation progress against this spec.
 
-Completed (committed):
-1. Phase 1 core operator/SOVM model landed in commit `d75de48`.
-   Files:
-   - `/Users/demouser/Code/entangled-graphs/src/quantum/padic/operator-model.ts`
-   - `/Users/demouser/Code/entangled-graphs/tests/padic-phase1-operator-model.test.cjs`
-2. Phase 2 local-state prep UI/balanced-local-set coverage landed in commit `23bc707`.
-   Files:
-   - `/Users/demouser/Code/entangled-graphs/src/components/padic/PAdicPrepPanel.vue`
-   - `/Users/demouser/Code/entangled-graphs/tests/padic-phase3-state.test.cjs`
-3. Phase 3 strict p-adic simulator plumbing (resolver fallback removed) landed in commit `6796374`.
-   Files:
-   - `/Users/demouser/Code/entangled-graphs/src/quantum/padic/ensemble.ts`
-   - `/Users/demouser/Code/entangled-graphs/src/quantum/padic/sampling.ts`
-   - `/Users/demouser/Code/entangled-graphs/src/quantum/padic/raw-state.ts`
-   - `/Users/demouser/Code/entangled-graphs/tests/padic-phase3-simulator-plumbing.test.cjs`
-4. Phase 4 valuation-shell-first measurement/state-map/value-inspector refactor landed in commit `d4b8361`.
-   Files:
-   - `/Users/demouser/Code/entangled-graphs/src/components/padic/PAdicMeasurementPanel.vue`
-   - `/Users/demouser/Code/entangled-graphs/src/components/padic/PAdicStateMap.vue`
-   - `/Users/demouser/Code/entangled-graphs/src/components/padic/PAdicValueInspector.vue`
+Completed (current tree):
+1. Legacy p-adic workspace was removed and replaced by a hermetic p-adic-faithful page rooted at:
+   - `/Users/demouser/Code/entangled-graphs/src/components/padic-faithful/PAdicFaithfulWorkbench.vue`
+   - `/Users/demouser/Code/entangled-graphs/src/padic-faithful/*`
+2. SPA routing opens p-adic directly to faithful components (no wrapper shim):
+   - `/Users/demouser/Code/entangled-graphs/src/App.vue`
+3. Legacy p-adic paths were deleted:
+   - `/Users/demouser/Code/entangled-graphs/src/components/padic/`
+   - `/Users/demouser/Code/entangled-graphs/src/quantum/padic/`
+   - `/Users/demouser/Code/entangled-graphs/src/state/padic-actions.ts`
+   - `/Users/demouser/Code/entangled-graphs/src/styles/padic-state-map.css`
+4. p-adic UI is valuation-shell-first and p-adic-primary (`omega_i`, `v_p`, `|.|_p`, residue, digits; `w_norm` labeled `Derived`):
+   - `/Users/demouser/Code/entangled-graphs/src/components/padic-faithful/PAdicOutputsPanel.vue`
+   - `/Users/demouser/Code/entangled-graphs/src/components/padic-faithful/PAdicStageCards.vue`
+   - `/Users/demouser/Code/entangled-graphs/src/components/padic-faithful/PAdicOutcomeInspector.vue`
+5. Static/regression coverage exists to block regressions to legacy paths and complex-era p-adic visuals:
+   - `/Users/demouser/Code/entangled-graphs/tests/padic-faithful-static-boundary.test.cjs`
+   - `/Users/demouser/Code/entangled-graphs/tests/padic-faithful-no-legacy-paths.test.cjs`
+   - `/Users/demouser/Code/entangled-graphs/tests/padic-faithful-ui-contract.test.cjs`
+   - `/Users/demouser/Code/entangled-graphs/tests/padic-faithful-state.test.cjs`
+   - `/Users/demouser/Code/entangled-graphs/tests/padic-faithful-engine.test.cjs`
 
-In progress (implemented locally, not yet committed):
-1. p-adic scalar-stage rendering path (removes scalar-mode bar visuals in shared stage inspector path).
-   Files:
-   - `/Users/demouser/Code/entangled-graphs/src/components/StageInspector.vue`
-   - `/Users/demouser/Code/entangled-graphs/src/components/circuit/CircuitStageSnapshots.vue`
-   - `/Users/demouser/Code/entangled-graphs/src/components/padic/PAdicCircuitPanel.vue`
-   - `/Users/demouser/Code/entangled-graphs/src/styles/circuit-stage.css`
-2. Regression coverage for p-adic visual semantics.
-   File:
-   - `/Users/demouser/Code/entangled-graphs/tests/padic-phase5-ui-semantics.test.cjs`
-
-Remaining (must be completed for strict compliance):
-1. Remove all p-adic dependence on shared complex-era stage visual abstractions.
-   Required deletion/replacement targets:
-   - `/Users/demouser/Code/entangled-graphs/src/components/StageInspector.vue`
-   - `/Users/demouser/Code/entangled-graphs/src/components/circuit/CircuitStageSnapshots.vue`
-   - `/Users/demouser/Code/entangled-graphs/src/components/BlochPairView.vue` usage in p-adic paths
-2. Replace p-adic stage payload contracts that still mirror complex-stage distribution/Bloch shape.
-   Required rewrite targets:
-   - `/Users/demouser/Code/entangled-graphs/src/state/selectors.ts` (`pAdicStageViews`/Bloch-coupled structures)
-   - `/Users/demouser/Code/entangled-graphs/src/types.ts` (p-adic stage UI contract types)
-3. Complete p-adic-native stage UX from scratch:
-   1. Valuation-shell stage cards
-   2. p-adic outcome tables only (`omega_i`, `v_p`, `|.|_p`, unit/residue, digits)
-   3. Derived metrics explicitly secondary
-4. Add hard CI/static checks that fail on p-adic imports of complex visualization components and forbidden tokens.
+Remaining (strict paper-faithful blockers):
+1. Replace numeric-real approximation internals with true p-adic value objects (or explicit finite truncation objects with algebraic semantics).
+   Current non-compliant files:
+   - `/Users/demouser/Code/entangled-graphs/src/padic-faithful/engine/parse.ts`
+   - `/Users/demouser/Code/entangled-graphs/src/padic-faithful/engine/valuation.ts`
+   - `/Users/demouser/Code/entangled-graphs/src/padic-faithful/engine/digits.ts`
+2. Replace real-symmetric 2x2 operator handling with p-adic Hermitian/operator primitives consistent with the model contract.
+   Current non-compliant file:
+   - `/Users/demouser/Code/entangled-graphs/src/padic-faithful/engine/operator.ts`
+3. Update p-adic outcome row contract to match this spec exactly (`basis`, `w_raw` naming, and full UI-facing payload contract).
+   Current file:
+   - `/Users/demouser/Code/entangled-graphs/src/padic-faithful/types.ts`
+4. Complete in-shell grouping rule by shared digit prefix (current ordering is valuation then residue/id only).
+   Current file:
+   - `/Users/demouser/Code/entangled-graphs/src/padic-faithful/engine/pairing.ts`
+5. Wire hard checks into CI release workflow (currently build-only, no test/static-faithful gate on deploy workflow).
+   Current file:
+   - `/Users/demouser/Code/entangled-graphs/.github/workflows/deploy-pages.yml`
 
 ## 1) Non-Negotiable Goal
 Implement p-adic mode with strict fidelity to the primary paper model summarized in the reference:
