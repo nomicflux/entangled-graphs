@@ -1,5 +1,5 @@
-import { PADIC_FAITHFUL_PRIMES, PADIC_FAITHFUL_VIEW_MODES } from "../config";
-import type { PAdicRawEffect, PAdicViewMode } from "../types";
+import { PADIC_FAITHFUL_PRIMES, PADIC_FAITHFUL_VIEW_MODES, clampPAdicFaithfulQubitCount } from "../config";
+import type { PAdicCircuitGate, PAdicRawEffect, PAdicViewMode } from "../types";
 import { pAdicFaithfulState, persistPAdicFaithfulState } from "./store";
 
 const cloneEffectTemplate = (id: string): PAdicRawEffect => ({
@@ -99,5 +99,85 @@ export const removeFaithfulEffect = (index: number): void => {
 
 export const setFaithfulSelectedOutcome = (id: string | null): void => {
   pAdicFaithfulState.selectedOutcomeId = id;
+  persistPAdicFaithfulState();
+};
+
+const rebalancePreparedBloch = (count: number): void => {
+  while (pAdicFaithfulState.preparedBloch.length < count) {
+    pAdicFaithfulState.preparedBloch.push({ theta: Math.PI / 2, phi: 0 });
+  }
+  if (pAdicFaithfulState.preparedBloch.length > count) {
+    pAdicFaithfulState.preparedBloch.splice(count);
+  }
+};
+
+const rebalanceColumns = (count: number): void => {
+  for (const column of pAdicFaithfulState.columns) {
+    while (column.gates.length < count) {
+      column.gates.push(null);
+    }
+    if (column.gates.length > count) {
+      column.gates.splice(count);
+    }
+  }
+};
+
+export const setFaithfulQubitCount = (count: number): void => {
+  const nextCount = clampPAdicFaithfulQubitCount(count);
+  pAdicFaithfulState.qubitCount = nextCount;
+  rebalancePreparedBloch(nextCount);
+  rebalanceColumns(nextCount);
+  persistPAdicFaithfulState();
+};
+
+export const setFaithfulBlochTheta = (index: number, theta: number): void => {
+  const target = pAdicFaithfulState.preparedBloch[index];
+  if (!target || !Number.isFinite(theta)) {
+    return;
+  }
+  target.theta = Math.min(Math.PI, Math.max(0, theta));
+  persistPAdicFaithfulState();
+};
+
+export const setFaithfulBlochPhi = (index: number, phi: number): void => {
+  const target = pAdicFaithfulState.preparedBloch[index];
+  if (!target || !Number.isFinite(phi)) {
+    return;
+  }
+  const loop = 2 * Math.PI;
+  const normalized = ((phi % loop) + loop) % loop;
+  target.phi = normalized;
+  persistPAdicFaithfulState();
+};
+
+export const setFaithfulSelectedGate = (gate: PAdicCircuitGate): void => {
+  pAdicFaithfulState.selectedGate = gate;
+  persistPAdicFaithfulState();
+};
+
+export const addFaithfulColumn = (): void => {
+  pAdicFaithfulState.columns.push({
+    gates: Array.from({ length: pAdicFaithfulState.qubitCount }, () => null),
+  });
+  persistPAdicFaithfulState();
+};
+
+export const removeFaithfulColumn = (): void => {
+  if (pAdicFaithfulState.columns.length === 0) {
+    return;
+  }
+  pAdicFaithfulState.columns.pop();
+  persistPAdicFaithfulState();
+};
+
+export const setFaithfulColumnGate = (columnIndex: number, rowIndex: number, gate: PAdicCircuitGate): void => {
+  const column = pAdicFaithfulState.columns[columnIndex];
+  if (!column) {
+    return;
+  }
+  if (rowIndex < 0 || rowIndex >= pAdicFaithfulState.qubitCount) {
+    return;
+  }
+  column.gates[rowIndex] = gate;
   persistPAdicFaithfulState();
 };

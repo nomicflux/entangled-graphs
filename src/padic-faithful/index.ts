@@ -50,6 +50,13 @@ export {
   addFaithfulEffect,
   removeFaithfulEffect,
   setFaithfulSelectedOutcome,
+  setFaithfulQubitCount,
+  setFaithfulBlochTheta,
+  setFaithfulBlochPhi,
+  setFaithfulSelectedGate,
+  addFaithfulColumn,
+  removeFaithfulColumn,
+  setFaithfulColumnGate,
 } from "./state/actions";
 export {
   faithfulRhoResult,

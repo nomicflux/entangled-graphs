@@ -8,6 +8,10 @@ const cloneState = () => JSON.parse(JSON.stringify(faithful.pAdicFaithfulState))
 const restoreState = (snapshot) => {
   faithful.pAdicFaithfulState.prime = snapshot.prime;
   faithful.pAdicFaithfulState.viewMode = snapshot.viewMode;
+  faithful.pAdicFaithfulState.qubitCount = snapshot.qubitCount;
+  faithful.pAdicFaithfulState.preparedBloch = snapshot.preparedBloch;
+  faithful.pAdicFaithfulState.columns = snapshot.columns;
+  faithful.pAdicFaithfulState.selectedGate = snapshot.selectedGate;
   faithful.pAdicFaithfulState.rhoRows = snapshot.rhoRows;
   faithful.pAdicFaithfulState.effects = snapshot.effects;
   faithful.pAdicFaithfulState.selectedOutcomeId = snapshot.selectedOutcomeId;

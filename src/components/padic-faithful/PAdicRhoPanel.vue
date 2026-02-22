@@ -1,5 +1,5 @@
 <template>
-  <section class="panel">
+  <section class="panel padic-rho-panel">
     <div class="panel-header">
       <h2>State Operator rho</h2>
       <p>Canonical state object is a 2x2 p-adic statistical operator with trace one.</p>

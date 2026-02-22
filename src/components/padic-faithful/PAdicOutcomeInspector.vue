@@ -1,5 +1,5 @@
 <template>
-  <section class="panel">
+  <section class="panel padic-inspector-panel">
     <div class="panel-header">
       <h2>Outcome Inspector</h2>
       <p>Inspect one omega_i record with valuation, unit class, and digits.</p>

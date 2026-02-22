@@ -4,6 +4,8 @@ export type PAdicPrime = 2 | 3 | 5 | 7;
 
 export type PAdicViewMode = "valuation_ring" | "digit_vector";
 
+export type PAdicCircuitGate = "I" | "X" | "Z" | "M" | null;
+
 export type Matrix2 = [[PAdicScalar, PAdicScalar], [PAdicScalar, PAdicScalar]];
 
 export type RawMatrix2 = [[string, string], [string, string]];
@@ -85,6 +87,10 @@ export type PAdicRawEffect = {
 export type PAdicFaithfulState = {
   prime: PAdicPrime;
   viewMode: PAdicViewMode;
+  qubitCount: number;
+  preparedBloch: Array<{ theta: number; phi: number }>;
+  columns: Array<{ gates: PAdicCircuitGate[] }>;
+  selectedGate: PAdicCircuitGate;
   rhoRows: RawMatrix2;
   effects: PAdicRawEffect[];
   selectedOutcomeId: string | null;

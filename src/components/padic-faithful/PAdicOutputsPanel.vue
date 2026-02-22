@@ -1,5 +1,5 @@
 <template>
-  <section class="panel">
+  <section class="panel padic-outputs-panel">
     <div class="panel-header">
       <h2>Statistical Outputs omega_i</h2>
       <p>Primary columns are omega_i, v_p, |.|_p, unit class, and base-p digits. w_norm is derived.</p>
@@ -7,6 +7,18 @@
 
     <p v-if="faithfulErrors.length > 0" class="padic-error">Resolve rho and SOVM validity to compute pairings.</p>
     <div v-else class="padic-output-wrap">
+      <div class="measurement-card padic-sample-card">
+        <button class="measure-btn" type="button" @click="sampleOutcome">Sample outcome</button>
+        <p class="measurement-context">Measured from derived weight profile (w_norm)</p>
+        <p class="measurement-outcome">{{ sampledLabel }}</p>
+        <div class="measurement-readout">
+          <div class="readout-row">
+            <span class="label">w_norm</span>
+            <span class="value">{{ sampledWeight }}</span>
+          </div>
+        </div>
+      </div>
+
       <table class="padic-output-table">
         <thead>
           <tr>
@@ -24,7 +36,7 @@
             <th colspan="7">valuation shell {{ shellLabel(shell.valuation) }} • {{ shell.rows.length }} outcomes</th>
           </tr>
           <template v-for="group in shell.prefixGroups" :key="group.key">
-            <tr class="padic-shell-heading">
+            <tr class="padic-prefix-heading">
               <th colspan="7">digit prefix {{ group.prefix }} • {{ residueClassLabel(group.residue) }} • {{ group.rows.length }} outcomes</th>
             </tr>
             <tr
@@ -50,7 +62,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import {
   faithfulDisplay,
   faithfulErrors,
@@ -60,6 +72,55 @@ import {
 } from "../../padic-faithful";
 
 const selectedId = computed(() => pAdicFaithfulState.selectedOutcomeId);
+
+const sampledRowId = ref<string | null>(null);
+
+const allRows = computed(() =>
+  faithfulOutcomeShells.value.flatMap((shell) =>
+    shell.prefixGroups.flatMap((group) => group.rows),
+  ),
+);
+
+const sampledRow = computed(() => allRows.value.find((row) => row.id === sampledRowId.value) ?? null);
+
+const sampledLabel = computed(() => {
+  if (!sampledRow.value) {
+    return "Awaiting sample";
+  }
+  return `${sampledRow.value.label} (${sampledRow.value.basis})`;
+});
+
+const sampledWeight = computed(() =>
+  sampledRow.value ? faithfulDisplay.formatScalar(sampledRow.value.w_norm) : "--",
+);
+
+const sampleOutcome = () => {
+  const rows = allRows.value;
+  if (rows.length === 0) {
+    return;
+  }
+
+  const total = rows.reduce((sum, row) => sum + row.w_norm, 0);
+  if (total <= 0) {
+    sampledRowId.value = rows[0]?.id ?? null;
+    setFaithfulSelectedOutcome(sampledRowId.value);
+    return;
+  }
+
+  const target = Math.random() * total;
+  let cursor = 0;
+  for (const row of rows) {
+    cursor += row.w_norm;
+    if (target <= cursor) {
+      sampledRowId.value = row.id;
+      setFaithfulSelectedOutcome(row.id);
+      return;
+    }
+  }
+
+  sampledRowId.value = rows[rows.length - 1]?.id ?? null;
+  setFaithfulSelectedOutcome(sampledRowId.value);
+};
 
 const shellLabel = (valuation: number): string =>
   Number.isFinite(valuation) ? `v_p=${faithfulDisplay.formatValuation(valuation)}` : "v_p=+∞";

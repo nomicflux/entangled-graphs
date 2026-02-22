@@ -1,5 +1,5 @@
 <template>
-  <section class="panel panel-center">
+  <section class="panel panel-center padic-derived-panel">
     <div class="panel-header">
       <h2>Derived Geometry</h2>
       <p>Explicitly derived from omega_i rows. Primary semantics remain in the valuation-shell tables.</p>

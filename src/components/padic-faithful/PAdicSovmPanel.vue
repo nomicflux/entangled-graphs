@@ -1,5 +1,5 @@
 <template>
-  <section class="panel panel-center">
+  <section class="panel panel-center padic-sovm-panel">
     <div class="panel-header">
       <h2>SOVM Effects F_i</h2>
       <p>Define selfadjoint effects that sum to identity in the faithful operator/SOVM model.</p>

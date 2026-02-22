@@ -20,9 +20,16 @@ test("faithful output panel uses valuation-shell-first p-adic columns with deriv
 });
 
 test("faithful workbench keeps operator and sovm primary labels", () => {
+  const workbench = readSource("src/components/padic-faithful/PAdicFaithfulWorkbench.vue");
   const rho = readSource("src/components/padic-faithful/PAdicRhoPanel.vue");
   const sovm = readSource("src/components/padic-faithful/PAdicSovmPanel.vue");
+  const input = readSource("src/components/padic-faithful/PAdicGeneralInputPanel.vue");
+  const circuit = readSource("src/components/padic-faithful/PAdicCircuitPanel.vue");
 
   assert.match(rho, /State Operator rho/);
   assert.match(sovm, /SOVM Effects F_i/);
+  assert.match(input, /General Qubit Input/);
+  assert.match(circuit, /p-adic Circuit/);
+  assert.match(workbench, /PAdicGeneralInputPanel/);
+  assert.match(workbench, /PAdicCircuitPanel/);
 });
