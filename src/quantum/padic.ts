@@ -27,7 +27,6 @@ export { simulate_padic_columns_ensemble } from "./padic/ensemble";
 export { sample_padic_circuit_run } from "./padic/sampling";
 export type {
   PAdicCircuitMeasurementOutcome,
-  PAdicGateResolver,
   PAdicSampledCircuitRun,
   PAdicSamplingReplayOptions,
   PAdicState,

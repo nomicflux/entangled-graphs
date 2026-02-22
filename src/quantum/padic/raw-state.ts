@@ -5,12 +5,19 @@ import type { PAdicRawPreparedQubit, PAdicState } from "./types";
 const MAX_PREPARED_STATE_SUPPORT = 16_384;
 
 const toLocalEntries = (entry: PAdicRawPreparedQubit, prime: number): Array<{ value: number; raw: string }> => {
-  const localEntries = entry.localStates
-    .filter((local) => Number.isInteger(local.value) && local.value >= 0 && local.value < prime)
-    .map((local) => ({ value: local.value, raw: local.amplitude.raw }));
+  const byValue = new Map<number, string>();
+  for (const local of entry.localStates) {
+    if (!Number.isInteger(local.value) || local.value < 0 || local.value >= prime) {
+      continue;
+    }
+    byValue.set(local.value, local.amplitude.raw);
+  }
 
-  if (localEntries.length > 0) {
-    return localEntries;
+  if (byValue.size > 0) {
+    return Array.from({ length: prime }, (_, value) => ({
+      value,
+      raw: byValue.get(value) ?? "0",
+    }));
   }
 
   return Array.from({ length: prime }, (_, value) => ({

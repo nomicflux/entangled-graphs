@@ -32,7 +32,6 @@ export {
 } from "./quantum/padic";
 export type {
   PAdicCircuitMeasurementOutcome,
-  PAdicGateResolver,
   PAdicOperator,
   PAdicSampledCircuitRun,
   PAdicSamplingReplayOptions,

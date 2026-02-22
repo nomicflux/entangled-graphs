@@ -2,14 +2,6 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const padic = require("../.tmp-test/quantum/padic.js");
-const stateOperators = require("../.tmp-test/state/operators.js");
-
-const resolver = (gate) => {
-  if (stateOperators.isBuiltinGate(gate)) {
-    return stateOperators.builtinOperatorMap[gate];
-  }
-  return null;
-};
 
 const asMap = (distribution) => new Map(distribution.map((entry) => [entry.basis, Number(entry.probability.toFixed(6))]));
 
@@ -69,7 +61,6 @@ test("sampled p-adic run supports replay and resample-from-point", () => {
   const first = padic.sample_padic_circuit_run(
     prepared,
     columns,
-    resolver,
     1,
     2,
     "operator_ensemble",
@@ -79,7 +70,6 @@ test("sampled p-adic run supports replay and resample-from-point", () => {
   const second = padic.sample_padic_circuit_run(
     prepared,
     columns,
-    resolver,
     1,
     2,
     "operator_ensemble",

@@ -20,14 +20,14 @@
       <p class="measurement-outcome">{{ latestBasis ? `|${latestBasis}>` : "Awaiting sample" }}</p>
       <div class="measurement-readout">
         <div class="readout-row">
-          <span class="label">Weight w_p</span>
-          <span class="value">{{ latestProbability === null ? "--" : formatPercent(latestProbability) }}</span>
+          <span class="label">Weight w_norm</span>
+          <span class="value">{{ latestProbability === null ? "--" : formatScalar(latestProbability) }}</span>
         </div>
       </div>
     </div>
 
     <div class="probability-list">
-      <h3>Output Distribution (w_p)</h3>
+      <h3>Statistical Outputs (w_raw / w_norm)</h3>
       <p class="distribution-context">{{ distributionContext }}</p>
       <div
         v-for="entry in displayedDistribution"
@@ -39,7 +39,8 @@
         <div class="prob-bar-wrap">
           <div class="prob-bar" :style="{ width: `${entry.probability * 100}%` }"></div>
         </div>
-        <span>{{ formatPercent(entry.probability) }}</span>
+        <span>w_raw={{ formatScalar(rawWeightForBasis(entry.basis)) }}</span>
+        <span>w_norm={{ formatScalar(entry.probability) }}</span>
       </div>
     </div>
 
@@ -69,7 +70,7 @@
       <ul v-else class="history-list">
         <li v-for="(entry, index) in history" :key="index">
           <span>|{{ entry.basis }}></span>
-          <span>{{ formatPercent(probabilityForBasis(entry.basis)) }} w_p</span>
+          <span>{{ formatScalar(probabilityForBasis(entry.basis)) }} w_norm</span>
           <p v-if="entry.path.length > 0" class="history-path">{{ entry.path }}</p>
         </li>
       </ul>
@@ -79,18 +80,18 @@
 
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from "vue";
-import { measurement_distribution_for_padic_ensemble, sample_padic_circuit_run } from "../../quantum";
-import type { BasisLabel, BasisProbability, GateId } from "../../types";
+import { measurement_distribution_for_padic_ensemble, p_adic_raw_weight_totals_for_ensemble, sample_padic_circuit_run } from "../../quantum";
+import type { BasisLabel, BasisProbability } from "../../types";
 import type { PAdicCircuitMeasurementOutcome } from "../../quantum";
 import { PADIC_MEASUREMENT_MODELS } from "../../padic-config";
 import {
+  pAdicFinalEnsemble,
   pAdicFinalDistribution,
   pAdicSelectedBasisNode,
   pAdicSelectedStage,
   pAdicSelectedStageVisualization,
   pAdicPreparedState,
   pAdicQubitCount,
-  resolveOperator,
   setPAdicSelectedBasis,
   setPAdicMeasurementModel,
   state,
@@ -101,14 +102,19 @@ const latestBasis = ref<BasisLabel | null>(null);
 const history = ref<Array<{ basis: BasisLabel; path: string }>>([]);
 const highlightBasis = ref<BasisLabel | null>(null);
 const sampledDistribution = ref<BasisProbability[] | null>(null);
+const sampledRawWeights = ref<Map<BasisLabel, number> | null>(null);
 const latestRunOutcomes = ref<PAdicCircuitMeasurementOutcome[]>([]);
 const maxHistory = 6;
 let highlightTimer: ReturnType<typeof setTimeout> | undefined;
 
 const displayedDistribution = computed(() => sampledDistribution.value ?? pAdicFinalDistribution.value);
 const distributionContext = computed(() =>
-  sampledDistribution.value === null ? "Expected normalized model weight over all branches" : "Sampled branch from latest run",
+  sampledDistribution.value === null ? "Expected normalized p-adic statistical weights over all branches" : "Sampled branch from latest run",
 );
+const finalRawWeightByBasis = computed(() =>
+  p_adic_raw_weight_totals_for_ensemble(pAdicFinalEnsemble.value, state.pAdic.prime, state.pAdic.measurementModel),
+);
+const displayedRawWeights = computed(() => sampledRawWeights.value ?? finalRawWeightByBasis.value);
 const probabilityByBasis = computed(() => {
   const table = new Map<BasisLabel, number>();
   for (const entry of displayedDistribution.value) {
@@ -123,22 +129,28 @@ const latestProbability = computed(() => {
   return probabilityByBasis.value.get(latestBasis.value) ?? null;
 });
 
-const formatPercent = (value: number): string => `${(value * 100).toFixed(1)}%`;
+const formatScalar = (value: number): string => {
+  if (value === 0) {
+    return "0";
+  }
+  if (Math.abs(value) < 1e-6 || Math.abs(value) > 1e4) {
+    return value.toExponential(3);
+  }
+  return value.toFixed(6);
+};
 const probabilityForBasis = (basis: BasisLabel): number => probabilityByBasis.value.get(basis) ?? 0;
+const rawWeightForBasis = (basis: BasisLabel): number => displayedRawWeights.value.get(basis) ?? 0;
 const formatPath = (outcomes: ReadonlyArray<{ wire: number; value: number }>): string =>
   outcomes.map((outcome) => `M(q${outcome.wire})=${outcome.value}`).join("  ");
 const formatMeasurementPoint = (entry: PAdicCircuitMeasurementOutcome): string => `t${entry.column} • M(q${entry.wire})=${entry.value}`;
-const resolveGate = (gate: GateId) => resolveOperator(gate, []);
 
 const applySampledRun = (sampled: ReturnType<typeof sample_padic_circuit_run>): void => {
   latestRunOutcomes.value = [...sampled.outcomes];
   latestBasis.value = sampled.finalSample.basis;
   history.value = [{ basis: sampled.finalSample.basis, path: formatPath(sampled.outcomes) }, ...history.value].slice(0, maxHistory);
-  sampledDistribution.value = measurement_distribution_for_padic_ensemble(
-    [{ weight: 1, state: sampled.finalState }],
-    state.pAdic.prime,
-    state.pAdic.measurementModel,
-  );
+  const sampledEnsemble = [{ weight: 1, state: sampled.finalState }];
+  sampledDistribution.value = measurement_distribution_for_padic_ensemble(sampledEnsemble, state.pAdic.prime, state.pAdic.measurementModel);
+  sampledRawWeights.value = p_adic_raw_weight_totals_for_ensemble(sampledEnsemble, state.pAdic.prime, state.pAdic.measurementModel);
   highlightBasis.value = sampled.finalSample.basis;
 
   if (highlightTimer) {
@@ -153,7 +165,6 @@ const takeMeasurement = () => {
   const sampled = sample_padic_circuit_run(
     pAdicPreparedState.value,
     state.pAdic.columns,
-    resolveGate,
     pAdicQubitCount.value,
     state.pAdic.prime,
     state.pAdic.measurementModel,
@@ -166,7 +177,6 @@ const resampleFrom = (gateId: string) => {
   const sampled = sample_padic_circuit_run(
     pAdicPreparedState.value,
     state.pAdic.columns,
-    resolveGate,
     pAdicQubitCount.value,
     state.pAdic.prime,
     state.pAdic.measurementModel,
@@ -194,6 +204,7 @@ watch(
     latestBasis.value = null;
     history.value = [];
     sampledDistribution.value = null;
+    sampledRawWeights.value = null;
     latestRunOutcomes.value = [];
     highlightBasis.value = null;
   },

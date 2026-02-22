@@ -1,14 +1,13 @@
 import type { CircuitColumn } from "../../types";
 import type { PAdicMeasurementModel } from "../../padic-config";
 import { isMeasurementGate } from "./constants";
-import { apply_padic_gate_to_state } from "./gates";
+import { apply_padic_gate_to_state, is_supported_padic_gate } from "./gates";
 import {
   measurement_distribution_for_padic_ensemble,
   sample_measurement_on_wire_for_model,
   select_measurement_on_wire_for_model,
 } from "./measurement-model";
 import type {
-  PAdicGateResolver,
   PAdicSampledCircuitRun,
   PAdicSamplingReplayOptions,
   PAdicState,
@@ -46,7 +45,6 @@ const sampleDistribution = (distribution: ReadonlyArray<{ basis: string; probabi
 export const sample_padic_circuit_run = (
   prepared: PAdicState,
   columns: CircuitColumn[],
-  resolveGate: PAdicGateResolver,
   qubitCount: number,
   p: number,
   model: PAdicMeasurementModel,
@@ -87,7 +85,7 @@ export const sample_padic_circuit_run = (
         continue;
       }
 
-      if (resolveGate(gate.gate) === null) {
+      if (!is_supported_padic_gate(gate.gate)) {
         continue;
       }
 

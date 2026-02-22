@@ -208,7 +208,6 @@ export const preparedState = computed<QubitState>(() => tensor_product_qubits(pr
 export const preparedDistribution = computed(() => preparedDistributionForQubits(preparedQubits.value));
 
 const resolveGate = (gate: GateId) => resolveOperator(gate, state.customOperators);
-const resolvePAdicGate = (gate: GateId) => resolveOperator(gate, []);
 
 export const pAdicQubitCount = computed(() => state.pAdic.qubitCount);
 
@@ -238,7 +237,6 @@ export const pAdicEnsembleSnapshots = computed<PAdicStateEnsemble[]>(() =>
   simulate_padic_columns_ensemble(
     pAdicPreparedState.value,
     state.pAdic.columns,
-    resolvePAdicGate,
     pAdicQubitCount.value,
     state.pAdic.prime,
     state.pAdic.measurementModel,

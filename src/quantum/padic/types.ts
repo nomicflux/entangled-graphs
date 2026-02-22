@@ -1,6 +1,5 @@
-import type { BasisProbability, GateId, Operator } from "../../types";
+import type { BasisProbability } from "../../types";
 
-export type PAdicGateResolver = (gate: GateId) => Operator | null;
 export type RandomSource = () => number;
 
 export type PAdicRawPreparedLocalState = {

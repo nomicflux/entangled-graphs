@@ -4,15 +4,7 @@ const assert = require("node:assert/strict");
 const quantum = require("../.tmp-test/quantum.js");
 const actions = require("../.tmp-test/state/actions.js");
 const selectors = require("../.tmp-test/state/selectors.js");
-const stateOperators = require("../.tmp-test/state/operators.js");
 const store = require("../.tmp-test/state/store.js");
-
-const resolver = (gate) => {
-  if (stateOperators.isBuiltinGate(gate)) {
-    return stateOperators.builtinOperatorMap[gate];
-  }
-  return null;
-};
 
 const clonePAdic = () => JSON.parse(JSON.stringify(store.state.pAdic));
 
@@ -56,7 +48,7 @@ test("p-adic stage visualization payload is deterministic and cache-keyed by mod
     { gates: [{ id: "m", gate: "M", wires: [0] }] },
   ];
 
-  const snapshots = quantum.simulate_padic_columns_ensemble(prepared, columns, resolver, 2, 3, "valuation_weight");
+  const snapshots = quantum.simulate_padic_columns_ensemble(prepared, columns, 2, 3, "valuation_weight");
 
   const vectorA = quantum.p_adic_stage_visualizations_from_snapshots(snapshots, 3, "valuation_weight", "padic_vector");
   const vectorB = quantum.p_adic_stage_visualizations_from_snapshots(snapshots, 3, "valuation_weight", "padic_vector");
@@ -110,7 +102,7 @@ test("p-adic visualization node metrics are normalized and valuation-consistent"
     2,
   );
 
-  const snapshots = quantum.simulate_padic_columns_ensemble(prepared, [{ gates: [] }], resolver, 2, 2, "character_based");
+  const snapshots = quantum.simulate_padic_columns_ensemble(prepared, [{ gates: [] }], 2, 2, "character_based");
   const stages = quantum.p_adic_stage_visualizations_from_snapshots(snapshots, 2, "character_based", "padic_vector");
 
   assert.equal(stages[0].transitions.length, 0);

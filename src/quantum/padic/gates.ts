@@ -1,9 +1,34 @@
+import type { GateId } from "../../types";
 import { p_adic_basis_from_digits, p_adic_digits_from_basis, prune_p_adic_state } from "./raw-state";
 import type { PAdicState } from "./types";
 
 const zPhaseForDigit = (digit: number, p: number): number => Math.cos((2 * Math.PI * digit) / p);
 
-const transformBasisForGate = (basis: string, gate: string, wires: ReadonlyArray<number>, p: number): { basis: string; scale: number } => {
+export const PADIC_SUPPORTED_GATES = ["I", "X", "Z", "M", "CNOT", "SWAP", "TOFFOLI", "CSWAP"] as const;
+export type PAdicSupportedGateId = (typeof PADIC_SUPPORTED_GATES)[number];
+
+const PADIC_GATE_ARITY: Record<PAdicSupportedGateId, number> = {
+  I: 1,
+  X: 1,
+  Z: 1,
+  M: 1,
+  CNOT: 2,
+  SWAP: 2,
+  TOFFOLI: 3,
+  CSWAP: 3,
+};
+
+export const is_supported_padic_gate = (gate: GateId): gate is PAdicSupportedGateId =>
+  PADIC_SUPPORTED_GATES.includes(gate as PAdicSupportedGateId);
+
+export const p_adic_gate_arity = (gate: GateId): number | null => (is_supported_padic_gate(gate) ? PADIC_GATE_ARITY[gate] : null);
+
+const transformBasisForGate = (
+  basis: string,
+  gate: PAdicSupportedGateId,
+  wires: ReadonlyArray<number>,
+  p: number,
+): { basis: string; scale: number } => {
   const digits = p_adic_digits_from_basis(basis);
   const next = [...digits];
   let scale = 1;
@@ -73,7 +98,12 @@ const transformBasisForGate = (basis: string, gate: string, wires: ReadonlyArray
   return { basis, scale };
 };
 
-export const apply_padic_gate_to_state = (state: PAdicState, gate: string, wires: ReadonlyArray<number>, p: number): PAdicState => {
+export const apply_padic_gate_to_state = (
+  state: PAdicState,
+  gate: PAdicSupportedGateId,
+  wires: ReadonlyArray<number>,
+  p: number,
+): PAdicState => {
   const next: PAdicState = new Map();
 
   for (const [basis, amplitude] of state.entries()) {

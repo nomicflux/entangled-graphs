@@ -1,9 +1,9 @@
 import type { CircuitColumn } from "../../types";
 import type { PAdicMeasurementModel } from "../../padic-config";
 import { branchEpsilon, isMeasurementGate } from "./constants";
-import { apply_padic_gate_to_state } from "./gates";
+import { apply_padic_gate_to_state, is_supported_padic_gate, type PAdicSupportedGateId } from "./gates";
 import { measure_state_on_wire_for_model } from "./measurement-model";
-import type { PAdicGateResolver, PAdicState, PAdicStateEnsemble, PAdicWeightedStateBranch } from "./types";
+import type { PAdicState, PAdicStateEnsemble, PAdicWeightedStateBranch } from "./types";
 
 const normalizeEnsembleWeights = (ensemble: PAdicStateEnsemble): PAdicStateEnsemble => {
   const total = ensemble.reduce((acc, branch) => acc + branch.weight, 0);
@@ -20,7 +20,7 @@ const normalizeEnsembleWeights = (ensemble: PAdicStateEnsemble): PAdicStateEnsem
 
 const applyGateToEnsemble = (
   ensemble: PAdicStateEnsemble,
-  gate: string,
+  gate: PAdicSupportedGateId,
   wires: ReadonlyArray<number>,
   p: number,
 ): PAdicStateEnsemble =>
@@ -59,7 +59,6 @@ const applyMeasurementToEnsembleForModel = (
 const applyColumnToEnsembleForModel = (
   ensemble: PAdicStateEnsemble,
   column: CircuitColumn,
-  resolveGate: PAdicGateResolver,
   qubitCount: number,
   p: number,
   model: PAdicMeasurementModel,
@@ -72,7 +71,7 @@ const applyColumnToEnsembleForModel = (
       continue;
     }
 
-    if (resolveGate(gate.gate) === null) {
+    if (!is_supported_padic_gate(gate.gate)) {
       continue;
     }
 
@@ -82,21 +81,20 @@ const applyColumnToEnsembleForModel = (
   return next;
 };
 
-export const simulate_padic_columns_ensemble = (
+export function simulate_padic_columns_ensemble(
   prepared: PAdicState,
   columns: CircuitColumn[],
-  resolveGate: PAdicGateResolver,
   qubitCount: number,
   p: number,
   model: PAdicMeasurementModel,
-): PAdicStateEnsemble[] => {
+): PAdicStateEnsemble[] {
   const snapshots: PAdicStateEnsemble[] = [[{ weight: 1, state: prepared }]];
   let current: PAdicStateEnsemble = snapshots[0]!;
 
   for (const column of columns) {
-    current = applyColumnToEnsembleForModel(current, column, resolveGate, qubitCount, p, model);
+    current = applyColumnToEnsembleForModel(current, column, qubitCount, p, model);
     snapshots.push(current);
   }
 
   return snapshots;
-};
+}
