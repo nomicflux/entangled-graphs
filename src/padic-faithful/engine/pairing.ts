@@ -67,27 +67,28 @@ export const outcomeRowsFromPairing = (
     return {
       id: effect.id,
       label: effect.label,
-      omega,
-      valuation,
-      norm,
+      basis: effect.id,
+      w_raw: omega,
+      v_p: valuation,
+      abs_p: norm,
       unitResidue: residue,
       digits,
-      wNorm: 0,
+      w_norm: 0,
     } satisfies PAdicOutcomeRow;
   });
 
-  const normTotal = base.reduce((sum, row) => sum + row.norm, 0);
+  const normTotal = base.reduce((sum, row) => sum + row.abs_p, 0);
 
   return base.map((row) => ({
     ...row,
-    wNorm: normTotal > 0 ? row.norm / normTotal : 0,
+    w_norm: normTotal > 0 ? row.abs_p / normTotal : 0,
   }));
 };
 
 export const sortOutcomeRowsByShell = (rows: ReadonlyArray<PAdicOutcomeRow>): ReadonlyArray<PAdicOutcomeRow> =>
   [...rows].sort((left, right) => {
-    const leftV = Number.isFinite(left.valuation) ? left.valuation : Number.POSITIVE_INFINITY;
-    const rightV = Number.isFinite(right.valuation) ? right.valuation : Number.POSITIVE_INFINITY;
+    const leftV = Number.isFinite(left.v_p) ? left.v_p : Number.POSITIVE_INFINITY;
+    const rightV = Number.isFinite(right.v_p) ? right.v_p : Number.POSITIVE_INFINITY;
     if (leftV !== rightV) {
       return leftV - rightV;
     }

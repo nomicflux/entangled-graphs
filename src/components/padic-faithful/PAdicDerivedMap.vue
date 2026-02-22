@@ -32,10 +32,10 @@
       />
 
       <g v-for="node in faithfulDerivedNodes" :key="node.id" class="padic-map-node">
-        <circle :cx="xFor(node.x)" :cy="yFor(node.y)" :r="nodeRadius(node.norm)">
+        <circle :cx="xFor(node.x)" :cy="yFor(node.y)" :r="nodeRadius(node.abs_p)">
           <title>
-            {{ node.label }}: v_p={{ faithfulDisplay.formatValuation(node.valuation) }}, |.|_p={{ faithfulDisplay.formatScalar(node.norm) }},
-            w_norm={{ faithfulDisplay.formatScalar(node.wNorm) }}
+            {{ node.label }}: v_p={{ faithfulDisplay.formatValuation(node.v_p) }}, |.|_p={{ faithfulDisplay.formatScalar(node.abs_p) }},
+            w_norm={{ faithfulDisplay.formatScalar(node.w_norm) }}
           </title>
         </circle>
         <text :x="xFor(node.x)" :y="yFor(node.y) + 0.6" class="padic-map-label">{{ node.label }}</text>
@@ -68,11 +68,11 @@ const handleModeChange = (event: Event) => {
 const xFor = (x: number): number => 50 + (x * 42);
 const yFor = (y: number): number => 50 - (y * 42);
 
-const nodeRadius = (norm: number): number => {
-  if (!Number.isFinite(norm) || norm <= 0) {
+const nodeRadius = (absP: number): number => {
+  if (!Number.isFinite(absP) || absP <= 0) {
     return 2;
   }
-  const scaled = Math.min(1, norm / (1 + norm));
+  const scaled = Math.min(1, absP / (1 + absP));
   return 2 + (6 * scaled);
 };
 </script>

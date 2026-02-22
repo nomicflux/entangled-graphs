@@ -43,12 +43,13 @@ test("faithful engine validates rho and sovm and computes omega_i pairings", () 
   assert.equal(rows.length, 2);
 
   const byId = new Map(rows.map((row) => [row.id, row]));
-  assert.equal(byId.get("omega_0").omega, 1);
-  assert.equal(byId.get("omega_1").omega, 0);
-  assert.equal(byId.get("omega_0").valuation, 0);
-  assert.equal(byId.get("omega_1").valuation, Number.POSITIVE_INFINITY);
-  assert.equal(byId.get("omega_0").wNorm, 1);
-  assert.equal(byId.get("omega_1").wNorm, 0);
+  assert.equal(byId.get("omega_0").basis, "omega_0");
+  assert.equal(byId.get("omega_0").w_raw, 1);
+  assert.equal(byId.get("omega_1").w_raw, 0);
+  assert.equal(byId.get("omega_0").v_p, 0);
+  assert.equal(byId.get("omega_1").v_p, Number.POSITIVE_INFINITY);
+  assert.equal(byId.get("omega_0").w_norm, 1);
+  assert.equal(byId.get("omega_1").w_norm, 0);
 });
 
 test("faithful engine rejects non-trace-one rho and non-identity-summing sovm", () => {
@@ -135,8 +136,8 @@ test("faithful engine uses exact scalar checks for trace and p-adic valuation", 
 
   const rows = faithful.outcomeRowsFromPairing(rho.operator, sovm.sovm, 3);
   const byId = new Map(rows.map((row) => [row.id, row]));
-  assert.equal(byId.get("omega_0").valuation, -1);
-  assert.equal(byId.get("omega_1").valuation, -1);
+  assert.equal(byId.get("omega_0").v_p, -1);
+  assert.equal(byId.get("omega_1").v_p, -1);
   assert.equal(byId.get("omega_0").unitResidue, 2);
   assert.equal(byId.get("omega_1").unitResidue, 1);
 });

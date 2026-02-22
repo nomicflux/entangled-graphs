@@ -30,13 +30,13 @@ const normalizePoints = (points: ReadonlyArray<{ x: number; y: number }>): Array
 };
 
 const pointsForValuationRing = (rows: ReadonlyArray<PAdicOutcomeRow>, prime: PAdicPrime): Array<{ x: number; y: number }> => {
-  const maxNorm = rows.reduce((best, row) => Math.max(best, row.norm), 0);
+  const maxNorm = rows.reduce((best, row) => Math.max(best, row.abs_p), 0);
   const normScale = maxNorm > 0 ? maxNorm : 1;
 
   const points = rows.map((row, index) => {
     const residue = row.unitResidue ?? index;
     const angle = (2 * Math.PI * residue) / Math.max(2, prime);
-    const radial = row.norm / normScale;
+    const radial = row.abs_p / normScale;
     const radius = radial <= EPSILON ? 0 : 0.08 + (0.92 * radial);
     return {
       x: radius * Math.cos(angle),
@@ -81,9 +81,9 @@ export const derivedNodesFromRows = (
     label: row.label,
     x: points[index]?.x ?? 0,
     y: points[index]?.y ?? 0,
-    norm: row.norm,
-    wNorm: row.wNorm,
-    valuation: row.valuation,
+    abs_p: row.abs_p,
+    w_norm: row.w_norm,
+    v_p: row.v_p,
     residue: row.unitResidue,
   }));
 };

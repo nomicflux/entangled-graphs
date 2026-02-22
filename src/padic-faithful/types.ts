@@ -34,12 +34,13 @@ export type PAdicDigitExpansion = {
 export type PAdicOutcomeRow = {
   id: string;
   label: string;
-  omega: number;
-  valuation: number;
-  norm: number;
+  basis: string;
+  w_raw: number;
+  v_p: number;
+  abs_p: number;
   unitResidue: number | null;
   digits: PAdicDigitExpansion;
-  wNorm: number;
+  w_norm: number;
 };
 
 export type PAdicOutcomeShell = {
@@ -61,9 +62,9 @@ export type PAdicDerivedNode = {
   label: string;
   x: number;
   y: number;
-  norm: number;
-  wNorm: number;
-  valuation: number;
+  abs_p: number;
+  w_norm: number;
+  v_p: number;
   residue: number | null;
 };
 

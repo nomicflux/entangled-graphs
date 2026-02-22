@@ -59,7 +59,7 @@ export const faithfulOutcomeShells = computed<ReadonlyArray<PAdicOutcomeShell>>(
   const grouped = new Map<string, { key: string; valuation: number; rows: PAdicOutcomeRow[] }>();
 
   for (const row of faithfulOutcomeRows.value) {
-    const valuation = Number.isFinite(row.valuation) ? row.valuation : Number.POSITIVE_INFINITY;
+    const valuation = Number.isFinite(row.v_p) ? row.v_p : Number.POSITIVE_INFINITY;
     const key = Number.isFinite(valuation) ? String(valuation) : "inf";
 
     const shell = grouped.get(key) ?? {

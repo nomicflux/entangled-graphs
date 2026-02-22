@@ -30,13 +30,13 @@
             :class="{ selected: selectedId === row.id }"
             @click="setFaithfulSelectedOutcome(selectedId === row.id ? null : row.id)"
           >
-            <td>{{ row.label }} ({{ row.id }})</td>
-            <td>{{ faithfulDisplay.formatScalar(row.omega) }}</td>
-            <td>{{ faithfulDisplay.formatValuation(row.valuation) }}</td>
-            <td>{{ faithfulDisplay.formatScalar(row.norm) }}</td>
+            <td>{{ row.label }} (basis: {{ row.basis }})</td>
+            <td>{{ faithfulDisplay.formatScalar(row.w_raw) }}</td>
+            <td>{{ faithfulDisplay.formatValuation(row.v_p) }}</td>
+            <td>{{ faithfulDisplay.formatScalar(row.abs_p) }}</td>
             <td>{{ residueClassLabel(row.unitResidue) }}</td>
             <td>{{ row.digits.text }}</td>
-            <td>{{ faithfulDisplay.formatScalar(row.wNorm) }}</td>
+            <td>{{ faithfulDisplay.formatScalar(row.w_norm) }}</td>
           </tr>
         </tbody>
       </table>
