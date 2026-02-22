@@ -5,6 +5,19 @@ export {
   parsePAdicRaw,
 } from "./engine/parse";
 export {
+  addPAdicScalars,
+  dividePAdicScalars,
+  equalPAdicScalars,
+  isZeroPAdicScalar,
+  multiplyPAdicScalars,
+  pAdicNormExponentOfScalar,
+  pAdicScalarFromFraction,
+  pAdicScalarToString,
+  pAdicUnitResidueOfScalar,
+  pAdicValuationOfScalar,
+  subtractPAdicScalars,
+} from "./engine/scalar";
+export {
   pAdicNormFromReal,
   pAdicValuationFromReal,
   unitResidueFromReal,
