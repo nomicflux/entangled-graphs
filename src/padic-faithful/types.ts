@@ -46,6 +46,14 @@ export type PAdicOutcomeRow = {
 export type PAdicOutcomeShell = {
   key: string;
   valuation: number;
+  prefixGroups: ReadonlyArray<PAdicOutcomePrefixGroup>;
+  rows: ReadonlyArray<PAdicOutcomeRow>;
+};
+
+export type PAdicOutcomePrefixGroup = {
+  key: string;
+  prefix: string;
+  residue: number | null;
   rows: ReadonlyArray<PAdicOutcomeRow>;
 };
 

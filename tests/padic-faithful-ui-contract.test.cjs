@@ -11,6 +11,7 @@ test("faithful output panel uses valuation-shell-first p-adic columns with deriv
 
   assert.match(source, /Statistical Outputs omega_i/);
   assert.match(source, /valuation shell/);
+  assert.match(source, /digit prefix/);
   assert.match(source, /w_norm \(Derived\)/);
   assert.match(source, /digits \(base p\)/);
   assert.equal(source.toLowerCase().includes("probability"), false);

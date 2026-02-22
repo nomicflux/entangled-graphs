@@ -3,7 +3,7 @@ import { derivedNodesFromRows } from "../derived/geometry";
 import { outcomeRowsFromPairing, sortOutcomeRowsByShell } from "../engine/pairing";
 import { statisticalOperatorFromRaw } from "../engine/operator";
 import { sovmFromRawEffects } from "../engine/sovm";
-import type { PAdicOutcomeRow, PAdicOutcomeShell, PAdicStageCard } from "../types";
+import type { PAdicOutcomePrefixGroup, PAdicOutcomeRow, PAdicOutcomeShell, PAdicStageCard } from "../types";
 import { pAdicFaithfulState } from "./store";
 
 const formatScalar = (value: number): string => {
@@ -24,6 +24,16 @@ const formatValuation = (value: number): string => {
     return "+∞";
   }
   return Number.isInteger(value) ? String(value) : value.toFixed(4);
+};
+
+const DIGIT_PREFIX_WIDTH = 3;
+
+const prefixForRow = (row: PAdicOutcomeRow): string => {
+  const prefixDigits = row.digits.digits.slice(0, DIGIT_PREFIX_WIDTH);
+  const core = prefixDigits.length > 0 ? prefixDigits.join(" ") : "0";
+  const signPrefix = row.digits.sign < 0 ? "-" : "";
+  const truncatedSuffix = row.digits.digits.length > DIGIT_PREFIX_WIDTH || row.digits.truncated ? " ..." : "";
+  return `${signPrefix}${core}${truncatedSuffix}`;
 };
 
 export const faithfulRhoResult = computed(() =>
@@ -72,11 +82,46 @@ export const faithfulOutcomeShells = computed<ReadonlyArray<PAdicOutcomeShell>>(
     grouped.set(key, shell);
   }
 
-  return [...grouped.values()].sort((left, right) => {
-    const leftValue = Number.isFinite(left.valuation) ? left.valuation : Number.POSITIVE_INFINITY;
-    const rightValue = Number.isFinite(right.valuation) ? right.valuation : Number.POSITIVE_INFINITY;
-    return leftValue - rightValue;
-  });
+  return [...grouped.values()]
+    .sort((left, right) => {
+      const leftValue = Number.isFinite(left.valuation) ? left.valuation : Number.POSITIVE_INFINITY;
+      const rightValue = Number.isFinite(right.valuation) ? right.valuation : Number.POSITIVE_INFINITY;
+      return leftValue - rightValue;
+    })
+    .map((shell) => {
+      const prefixMap = new Map<string, { key: string; prefix: string; residue: number | null; rows: PAdicOutcomeRow[] }>();
+
+      for (const row of shell.rows) {
+        const prefix = prefixForRow(row);
+        const residue = row.unitResidue;
+        const key = `${prefix}|${residue === null ? "null" : String(residue)}`;
+        const group = prefixMap.get(key) ?? {
+          key,
+          prefix,
+          residue,
+          rows: [],
+        };
+        group.rows.push(row);
+        prefixMap.set(key, group);
+      }
+
+      const prefixGroups: PAdicOutcomePrefixGroup[] = [...prefixMap.values()].sort((left, right) => {
+        if (left.prefix !== right.prefix) {
+          return left.prefix.localeCompare(right.prefix);
+        }
+
+        const leftResidue = left.residue ?? Number.POSITIVE_INFINITY;
+        const rightResidue = right.residue ?? Number.POSITIVE_INFINITY;
+        return leftResidue - rightResidue;
+      });
+
+      return {
+        key: shell.key,
+        valuation: shell.valuation,
+        prefixGroups,
+        rows: shell.rows,
+      } satisfies PAdicOutcomeShell;
+    });
 });
 
 export const faithfulSelectedOutcome = computed(() => {

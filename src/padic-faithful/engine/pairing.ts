@@ -51,6 +51,14 @@ const pAdicNormFromScalar = (value: PAdicScalar, prime: number): number => {
   return Math.pow(prime, exponent);
 };
 
+const DIGIT_PREFIX_WIDTH = 3;
+
+const digitPrefixKey = (row: PAdicOutcomeRow): string => {
+  const signPrefix = row.digits.sign < 0 ? "-" : "+";
+  const prefix = row.digits.digits.slice(0, DIGIT_PREFIX_WIDTH).join(",");
+  return `${signPrefix}:${prefix}`;
+};
+
 export const outcomeRowsFromPairing = (
   rho: PAdicStatisticalOperator,
   sovm: PAdicSovm,
@@ -91,6 +99,12 @@ export const sortOutcomeRowsByShell = (rows: ReadonlyArray<PAdicOutcomeRow>): Re
     const rightV = Number.isFinite(right.v_p) ? right.v_p : Number.POSITIVE_INFINITY;
     if (leftV !== rightV) {
       return leftV - rightV;
+    }
+
+    const leftPrefix = digitPrefixKey(left);
+    const rightPrefix = digitPrefixKey(right);
+    if (leftPrefix !== rightPrefix) {
+      return leftPrefix.localeCompare(rightPrefix);
     }
 
     const leftResidue = left.unitResidue ?? Number.POSITIVE_INFINITY;

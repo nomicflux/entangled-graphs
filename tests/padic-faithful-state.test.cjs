@@ -49,6 +49,8 @@ test("faithful state selectors produce valuation-shell-first rows", () => {
     const shells = faithful.faithfulOutcomeShells.value;
     assert.equal(shells.length, 2);
     assert.ok(shells[0].valuation <= shells[1].valuation);
+    assert.ok(shells[0].prefixGroups.length >= 1);
+    assert.ok(typeof shells[0].prefixGroups[0].prefix === "string");
 
     faithful.setFaithfulSelectedOutcome("omega_a");
     assert.equal(faithful.faithfulSelectedOutcome.value.id, "omega_a");

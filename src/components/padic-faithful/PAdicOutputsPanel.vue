@@ -23,21 +23,26 @@
           <tr class="padic-shell-heading">
             <th colspan="7">valuation shell {{ shellLabel(shell.valuation) }} • {{ shell.rows.length }} outcomes</th>
           </tr>
-          <tr
-            v-for="row in shell.rows"
-            :key="row.id"
-            class="padic-output-row"
-            :class="{ selected: selectedId === row.id }"
-            @click="setFaithfulSelectedOutcome(selectedId === row.id ? null : row.id)"
-          >
-            <td>{{ row.label }} (basis: {{ row.basis }})</td>
-            <td>{{ faithfulDisplay.formatScalar(row.w_raw) }}</td>
-            <td>{{ faithfulDisplay.formatValuation(row.v_p) }}</td>
-            <td>{{ faithfulDisplay.formatScalar(row.abs_p) }}</td>
-            <td>{{ residueClassLabel(row.unitResidue) }}</td>
-            <td>{{ row.digits.text }}</td>
-            <td>{{ faithfulDisplay.formatScalar(row.w_norm) }}</td>
-          </tr>
+          <template v-for="group in shell.prefixGroups" :key="group.key">
+            <tr class="padic-shell-heading">
+              <th colspan="7">digit prefix {{ group.prefix }} • {{ residueClassLabel(group.residue) }} • {{ group.rows.length }} outcomes</th>
+            </tr>
+            <tr
+              v-for="row in group.rows"
+              :key="row.id"
+              class="padic-output-row"
+              :class="{ selected: selectedId === row.id }"
+              @click="setFaithfulSelectedOutcome(selectedId === row.id ? null : row.id)"
+            >
+              <td>{{ row.label }} (basis: {{ row.basis }})</td>
+              <td>{{ faithfulDisplay.formatScalar(row.w_raw) }}</td>
+              <td>{{ faithfulDisplay.formatValuation(row.v_p) }}</td>
+              <td>{{ faithfulDisplay.formatScalar(row.abs_p) }}</td>
+              <td>{{ residueClassLabel(row.unitResidue) }}</td>
+              <td>{{ row.digits.text }}</td>
+              <td>{{ faithfulDisplay.formatScalar(row.w_norm) }}</td>
+            </tr>
+          </template>
         </tbody>
       </table>
     </div>
