@@ -1,7 +1,6 @@
 import type { Matrix2, PAdicStatisticalOperator, RawMatrix2 } from "../types";
-import { parsePAdicRaw } from "./parse";
-
-const EPSILON = 1e-9;
+import { parsePAdicScalarRaw } from "./parse";
+import { addPAdicScalars, equalPAdicScalars, pAdicScalarFromFraction, pAdicScalarToNumber, type PAdicScalar } from "./scalar";
 
 export type OperatorBuildResult = {
   operator: PAdicStatisticalOperator | null;
@@ -9,25 +8,25 @@ export type OperatorBuildResult = {
 };
 
 export const parseRawMatrix2 = (rows: RawMatrix2, prime: number): Matrix2 => [
-  [parsePAdicRaw(rows[0][0], prime), parsePAdicRaw(rows[0][1], prime)],
-  [parsePAdicRaw(rows[1][0], prime), parsePAdicRaw(rows[1][1], prime)],
+  [parsePAdicScalarRaw(rows[0][0], prime), parsePAdicScalarRaw(rows[0][1], prime)],
+  [parsePAdicScalarRaw(rows[1][0], prime), parsePAdicScalarRaw(rows[1][1], prime)],
 ];
 
-export const trace2x2 = (rows: Matrix2): number => rows[0][0] + rows[1][1];
+export const trace2x2 = (rows: Matrix2): PAdicScalar => addPAdicScalars(rows[0][0], rows[1][1]);
 
-export const isSelfAdjoint2x2 = (rows: Matrix2): boolean => Math.abs(rows[0][1] - rows[1][0]) <= EPSILON;
+export const isSelfAdjoint2x2 = (rows: Matrix2): boolean => equalPAdicScalars(rows[0][1], rows[1][0]);
 
 export const statisticalOperatorFromRaw = (rows: RawMatrix2, prime: number): OperatorBuildResult => {
   const parsed = parseRawMatrix2(rows, prime);
   if (!isSelfAdjoint2x2(parsed)) {
     return {
       operator: null,
-      error: "rho must be selfadjoint (symmetric in this real-valued implementation).",
+      error: "rho must be selfadjoint.",
     };
   }
 
-  const trace = trace2x2(parsed);
-  if (Math.abs(trace - 1) > EPSILON) {
+  const traceScalar = trace2x2(parsed);
+  if (!equalPAdicScalars(traceScalar, pAdicScalarFromFraction(1n, 1n))) {
     return {
       operator: null,
       error: "rho must have trace one.",
@@ -37,7 +36,8 @@ export const statisticalOperatorFromRaw = (rows: RawMatrix2, prime: number): Ope
   return {
     operator: {
       entries: parsed,
-      trace,
+      traceScalar,
+      trace: pAdicScalarToNumber(traceScalar),
     },
     error: null,
   };

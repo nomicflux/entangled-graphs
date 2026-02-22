@@ -3,6 +3,7 @@ export * from "./config";
 
 export {
   parsePAdicRaw,
+  parsePAdicScalarRaw,
 } from "./engine/parse";
 export {
   addPAdicScalars,
@@ -12,6 +13,7 @@ export {
   multiplyPAdicScalars,
   pAdicNormExponentOfScalar,
   pAdicScalarFromFraction,
+  pAdicScalarToNumber,
   pAdicScalarToString,
   pAdicUnitResidueOfScalar,
   pAdicValuationOfScalar,

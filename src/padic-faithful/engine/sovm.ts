@@ -1,7 +1,6 @@
 import type { Matrix2, PAdicRawEffect, PAdicSovm } from "../types";
 import { parseRawMatrix2, isSelfAdjoint2x2 } from "./operator";
-
-const EPSILON = 1e-9;
+import { addPAdicScalars, equalPAdicScalars, pAdicScalarFromFraction } from "./scalar";
 
 export type SovmBuildResult = {
   sovm: PAdicSovm | null;
@@ -9,20 +8,20 @@ export type SovmBuildResult = {
 };
 
 const add2x2 = (left: Matrix2, right: Matrix2): Matrix2 => [
-  [left[0][0] + right[0][0], left[0][1] + right[0][1]],
-  [left[1][0] + right[1][0], left[1][1] + right[1][1]],
+  [addPAdicScalars(left[0][0], right[0][0]), addPAdicScalars(left[0][1], right[0][1])],
+  [addPAdicScalars(left[1][0], right[1][0]), addPAdicScalars(left[1][1], right[1][1])],
 ];
 
 const identity2x2 = (): Matrix2 => [
-  [1, 0],
-  [0, 1],
+  [pAdicScalarFromFraction(1n), pAdicScalarFromFraction(0n)],
+  [pAdicScalarFromFraction(0n), pAdicScalarFromFraction(1n)],
 ];
 
 const equals2x2 = (left: Matrix2, right: Matrix2): boolean =>
-  Math.abs(left[0][0] - right[0][0]) <= EPSILON &&
-  Math.abs(left[0][1] - right[0][1]) <= EPSILON &&
-  Math.abs(left[1][0] - right[1][0]) <= EPSILON &&
-  Math.abs(left[1][1] - right[1][1]) <= EPSILON;
+  equalPAdicScalars(left[0][0], right[0][0]) &&
+  equalPAdicScalars(left[0][1], right[0][1]) &&
+  equalPAdicScalars(left[1][0], right[1][0]) &&
+  equalPAdicScalars(left[1][1], right[1][1]);
 
 export const sovmFromRawEffects = (effects: ReadonlyArray<PAdicRawEffect>, prime: number): SovmBuildResult => {
   if (effects.length === 0) {
@@ -45,8 +44,8 @@ export const sovmFromRawEffects = (effects: ReadonlyArray<PAdicRawEffect>, prime
   }
 
   let sum: Matrix2 = [
-    [0, 0],
-    [0, 0],
+    [pAdicScalarFromFraction(0n), pAdicScalarFromFraction(0n)],
+    [pAdicScalarFromFraction(0n), pAdicScalarFromFraction(0n)],
   ];
   for (const effect of parsed) {
     sum = add2x2(sum, effect.operator);

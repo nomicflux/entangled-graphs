@@ -1,13 +1,16 @@
+import type { PAdicScalar } from "./engine/scalar";
+
 export type PAdicPrime = 2 | 3 | 5 | 7;
 
 export type PAdicViewMode = "valuation_ring" | "digit_vector";
 
-export type Matrix2 = [[number, number], [number, number]];
+export type Matrix2 = [[PAdicScalar, PAdicScalar], [PAdicScalar, PAdicScalar]];
 
 export type RawMatrix2 = [[string, string], [string, string]];
 
 export type PAdicStatisticalOperator = {
   entries: Matrix2;
+  traceScalar: PAdicScalar;
   trace: number;
 };
 

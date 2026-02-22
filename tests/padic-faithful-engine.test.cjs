@@ -87,3 +87,56 @@ test("faithful engine rejects non-trace-one rho and non-identity-summing sovm", 
   assert.equal(sovm.sovm, null);
   assert.match(sovm.error, /sum to identity/i);
 });
+
+test("faithful engine uses exact scalar checks for trace and p-adic valuation", () => {
+  const rhoAlmostOne = faithful.statisticalOperatorFromRaw(
+    [
+      ["0.1", "0"],
+      ["0", "0.899999999999"],
+    ],
+    3,
+  );
+  assert.equal(rhoAlmostOne.operator, null);
+  assert.match(rhoAlmostOne.error, /trace one/i);
+
+  const rho = faithful.statisticalOperatorFromRaw(
+    [
+      ["1", "0"],
+      ["0", "0"],
+    ],
+    3,
+  );
+  assert.equal(rho.error, null);
+  assert.ok(rho.operator);
+
+  const sovm = faithful.sovmFromRawEffects(
+    [
+      {
+        id: "omega_0",
+        label: "F0",
+        rows: [
+          ["1-p^-1", "0"],
+          ["0", "0"],
+        ],
+      },
+      {
+        id: "omega_1",
+        label: "F1",
+        rows: [
+          ["p^-1", "0"],
+          ["0", "1"],
+        ],
+      },
+    ],
+    3,
+  );
+  assert.equal(sovm.error, null);
+  assert.ok(sovm.sovm);
+
+  const rows = faithful.outcomeRowsFromPairing(rho.operator, sovm.sovm, 3);
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  assert.equal(byId.get("omega_0").valuation, -1);
+  assert.equal(byId.get("omega_1").valuation, -1);
+  assert.equal(byId.get("omega_0").unitResidue, 2);
+  assert.equal(byId.get("omega_1").unitResidue, 1);
+});

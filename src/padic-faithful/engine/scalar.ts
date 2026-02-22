@@ -140,6 +140,9 @@ export const isZeroPAdicScalar = (value: PAdicScalar): boolean => value.numerato
 export const pAdicScalarToString = (value: PAdicScalar): string =>
   value.denominator === 1n ? value.numerator.toString() : `${value.numerator.toString()}/${value.denominator.toString()}`;
 
+export const pAdicScalarToNumber = (value: PAdicScalar): number =>
+  Number(value.numerator) / Number(value.denominator);
+
 export const pAdicValuationOfScalar = (value: PAdicScalar, prime: number): number => {
   if (isZeroPAdicScalar(value)) {
     return Number.POSITIVE_INFINITY;
