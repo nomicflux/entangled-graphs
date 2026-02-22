@@ -36,7 +36,7 @@
     </nav>
 
     <FreeFormWorkbench v-show="selectedWorkspace === 'free-form'" />
-    <PAdicWorkbench v-show="selectedWorkspace === 'p-adic'" />
+    <PAdicFaithfulWorkbench v-show="selectedWorkspace === 'p-adic'" />
     <AlgorithmsWorkbench
       v-show="selectedWorkspace === 'algorithms'"
       :selected-algorithm="selectedAlgorithm"
@@ -48,35 +48,17 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import FreeFormWorkbench from "./components/FreeFormWorkbench.vue";
-import PAdicWorkbench from "./components/PAdicWorkbench.vue";
+import PAdicFaithfulWorkbench from "./components/padic-faithful/PAdicFaithfulWorkbench.vue";
 import AlgorithmsWorkbench from "./components/algorithms/AlgorithmsWorkbench.vue";
 import {
-  readPAdicGeometryModeFromStorage,
-  readPAdicMeasurementModelFromStorage,
-  readPAdicPrimeFromStorage,
-  readPAdicQubitCountFromStorage,
-  readPAdicSelectedBasisFromStorage,
   readAlgorithmFromStorage,
   readWorkspaceFromStorage,
-  writePAdicGeometryModeToStorage,
-  writePAdicMeasurementModelToStorage,
-  writePAdicPrimeToStorage,
-  writePAdicQubitCountToStorage,
-  writePAdicSelectedBasisToStorage,
   writeAlgorithmToStorage,
   writeWorkspaceToStorage,
 } from "./app/persistence";
-import { resetPAdicWorkspaceState, state } from "./state";
 
 const selectedWorkspace = ref(readWorkspaceFromStorage(window.localStorage));
 const selectedAlgorithm = ref(readAlgorithmFromStorage(window.localStorage));
-resetPAdicWorkspaceState(
-  readPAdicPrimeFromStorage(window.localStorage),
-  readPAdicMeasurementModelFromStorage(window.localStorage),
-  readPAdicGeometryModeFromStorage(window.localStorage),
-  readPAdicQubitCountFromStorage(window.localStorage),
-  readPAdicSelectedBasisFromStorage(window.localStorage),
-);
 
 watch(selectedWorkspace, (value) => {
   writeWorkspaceToStorage(window.localStorage, value);
@@ -85,39 +67,4 @@ watch(selectedWorkspace, (value) => {
 watch(selectedAlgorithm, (value) => {
   writeAlgorithmToStorage(window.localStorage, value);
 });
-
-watch(
-  () => state.pAdic.prime,
-  (value) => {
-    writePAdicPrimeToStorage(window.localStorage, value);
-  },
-);
-
-watch(
-  () => state.pAdic.measurementModel,
-  (value) => {
-    writePAdicMeasurementModelToStorage(window.localStorage, value);
-  },
-);
-
-watch(
-  () => state.pAdic.qubitCount,
-  (value) => {
-    writePAdicQubitCountToStorage(window.localStorage, value);
-  },
-);
-
-watch(
-  () => state.pAdic.geometryMode,
-  (value) => {
-    writePAdicGeometryModeToStorage(window.localStorage, value);
-  },
-);
-
-watch(
-  () => state.pAdic.selectedBasis,
-  (value) => {
-    writePAdicSelectedBasisToStorage(window.localStorage, value);
-  },
-);
 </script>

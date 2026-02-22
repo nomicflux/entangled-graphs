@@ -81,6 +81,10 @@
   gap: 6px;
 }
 
+.stage-probability .prob-row.prob-row-scalar {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
 .stage-probability-heading {
   margin: 0 0 2px;
   color: var(--muted);

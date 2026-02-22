@@ -13,7 +13,7 @@
       <BlochPairView :pair="stage.blochPair" size="sm" :animated="false" compact />
       <p v-for="entry in stage.distribution" :key="entry.basis" class="snapshot-row">
         <span>{{ props.metricLabel }}(|{{ entry.basis }}>)</span>
-        <span>{{ formatPercent(entry.probability) }}</span>
+        <span>{{ formatValue(entry.probability) }}</span>
       </p>
     </button>
   </div>
@@ -29,10 +29,12 @@ const props = withDefaults(
     selectedStageIndex: number;
     metricLabel?: string;
     metricHint?: string;
+    valueFormat?: "percent" | "scalar";
   }>(),
   {
     metricLabel: "P",
     metricHint: "",
+    valueFormat: "percent",
   },
 );
 
@@ -41,4 +43,15 @@ defineEmits<{
 }>();
 
 const formatPercent = (value: number): string => `${(value * 100).toFixed(1)}%`;
+const formatScalar = (value: number): string => {
+  if (value === 0) {
+    return "0";
+  }
+  if (Math.abs(value) < 1e-6 || Math.abs(value) > 1e4) {
+    return value.toExponential(3);
+  }
+  return value.toFixed(6);
+};
+
+const formatValue = (value: number): string => (props.valueFormat === "percent" ? formatPercent(value) : formatScalar(value));
 </script>

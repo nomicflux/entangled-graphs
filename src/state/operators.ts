@@ -75,17 +75,3 @@ export const gateKindForGate = (gate: GateId, customOperators: ReadonlyArray<Cus
 
 export const availableBuiltinGatesForQubitCount = (qubitCount: number): BuiltinGateId[] =>
   builtinGateIds.filter((gate) => builtinOperatorMap[gate].qubitArity <= qubitCount);
-
-const pAdicBuiltinGates: readonly BuiltinGateId[] = [
-  "I",
-  "X",
-  "Z",
-  "M",
-  "CNOT",
-  "SWAP",
-  "TOFFOLI",
-  "CSWAP",
-];
-
-export const availablePAdicBuiltinGatesForQubitCount = (qubitCount: number): BuiltinGateId[] =>
-  pAdicBuiltinGates.filter((gate) => builtinOperatorMap[gate].qubitArity <= qubitCount);

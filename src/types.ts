@@ -105,35 +105,3 @@ export type StageView = {
     blochPair: BlochPair;
     isFinal: boolean;
 };
-
-export type PAdicVisualizationPoint = {
-    x: number;
-    y: number;
-}
-
-export type PAdicVisualizationNode = {
-    basis: BasisLabel;
-    index: number;
-    rawWeight: number;
-    weight: number;
-    valuation: number;
-    norm: number;
-    residue: number;
-    digits: ReadonlyArray<number>;
-    point: PAdicVisualizationPoint;
-}
-
-export type PAdicVisualizationTransition = {
-    basis: BasisLabel;
-    from: PAdicVisualizationPoint;
-    to: PAdicVisualizationPoint;
-    weight: number;
-    delta: number;
-}
-
-export type PAdicStageVisualization = {
-    stageIndex: number;
-    geometryMode: "padic_vector" | "valuation_ring";
-    nodes: ReadonlyArray<PAdicVisualizationNode>;
-    transitions: ReadonlyArray<PAdicVisualizationTransition>;
-}

@@ -1,0 +1,154 @@
+.padic-faithful-panels {
+  align-items: start;
+}
+
+.padic-faithful-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.padic-matrix-wrap {
+  overflow-x: auto;
+}
+
+.padic-matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.78rem;
+}
+
+.padic-matrix-table td {
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.padic-matrix-table label {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.padic-matrix-table input {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  padding: 7px 8px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.82rem;
+}
+
+.padic-effects-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.padic-effect-card {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 10px;
+  background: rgba(7, 12, 26, 0.36);
+}
+
+.padic-effect-head {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.padic-effect-head label {
+  display: grid;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.padic-effect-head input {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  padding: 7px 8px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.82rem;
+}
+
+.padic-stage-cards {
+  grid-column: 1 / -1;
+}
+
+.padic-error,
+.padic-ok {
+  margin: 10px 0 0;
+  font-size: 0.78rem;
+}
+
+.padic-error {
+  color: #ffb4aa;
+}
+
+.padic-ok {
+  color: #8df1dc;
+}
+
+.padic-error-list {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: #ffb4aa;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 900px) {
+  .padic-effect-head {
+    grid-template-columns: 1fr;
+  }
+}
+
+.padic-map-svg {
+  width: 100%;
+  height: clamp(200px, 28vw, 290px);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(102, 245, 214, 0.08), rgba(7, 12, 26, 0.08));
+}
+
+.padic-map-ring {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 0.35;
+}
+
+.padic-map-residue-axis {
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 0.28;
+  stroke-dasharray: 1.5 1.5;
+}
+
+.padic-map-node {
+  cursor: pointer;
+}
+
+.padic-map-node circle {
+  fill: rgba(102, 245, 214, 0.34);
+  stroke: rgba(252, 165, 255, 0.52);
+  stroke-width: 0.5;
+}
+
+.padic-map-label {
+  text-anchor: middle;
+  dominant-baseline: middle;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 2.35px;
+  fill: rgba(255, 255, 255, 0.9);
+  pointer-events: none;
+}
