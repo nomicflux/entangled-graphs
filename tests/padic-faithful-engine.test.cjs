@@ -50,6 +50,10 @@ test("faithful engine validates rho and sovm and computes omega_i pairings", () 
   assert.equal(byId.get("omega_1").v_p, Number.POSITIVE_INFINITY);
   assert.equal(byId.get("omega_0").w_norm, 1);
   assert.equal(byId.get("omega_1").w_norm, 0);
+  assert.equal(Object.hasOwn(byId.get("omega_0"), "omega"), false);
+  assert.equal(Object.hasOwn(byId.get("omega_0"), "valuation"), false);
+  assert.equal(Object.hasOwn(byId.get("omega_0"), "norm"), false);
+  assert.equal(Object.hasOwn(byId.get("omega_0"), "wNorm"), false);
 });
 
 test("faithful engine rejects non-trace-one rho and non-identity-summing sovm", () => {

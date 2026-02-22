@@ -62,3 +62,43 @@ test("faithful state selectors produce valuation-shell-first rows", () => {
     restoreState(original);
   }
 });
+
+test("faithful shell grouping includes shared-prefix buckets within a valuation shell", () => {
+  const original = cloneState();
+
+  try {
+    faithful.setFaithfulPrime(3);
+    faithful.pAdicFaithfulState.rhoRows = [
+      ["2/3", "0"],
+      ["0", "1/3"],
+    ];
+    faithful.pAdicFaithfulState.effects = [
+      {
+        id: "omega_a",
+        label: "A",
+        rows: [
+          ["1", "0"],
+          ["0", "0"],
+        ],
+      },
+      {
+        id: "omega_b",
+        label: "B",
+        rows: [
+          ["0", "0"],
+          ["0", "1"],
+        ],
+      },
+    ];
+
+    const shells = faithful.faithfulOutcomeShells.value;
+    assert.equal(shells.length, 1);
+    assert.equal(shells[0].valuation, -1);
+    assert.equal(shells[0].prefixGroups.length, 2);
+
+    const groupedIds = shells[0].prefixGroups.map((group) => group.rows.map((row) => row.id).join(","));
+    assert.deepEqual(groupedIds, ["omega_a", "omega_b"]);
+  } finally {
+    restoreState(original);
+  }
+});

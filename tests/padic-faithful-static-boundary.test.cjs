@@ -58,6 +58,21 @@ const forbiddenTemplateTokens = [
   "%",
 ];
 
+const faithfulEngineFiles = [
+  "src/padic-faithful/engine/parse.ts",
+  "src/padic-faithful/engine/operator.ts",
+  "src/padic-faithful/engine/sovm.ts",
+  "src/padic-faithful/engine/pairing.ts",
+];
+
+const forbiddenRealFallbackTokens = [
+  "pAdicValuationFromReal",
+  "pAdicNormFromReal",
+  "unitResidueFromReal",
+  "real-valued implementation",
+  "parseFloat(",
+];
+
 test("padic-faithful modules do not import complex-era visualization or simulator paths", () => {
   const files = [
     ...listFiles("src/padic-faithful"),
@@ -87,6 +102,19 @@ test("padic-faithful modules do not import complex-era visualization or simulato
           `${path.relative(workspaceRoot, file)} template contains forbidden token: ${token}`,
         );
       }
+    }
+  }
+});
+
+test("faithful p-adic engine files do not reintroduce real-number fallback helpers", () => {
+  for (const relPath of faithfulEngineFiles) {
+    const source = fs.readFileSync(path.join(workspaceRoot, relPath), "utf8");
+    for (const token of forbiddenRealFallbackTokens) {
+      assert.equal(
+        source.includes(token),
+        false,
+        `${relPath} contains forbidden real-fallback token: ${token}`,
+      );
     }
   }
 });
