@@ -50,7 +50,14 @@ const isPreparedInput = (value: unknown): value is { preset: PAdicInputPreset } 
 };
 
 const isCircuitGate = (value: unknown): value is Exclude<PAdicCircuitGate, null> =>
-  value === "I" || value === "X" || value === "Z" || value === "M";
+  value === "I" ||
+  value === "X" ||
+  value === "Z" ||
+  value === "H" ||
+  value === "M" ||
+  value === "CNOT" ||
+  value === "CNOT_CONTROL" ||
+  value === "CNOT_TARGET";
 
 const isCircuitColumn = (value: unknown): value is { gates: PAdicCircuitGate[] } => {
   if (!value || typeof value !== "object") {

@@ -165,3 +165,48 @@ test("faithful engine returns full stage operator sequence across circuit column
   assert.equal(staged.stages[0].operator.dimension, 2);
   assert.equal(staged.stages[2].operator.trace, 1);
 });
+
+test("faithful engine applies CNOT control-target permutation on rho", () => {
+  const staged = faithful.stageOperatorsFromPreparedInputsAndCircuit(
+    [{ preset: "basis_1" }, { preset: "basis_0" }],
+    [
+      { gates: ["CNOT_CONTROL", "CNOT_TARGET"] },
+    ],
+    2,
+    3,
+  );
+
+  assert.equal(staged.error, null);
+  const finalStage = staged.stages[staged.stages.length - 1];
+  const rows = faithful.outcomeRowsFromDensityDiagonal(finalStage.operator, 2, 3);
+  const byId = new Map(rows.map((row) => [row.id, row.w_raw]));
+  assert.equal(byId.get("omega_0"), 0);
+  assert.equal(byId.get("omega_1"), 0);
+  assert.equal(byId.get("omega_2"), 0);
+  assert.equal(byId.get("omega_3"), 1);
+});
+
+test("faithful engine applies p-adic H variant as J rho J / 2", () => {
+  const staged = faithful.stageOperatorsFromPreparedInputsAndCircuit(
+    [{ preset: "basis_0" }],
+    [
+      { gates: ["H"] },
+    ],
+    1,
+    3,
+  );
+
+  assert.equal(staged.error, null);
+  const finalStage = staged.stages[staged.stages.length - 1];
+  const rows = faithful.outcomeRowsFromDensityDiagonal(finalStage.operator, 1, 3);
+  const byId = new Map(rows.map((row) => [row.id, row.w_raw]));
+  assert.equal(byId.get("omega_0"), 0.5);
+  assert.equal(byId.get("omega_1"), 0.5);
+
+  const entries = faithful.operatorEntryRowsFromOperator(finalStage.operator, 1, 3);
+  const byEntry = new Map(entries.map((entry) => [entry.id, entry.value_text]));
+  assert.equal(byEntry.get("rho_0_0"), "1/2");
+  assert.equal(byEntry.get("rho_0_1"), "1/2");
+  assert.equal(byEntry.get("rho_1_0"), "1/2");
+  assert.equal(byEntry.get("rho_1_1"), "1/2");
+});

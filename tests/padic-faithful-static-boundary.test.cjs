@@ -49,7 +49,6 @@ const forbiddenTokens = [
 const forbiddenTemplateTokens = [
   "probability",
   "formatPercent(",
-  "CNOT",
   "TOFFOLI",
   "SWAP",
   "CSWAP",

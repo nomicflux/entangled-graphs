@@ -144,6 +144,28 @@ test("faithful circuit gates evolve full n-qubit operator outcomes", () => {
     byId = new Map(rows.map((row) => [row.id, row]));
     assert.equal(byId.get("omega_0").w_raw, 0.5);
     assert.equal(byId.get("omega_1").w_raw, 0.5);
+
+    faithful.setFaithfulQubitCount(2);
+    faithful.setFaithfulPreparedPreset(0, "basis_1");
+    faithful.setFaithfulPreparedPreset(1, "basis_0");
+    faithful.pAdicFaithfulState.columns = [{ gates: [null, null] }];
+    faithful.setFaithfulColumnGate(0, 0, "CNOT_CONTROL");
+    faithful.setFaithfulColumnGate(0, 1, "CNOT_TARGET");
+    rows = faithful.faithfulOutcomeRows.value;
+    byId = new Map(rows.map((row) => [row.id, row]));
+    assert.equal(byId.get("omega_0").w_raw, 0);
+    assert.equal(byId.get("omega_1").w_raw, 0);
+    assert.equal(byId.get("omega_2").w_raw, 0);
+    assert.equal(byId.get("omega_3").w_raw, 1);
+
+    faithful.setFaithfulQubitCount(1);
+    faithful.setFaithfulPreparedPreset(0, "basis_0");
+    faithful.pAdicFaithfulState.columns = [{ gates: [null] }];
+    faithful.setFaithfulColumnGate(0, 0, "H");
+    rows = faithful.faithfulOutcomeRows.value;
+    byId = new Map(rows.map((row) => [row.id, row]));
+    assert.equal(byId.get("omega_0").w_raw, 0.5);
+    assert.equal(byId.get("omega_1").w_raw, 0.5);
   } finally {
     restoreState(original);
   }

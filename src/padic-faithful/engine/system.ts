@@ -20,12 +20,14 @@ import {
   pAdicScalarToString,
   pAdicUnitResidueOfScalar,
   pAdicValuationOfScalar,
+  subtractPAdicScalars,
   type PAdicScalar,
 } from "./scalar";
 import { matrixTensorProduct, matrixTrace } from "./matrix";
 
 const basis0Sign = pAdicScalarFromFraction(1);
 const basis1Sign = pAdicScalarFromFraction(-1);
+const halfScalar = pAdicScalarFromFraction(1, 2);
 const zeroScalar = pAdicScalarFromFraction(0);
 
 const zeroSquareMatrix = (dimension: number): PAdicScalar[][] =>
@@ -63,12 +65,106 @@ const tensorProductState = (preparedInputs: ReadonlyArray<{ preset: PAdicInputPr
 const bitMaskForQubit = (qubitIndex: number, qubitCount: number): number =>
   1 << (qubitCount - qubitIndex - 1);
 
+const cnotPairFromGates = (
+  gates: ReadonlyArray<PAdicCircuitGate>,
+): { controlRow: number; targetRow: number } | null => {
+  const controls = gates
+    .map((gate, index) => ({ gate, index }))
+    .filter((entry) => entry.gate === "CNOT_CONTROL");
+  const targets = gates
+    .map((gate, index) => ({ gate, index }))
+    .filter((entry) => entry.gate === "CNOT_TARGET");
+
+  if (controls.length !== 1 || targets.length !== 1) {
+    return null;
+  }
+  if (controls[0]?.index === targets[0]?.index) {
+    return null;
+  }
+
+  return {
+    controlRow: controls[0].index,
+    targetRow: targets[0].index,
+  };
+};
+
+const applyCnotPermutation = (
+  basisIndex: number,
+  controlMask: number,
+  targetMask: number,
+): number => {
+  if ((basisIndex & controlMask) === 0) {
+    return basisIndex;
+  }
+  return basisIndex ^ targetMask;
+};
+
+const applyHadamardLikeOnQubit = (
+  rho: PAdicScalar[][],
+  qubitIndex: number,
+  qubitCount: number,
+): PAdicScalar[][] => {
+  const dimension = rho.length;
+  const mask = bitMaskForQubit(qubitIndex, qubitCount);
+  const out = zeroSquareMatrix(dimension);
+
+  for (let baseRow = 0; baseRow < dimension; baseRow += 1) {
+    if ((baseRow & mask) !== 0) {
+      continue;
+    }
+    const row0 = baseRow;
+    const row1 = baseRow | mask;
+
+    for (let baseColumn = 0; baseColumn < dimension; baseColumn += 1) {
+      if ((baseColumn & mask) !== 0) {
+        continue;
+      }
+      const column0 = baseColumn;
+      const column1 = baseColumn | mask;
+
+      const a = rho[row0][column0];
+      const b = rho[row0][column1];
+      const c = rho[row1][column0];
+      const d = rho[row1][column1];
+
+      const r00 = multiplyPAdicScalars(halfScalar, addPAdicScalars(addPAdicScalars(a, b), addPAdicScalars(c, d)));
+      const r01 = multiplyPAdicScalars(halfScalar, addPAdicScalars(subtractPAdicScalars(a, b), subtractPAdicScalars(c, d)));
+      const r10 = multiplyPAdicScalars(halfScalar, addPAdicScalars(subtractPAdicScalars(a, c), subtractPAdicScalars(b, d)));
+      const r11 = multiplyPAdicScalars(halfScalar, addPAdicScalars(subtractPAdicScalars(a, b), subtractPAdicScalars(d, c)));
+
+      out[row0][column0] = r00;
+      out[row0][column1] = r01;
+      out[row1][column0] = r10;
+      out[row1][column1] = r11;
+    }
+  }
+
+  return out;
+};
+
+const applyHadamardLikeTransforms = (
+  rho: PAdicScalar[][],
+  gates: ReadonlyArray<PAdicCircuitGate>,
+  qubitCount: number,
+): PAdicScalar[][] => {
+  let out = rho;
+  for (let rowIndex = 0; rowIndex < gates.length; rowIndex += 1) {
+    if (gates[rowIndex] === "H") {
+      out = applyHadamardLikeOnQubit(out, rowIndex, qubitCount);
+    }
+  }
+  return out;
+};
+
 const applyColumnToDensity = (
   rho: PAdicScalar[][],
   gates: ReadonlyArray<PAdicCircuitGate>,
   qubitCount: number,
 ): PAdicScalar[][] => {
   const dimension = rho.length;
+  const cnotPair = cnotPairFromGates(gates);
+  const cnotControlMask = cnotPair ? bitMaskForQubit(cnotPair.controlRow, qubitCount) : 0;
+  const cnotTargetMask = cnotPair ? bitMaskForQubit(cnotPair.targetRow, qubitCount) : 0;
   const xMask = gates.reduce((mask, gate, rowIndex) =>
     gate === "X" ? (mask | bitMaskForQubit(rowIndex, qubitCount)) : mask, 0);
   const zMask = gates.reduce((mask, gate, rowIndex) =>
@@ -85,8 +181,14 @@ const applyColumnToDensity = (
         continue;
       }
 
-      const sourceRow = row ^ xMask;
-      const sourceColumn = column ^ xMask;
+      let sourceRow = row;
+      let sourceColumn = column;
+      if (cnotPair) {
+        sourceRow = applyCnotPermutation(sourceRow, cnotControlMask, cnotTargetMask);
+        sourceColumn = applyCnotPermutation(sourceColumn, cnotControlMask, cnotTargetMask);
+      }
+      sourceRow ^= xMask;
+      sourceColumn ^= xMask;
       let value = rho[sourceRow][sourceColumn];
 
       if (zMask !== 0) {
@@ -101,7 +203,7 @@ const applyColumnToDensity = (
     }
   }
 
-  return out;
+  return applyHadamardLikeTransforms(out, gates, qubitCount);
 };
 
 const traceOneScalar = pAdicScalarFromFraction(1);

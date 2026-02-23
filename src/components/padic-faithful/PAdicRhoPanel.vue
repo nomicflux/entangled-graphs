@@ -9,15 +9,6 @@
       This panel shows the live operator summary; canonical dimension is <code>2^n x 2^n</code>.
     </p>
 
-    <div class="padic-faithful-controls">
-      <label class="qubit-count-field">
-        Prime p
-        <select :value="pAdicFaithfulState.prime" @change="handlePrimeChange">
-          <option v-for="prime in PADIC_FAITHFUL_PRIMES" :key="prime" :value="prime">{{ prime }}</option>
-        </select>
-      </label>
-    </div>
-
     <div v-if="faithfulRhoResult.operator" class="padic-selected-detail">
       <p><strong>dimension:</strong> {{ faithfulRhoResult.operator.dimension }} x {{ faithfulRhoResult.operator.dimension }}</p>
       <p><strong>trace:</strong> {{ faithfulDisplay.formatScalar(faithfulRhoResult.operator.trace) }}</p>
@@ -43,19 +34,11 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import {
-  PADIC_FAITHFUL_PRIMES,
   faithfulDisplay,
   faithfulRhoResult,
   isZeroPAdicScalar,
   pAdicScalarToString,
-  pAdicFaithfulState,
-  setFaithfulPrime,
 } from "../../padic-faithful";
-
-const handlePrimeChange = (event: Event) => {
-  const target = event.target as HTMLSelectElement;
-  setFaithfulPrime(Number.parseInt(target.value, 10));
-};
 
 const diagonalPreview = computed(() => {
   const operator = faithfulRhoResult.value.operator;

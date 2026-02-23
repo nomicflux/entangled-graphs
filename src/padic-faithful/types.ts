@@ -4,7 +4,16 @@ export type PAdicPrime = 2 | 3 | 5 | 7;
 
 export type PAdicViewMode = "valuation_ring" | "digit_vector";
 
-export type PAdicCircuitGate = "I" | "X" | "Z" | "M" | null;
+export type PAdicCircuitGate =
+  | "I"
+  | "X"
+  | "Z"
+  | "H"
+  | "M"
+  | "CNOT"
+  | "CNOT_CONTROL"
+  | "CNOT_TARGET"
+  | null;
 
 export type Matrix2 = PAdicScalar[][];
 
