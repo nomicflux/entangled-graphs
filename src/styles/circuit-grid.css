@@ -123,6 +123,11 @@
   box-shadow: inset 0 0 0 1px rgba(255, 140, 153, 0.28);
 }
 
+.gate-slot.is-core-locked {
+  background: rgba(146, 197, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(146, 197, 255, 0.3);
+}
+
 .gate-slot.is-row-locked::after {
   content: "";
   position: absolute;
@@ -138,12 +143,35 @@
   pointer-events: none;
 }
 
+.gate-slot.is-core-locked::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 8px;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(146, 197, 255, 0.16) 0,
+    rgba(146, 197, 255, 0.16) 4px,
+    transparent 4px,
+    transparent 9px
+  );
+  pointer-events: none;
+}
+
 .gate-slot.is-row-locked .gate-slot-label {
   color: rgba(255, 140, 153, 0.9);
 }
 
+.gate-slot.is-core-locked .gate-slot-label {
+  color: rgba(146, 197, 255, 0.92);
+}
+
 .gate-slot.is-row-locked .gate-token.empty {
   border-color: rgba(255, 140, 153, 0.4);
+}
+
+.gate-slot.is-core-locked .gate-token.empty {
+  border-color: rgba(146, 197, 255, 0.5);
 }
 
 .gate-slot-label {
@@ -276,6 +304,10 @@
 
 .gate-token.is-row-locked-token {
   opacity: 0.72;
+}
+
+.gate-token.is-core-locked-token {
+  opacity: 0.78;
 }
 
 .circuit-legend {

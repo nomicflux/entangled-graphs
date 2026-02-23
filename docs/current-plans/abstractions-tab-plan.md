@@ -2,7 +2,7 @@
 
 ## Goal
 Add a new top-level `Abstractions` workspace that teaches reusable quantum ideas with:
-1. Fixed, non-editable core circuits.
+1. Fixed conceptual constraints (state, circuit, or both), represented in the most pedagogically clear way.
 2. Interactive exploration on top of that core.
 3. Reuse of existing Free-Form and Algorithms UI/logic primitives (gate palette, circuit grid, stage snapshots, stage inspector, entanglement overlays, measurement behavior).
 
@@ -13,27 +13,42 @@ Initial entries:
 
 ## Scope Constraints
 1. Keep current `Free-Form`, `p-adic`, and `Algorithms` behavior unchanged.
-2. Abstractions must remain interactive, but core backbone gates must be immutable.
+2. Abstractions must remain interactive, but each lesson must encode only the minimum fixed constraints needed to teach that lesson.
 3. Favor shared composables/components over one-off duplicated logic.
+4. Pedagogy-first representation: if two implementations are mathematically equivalent, prefer the one that is clearest for the learner.
+5. Do not force locked gate columns into lessons whose fixed requirement is a prepared state rather than a circuit backbone.
 
 ## Locked Product Decisions
 1. Top-level tabs become: `Free-Form`, `p-adic (experimental)`, `Algorithms`, `Abstractions`.
 2. `Abstractions` has sub-tabs: `Preparing Qubits`, `Entanglement`, `Phase Kickback`.
-3. Each abstraction uses a two-part circuit:
-   - locked core columns (immutable)
-   - editable exploration columns (user-controlled)
-4. Locked core means:
+3. Locking is per-abstraction, not universal:
+   - some abstractions use locked circuit columns,
+   - some abstractions use fixed prepared state with no locked circuit columns.
+4. When locked circuit columns are used, locked core means:
    - no drag, no overwrite, no Alt-clear
    - visible lock hint/tooltips on blocked actions
-5. Existing measurement lock semantics remain active (`M` still locks later columns on measured wire).
+5. Existing measurement lock semantics remain active when `M` is enabled (`M` still locks later columns on measured wire).
 6. Abstraction tab + selected abstraction persist in localStorage.
+
+## Representation Contract (Must Hold)
+Before coding each abstraction, explicitly classify the fixed part:
+1. `Fixed state only`:
+   - use prepared-state constraints,
+   - no synthetic locked placeholder gates.
+2. `Fixed circuit only`:
+   - lock specific circuit columns/gates.
+3. `Fixed state + fixed circuit`:
+   - use both, but each must be visible and justified in lesson text.
+
+If implementation and lesson intent diverge, lesson intent wins.
 
 ## Entry Definitions
 
 ### 1) Preparing Qubits
-Core backbone (locked):
+Core constraint:
 1. Qubits start in `|0>` at the prepared stage and this baseline is not editable in-place.
 2. Core lesson goals are fixed and shown as target states (`|0>`, `|1>`, `|+>`, `|->`) for each active qubit row.
+3. No locked baseline circuit gates are shown.
 
 Exploration goals:
 1. Show how `X` maps `|0> <-> |1>`.
@@ -41,12 +56,16 @@ Exploration goals:
 3. Let users compose `X` and `H` in editable columns to prepare requested targets from `|0>`.
 
 Planned emphasis:
-1. Restrict palette to the prep-focused gate set (`X`, `H`, optional `I` for readability).
+1. Restrict palette to the prep-focused gate set (`X`, `H`).
 2. Immediate per-row "target reached" checks using stage distribution/Bloch view.
 3. Guided examples that step from `|0>` to `|1>`, then to `|+>`/`|->`.
 
+Non-goals:
+1. No locked `I`-gate scaffold.
+2. No algorithm-style fixed backbone visuals in this lesson.
+
 ### 2) Entanglement
-Core backbone (locked):
+Core backbone (locked circuit):
 1. `H` on `q0`
 2. `CNOT q0 -> q1`
 
@@ -61,7 +80,7 @@ Planned emphasis:
 3. Clear callout when entanglement is removed by measurement or local operations.
 
 ### 3) Phase Kickback
-Core backbone (locked, simplified Deutsch-style kickback):
+Core backbone (locked circuit, simplified Deutsch-style kickback):
 1. `H` on `q0`
 2. `X` on `q1`
 3. `H` on `q1` (prepares `|->` target)
@@ -91,13 +110,14 @@ Planned emphasis:
    - `exploreColumns`
    - `combinedColumns`
    - `selectedGate`/selected stage index
-2. Add lock policy utilities:
+2. Add lock policy utilities (optional per abstraction):
    - `isLockedCell(column,row)`
    - `lockReason(column,row)`
 3. Reuse current free-form grid/palette/stage components by adapting interaction composables to accept:
    - injected columns/actions (not only global free-form singleton)
    - optional lock policy hook
 4. Keep existing free-form path using the same composables with default unlocked policy.
+5. Ensure unlocked abstractions render identically to standard editable circuit columns (no lock styling artifacts).
 
 ### C. Abstraction Scaffolds
 1. `AbstractionsWorkbench.vue` for sub-tab shell.
@@ -127,9 +147,10 @@ Manual review of navigation and persistence.
 ## Phase 2: Constrained Interactive Circuit Foundation
 ### Work
 1. Build or refactor shared circuit interactions so they can run against abstraction-local circuit state.
-2. Add lock policy support for immutable core cells.
+2. Add lock policy support for immutable core cells and explicit no-lock mode.
 3. Keep measurement-lock behavior intact on editable columns.
 4. Add tests for lock enforcement (cannot place/move/delete locked gates).
+5. Add tests for no-lock mode (no locked-cell behavior when abstraction does not define locked cells).
 
 ### Deliverable
 1. Reusable interactive panel supports locked backbone + editable tail.
@@ -141,12 +162,14 @@ Manual review of interaction feel and lock UX.
 ## Phase 3: Preparing Qubits Entry
 ### Work
 1. Implement prep model where qubits start from `|0>` baseline and users build preparations with `X/H`.
-2. Lock the baseline lesson structure while keeping post-baseline circuit interactions editable.
+2. Keep baseline fixed at prepared-state level only (no locked placeholder circuit gates).
 3. Add target-state exercises (`|1>`, `|+>`, `|->`) with per-row completion checks.
 4. Add deterministic tests for:
    - `X` flipping basis state probabilities
    - `H` generating 50/50 superposition from `|0>`
    - `X` then `H` yielding `|->` behavior
+5. Add UI contract check:
+   - lesson has zero locked core columns and zero lock warnings by default.
 
 ### Deliverable
 1. Preparing-qubits tab demonstrates how to move from default `|0>` to required single-qubit targets.
@@ -198,12 +221,20 @@ Manual review of explanation quality and correctness.
 ## Phase 6: Hardening + Docs
 ### Work
 1. Add integration tests for abstraction workspace persistence and subtab routing.
-2. Add regression tests for lock policy edge cases.
+2. Add regression tests for lock policy edge cases and state-vs-circuit representation mistakes.
 3. Update README section for new Abstractions workspace and learning goals.
 
 ### Deliverable
 1. Stable Abstractions workspace with coverage for routing, correctness, and lock invariants.
 2. Documentation aligned with current UX.
+
+## Guardrails (Added After Phase 3 Review)
+1. Never introduce locked placeholder gates to represent an initial state.
+2. For each abstraction PR, include a one-line declaration:
+   - `Fixed by state`, `Fixed by circuit`, or `Fixed by both`.
+3. If the declaration is `Fixed by state`, lock policy must be empty.
+4. If lock policy is non-empty, lesson text must explain what is locked and why.
+5. Add at least one negative test that fails the previously observed wrong abstraction.
 
 ## Suggested Follow-On Abstraction Modules
 1. Bell family explorer (`Phi+`, `Phi-`, `Psi+`, `Psi-`) via phase/bit flips on the Bell core.
