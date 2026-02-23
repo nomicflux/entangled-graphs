@@ -197,6 +197,8 @@ const paletteBuiltinGates: readonly GateId[] = [
   "T",
   "M",
   "CNOT",
+  "CZ",
+  "CP",
   "SWAP",
   "TOFFOLI",
   "CSWAP",

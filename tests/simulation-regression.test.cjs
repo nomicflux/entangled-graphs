@@ -68,6 +68,8 @@ test("arity-based builtin gate eligibility", () => {
     "T",
     "M",
     "CNOT",
+    "CZ",
+    "CP",
     "SWAP",
   ]);
   assert.deepEqual(stateOperators.availableBuiltinGatesForQubitCount(3), [
@@ -80,6 +82,8 @@ test("arity-based builtin gate eligibility", () => {
     "T",
     "M",
     "CNOT",
+    "CZ",
+    "CP",
     "SWAP",
     "TOFFOLI",
     "CSWAP",

@@ -1,5 +1,5 @@
 import type { BuiltinGateId, BuiltinSingleGateId, GateId, Operator } from "../types";
-import { CNOT, CSWAP, H, I, M, S, SWAP, T, TOFFOLI, X, Y, Z, builtinGateIds } from "../operator";
+import { CNOT, CP, CSWAP, CZ, H, I, M, S, SWAP, T, TOFFOLI, X, Y, Z, builtinGateIds } from "../operator";
 import type { CustomOperator } from "../types";
 
 export const builtinOperatorMap: Record<BuiltinGateId, Operator> = {
@@ -12,6 +12,8 @@ export const builtinOperatorMap: Record<BuiltinGateId, Operator> = {
   T,
   M,
   CNOT,
+  CZ,
+  CP,
   SWAP,
   TOFFOLI,
   CSWAP,
@@ -30,6 +32,8 @@ export const isBuiltinGate = (gate: string): gate is BuiltinGateId =>
   gate === "T" ||
   gate === "M" ||
   gate === "CNOT" ||
+  gate === "CZ" ||
+  gate === "CP" ||
   gate === "SWAP" ||
   gate === "TOFFOLI" ||
   gate === "CSWAP";
@@ -46,6 +50,8 @@ const builtinGateKindMap: Record<BuiltinGateId, GateKind> = {
   T: "unitary",
   M: "measurement",
   CNOT: "unitary",
+  CZ: "unitary",
+  CP: "unitary",
   SWAP: "unitary",
   TOFFOLI: "unitary",
   CSWAP: "unitary",

@@ -386,3 +386,75 @@
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.74rem;
 }
+
+.phase-kickback-panels {
+  align-items: start;
+}
+
+.kickback-mode-card {
+  margin-bottom: 12px;
+  border-radius: 12px;
+  padding: 10px;
+  border: 1px solid rgba(146, 197, 255, 0.38);
+  background: rgba(146, 197, 255, 0.1);
+  display: grid;
+  gap: 8px;
+}
+
+.kickback-mode-card h3 {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.kickback-mode-card p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.kickback-mode-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.kickback-mode-btn {
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  padding: 6px 10px;
+  font-size: 0.74rem;
+  font-family: "IBM Plex Mono", monospace;
+  cursor: pointer;
+}
+
+.kickback-mode-btn.active {
+  border-color: rgba(102, 245, 214, 0.74);
+  background: rgba(102, 245, 214, 0.18);
+}
+
+.kickback-explainer {
+  margin-top: 12px;
+  border-radius: 12px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.kickback-explainer h3 {
+  margin: 0 0 6px;
+  font-size: 0.9rem;
+}
+
+.kickback-explainer p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.kickback-explainer p + p {
+  margin-top: 5px;
+}

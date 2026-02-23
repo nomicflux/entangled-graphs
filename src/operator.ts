@@ -240,6 +240,8 @@ export const S: Operator<1> = makeSingleQubitOperator("S", "S", sEntries);
 export const T: Operator<1> = makeSingleQubitOperator("T", "T", tEntries);
 export const M: Operator<1> = makeSingleQubitOperator("M", "M", identityEntries);
 export const CNOT: Operator<2> = controlledOperator("CNOT", "CNOT", X);
+export const CZ: Operator<2> = controlledOperator("CZ", "CZ", Z);
+export const CP: Operator<2> = controlledOperator("CP", "CP(e^{i*pi/2})", S);
 export const SWAP: Operator<2> = makeOperator("SWAP", "SWAP", 2, [
   [complex.from_real(1), complex.from_real(0), complex.from_real(0), complex.from_real(0)],
   [complex.from_real(0), complex.from_real(0), complex.from_real(1), complex.from_real(0)],
@@ -260,6 +262,8 @@ export const builtinGateIds: readonly BuiltinGateId[] = [
   "T",
   "M",
   "CNOT",
+  "CZ",
+  "CP",
   "SWAP",
   "TOFFOLI",
   "CSWAP",

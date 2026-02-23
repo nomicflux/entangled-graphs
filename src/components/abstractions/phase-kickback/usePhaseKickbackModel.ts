@@ -23,25 +23,23 @@ import { enforceDisjoint, gateTouchesRow, removeOverlaps } from "../../../state/
 import { isRowLockedAtColumn } from "../../../state/measurement-locks";
 import { availableBuiltinGatesForQubitCount, operatorArityForGate, resolveOperator } from "../../../state/operators";
 import type { CircuitGridModelContext } from "../../circuit/model-context";
-import type { CircuitGridLockPolicy } from "../../circuit/lock-policy";
 import type { PaletteEntry, PaletteGroup } from "../../circuit/palette-types";
 import { useCircuitGridInteractions } from "../../circuit/useCircuitGridInteractions";
 import {
-  ENTANGLEMENT_SCENARIOS,
-  entanglementScenarioBranchSample,
-  entanglementScenarioById,
-  type EntanglementScenarioId,
+  createPhaseKickbackCoreColumns,
+  type ControlledPhaseGate,
+  type KickbackModuleId,
+  type KickbackPhaseGate,
+  phaseKickbackLockedColumnCount,
+  type PhaseKickbackConfig,
+  PHASE_KICKBACK_QUBIT_COUNT,
+  phaseKickbackBranchSample,
+  phaseKickbackCoreMetrics,
 } from "./engine";
 
-type PairMetrics = {
-  pairLabel: string;
-  coreBell: EntanglementLink["dominantBell"] | null;
-  selectedBell: EntanglementLink["dominantBell"] | null;
-  finalBell: EntanglementLink["dominantBell"] | null;
-  selectedStrength: number;
-  finalStrength: number;
-  branchStrength: number | null;
-};
+const INITIAL_EDITABLE_COLUMNS = 2;
+const MIN_EDITABLE_COLUMNS = 1;
+const MAX_EDITABLE_COLUMNS = 6;
 
 const paletteBuiltinGates: readonly GateId[] = [
   "I",
@@ -68,98 +66,129 @@ const ketZero = {
 const createEditableColumns = (count: number): CircuitColumn[] =>
   Array.from({ length: count }, () => ({ gates: [] }));
 
-const normalizePair = (left: QubitRow, right: QubitRow): readonly [QubitRow, QubitRow] =>
-  left <= right ? [left, right] : [right, left];
+const phaseKickbackModuleOptions = [
+  {
+    id: "phase-gates",
+    title: "Single-Qubit Phase Kickback",
+    subtitle: "Use a single-qubit phase gate on q1, then CNOT to transfer that phase class onto q0.",
+    instructions: [
+      "Compare I/X (+1 full phase) against Z/Y (-1 full phase).",
+      "Try S and T to see intermediate complex kickback.",
+      "Track effective factor and q0 readout bias before/after exploration gates.",
+    ],
+    measurementPrompt: "Place M early to see how collapse can hide kickback before final readout.",
+  },
+  {
+    id: "controlled-phase-variants",
+    title: "Controlled-Phase Variants (CZ / CP=e^{i*pi/2})",
+    subtitle: "Use native CZ and CP=e^{i*pi/2} to kick phase directly onto q0 and compare full vs partial kickback.",
+    instructions: [
+      "Switch between CZ and CP=e^{i*pi/2} and compare effective factor on q0 coherence.",
+      "Verify CZ gives full -1 kickback while CP=e^{i*pi/2} gives intermediate/complex kickback.",
+      "Add post-core gates to test how phase-bias can be amplified, canceled, or erased.",
+    ],
+    measurementPrompt: "Measure q0 or q1 before final readout to compare branch collapse vs ensemble bias.",
+  },
+] as const satisfies ReadonlyArray<{
+  id: KickbackModuleId;
+  title: string;
+  subtitle: string;
+  instructions: readonly string[];
+  measurementPrompt: string;
+}>;
 
-const findPairLink = (
-  links: ReadonlyArray<EntanglementLink>,
-  left: QubitRow,
-  right: QubitRow,
-): EntanglementLink | null => {
-  const [from, to] = normalizePair(left, right);
-  return links.find((link) => link.fromRow === from && link.toRow === to) ?? null;
-};
+const kickbackPhaseGateOptions: readonly KickbackPhaseGate[] = ["I", "X", "Y", "Z", "S", "T"];
+const controlledPhaseGateOptions: readonly ControlledPhaseGate[] = ["CZ", "CP"];
 
-const pairParityFromDistribution = (
-  distribution: ReadonlyArray<BasisProbability>,
-  left: QubitRow,
-  right: QubitRow,
-): { same: number; opposite: number } => {
-  let same = 0;
-  let opposite = 0;
-  for (const entry of distribution) {
-    const a = entry.basis[left];
-    const b = entry.basis[right];
-    if (a === undefined || b === undefined) {
-      continue;
-    }
-    if (a === b) {
-      same += entry.probability;
-      continue;
-    }
-    opposite += entry.probability;
+const q0OneProbability = (distribution: ReadonlyArray<BasisProbability>): number =>
+  distribution.reduce((acc, entry) => acc + (entry.basis.startsWith("1") ? entry.probability : 0), 0);
+
+const q0ZeroProbability = (distribution: ReadonlyArray<BasisProbability>): number =>
+  distribution.reduce((acc, entry) => acc + (entry.basis.startsWith("0") ? entry.probability : 0), 0);
+
+const phaseLabel = (x: number, y: number): string => {
+  const coherence = Math.hypot(x, y);
+  if (coherence < 0.2) {
+    return "low coherence";
   }
-  return { same, opposite };
-};
-
-const summarizeEntanglementModel = (
-  model: StageEntanglementModel | null | undefined,
-): {
-  pairwiseCount: number;
-  multipartiteCount: number;
-  strongestKind: "single" | "pairwise" | "multipartite";
-  strongestStrength: number;
-} => {
-  if (!model || model.components.length === 0) {
-    return {
-      pairwiseCount: 0,
-      multipartiteCount: 0,
-      strongestKind: "single",
-      strongestStrength: 0,
-    };
+  if (x >= 0) {
+    return "positive phase (|+>-like)";
   }
-
-  const pairwiseCount = model.components.filter((component) => component.kind === "pairwise").length;
-  const multipartiteCount = model.components.filter((component) => component.kind === "multipartite").length;
-  const strongest = model.components.reduce((best, current) =>
-    current.strength > best.strength ? current : best,
-  );
-  return {
-    pairwiseCount,
-    multipartiteCount,
-    strongestKind: strongest.kind,
-    strongestStrength: strongest.strength,
-  };
+  return "negative phase (|->-like)";
 };
 
-export const useEntanglementModel = () => {
-  const scenarioId = ref<EntanglementScenarioId>("bell-family");
-  const scenario = computed(() => entanglementScenarioById(scenarioId.value));
-
-  const coreColumns = ref<CircuitColumn[]>(scenario.value.createCoreColumns());
-  const editableColumns = ref<CircuitColumn[]>(createEditableColumns(scenario.value.initialEditableColumns));
+export const usePhaseKickbackModel = () => {
+  const moduleId = ref<KickbackModuleId>("phase-gates");
+  const editableColumns = ref<CircuitColumn[]>(createEditableColumns(INITIAL_EDITABLE_COLUMNS));
+  const targetPhaseGate = ref<KickbackPhaseGate>("Z");
+  const controlledPhaseGate = ref<ControlledPhaseGate>("CZ");
   const selectedGate = ref<GateId | null>("X");
-  const selectedStageIndex = ref(coreColumns.value.length + editableColumns.value.length);
-  const sampledBranch = ref<ReturnType<typeof entanglementScenarioBranchSample> | null>(null);
+  const selectedStageIndex = ref(0);
+  const sampledBranch = ref<ReturnType<typeof phaseKickbackBranchSample> | null>(null);
 
   let gateInstanceCounter = 0;
   const nextGateId = (): string => {
     gateInstanceCounter += 1;
-    return `ent-g${gateInstanceCounter}`;
+    return `kick-g${gateInstanceCounter}`;
   };
+
+  const module = computed(() => phaseKickbackModuleOptions.find((entry) => entry.id === moduleId.value) ?? phaseKickbackModuleOptions[0]);
+
+  const kickbackConfig = computed<Required<PhaseKickbackConfig>>(() => ({
+    moduleId: moduleId.value,
+    targetPhaseGate: targetPhaseGate.value,
+    controlledPhaseGate: controlledPhaseGate.value,
+  }));
+
+  const coreColumns = computed<CircuitColumn[]>(() => createPhaseKickbackCoreColumns(kickbackConfig.value));
+  const lockedCoreColumnCount = computed<number>(() => phaseKickbackLockedColumnCount(kickbackConfig.value));
 
   const combinedColumns = computed<CircuitColumn[]>(() => [...coreColumns.value, ...editableColumns.value]);
 
-  const columnLabels = computed<string[]>(() =>
-    combinedColumns.value.map((_, index) => scenario.value.columnLabelAt(index)),
-  );
+  if (selectedStageIndex.value === 0) {
+    selectedStageIndex.value = combinedColumns.value.length;
+  }
 
-  const stageLabels = computed<string[]>(() =>
-    Array.from({ length: combinedColumns.value.length + 1 }, (_, index) => scenario.value.stageLabelAt(index)),
+  const stageLabels = computed<string[]>(() => {
+    const labels = [
+      "Prepared |00>",
+      ...(moduleId.value === "phase-gates"
+        ? [
+            "Step 1: H(q1)",
+            `Step 2: ${targetPhaseGate.value}(q1), H(q0)`,
+            "Step 3: CNOT(q0->q1)",
+            "Step 4: H(q0)",
+          ]
+        : ["Step 1: H(q0), X(q1)", `Step 2: ${controlledPhaseGate.value}(q0,q1)`, "Step 3: H(q0)"]),
+    ];
+    for (let index = 0; index < editableColumns.value.length; index += 1) {
+      labels.push(`Explore step ${index + 1}`);
+    }
+    return labels;
+  });
+
+  const columnLabels = computed<string[]>(() =>
+    combinedColumns.value.map((_, index) => {
+      if (index === 0) {
+        return moduleId.value === "phase-gates" ? "Step 1: H(q1)" : "Step 1: H(q0), X(q1)";
+      }
+      if (index === 1) {
+        return moduleId.value === "phase-gates"
+          ? `Step 2: ${targetPhaseGate.value}(q1), H(q0)`
+          : `Step 2: ${controlledPhaseGate.value}(q0,q1)`;
+      }
+      if (index === 2) {
+        return moduleId.value === "phase-gates" ? "Step 3: CNOT(q0->q1)" : "Step 3: H(q0)";
+      }
+      if (moduleId.value === "phase-gates" && index === 3) {
+        return "Step 4: H(q0)";
+      }
+      return `Explore t${index - (lockedCoreColumnCount.value - 1)}`;
+    }),
   );
 
   const preparedState = computed(() =>
-    tensor_product_qubits(Array.from({ length: scenario.value.qubitCount }, () => ketZero)),
+    tensor_product_qubits(Array.from({ length: PHASE_KICKBACK_QUBIT_COUNT }, () => ketZero)),
   );
 
   const resolveGate = (gate: GateId) => resolveOperator(gate, []);
@@ -169,14 +198,14 @@ export const useEntanglementModel = () => {
       preparedState.value,
       combinedColumns.value,
       resolveGate,
-      scenario.value.qubitCount,
+      PHASE_KICKBACK_QUBIT_COUNT,
     ),
   );
 
   const stageViews = computed<StageView[]>(() => {
     const lastIndex = ensembleSnapshots.value.length - 1;
     return ensembleSnapshots.value.map((snapshot, index) => ({
-      id: index === 0 ? `ent-${scenarioId.value}-prepared` : `ent-${scenarioId.value}-t${index}`,
+      id: index === 0 ? "kick-prepared" : `kick-t${index}`,
       index,
       label: stageLabels.value[index] ?? `t${index}`,
       distribution: measurement_distribution_for_ensemble(snapshot),
@@ -206,6 +235,20 @@ export const useEntanglementModel = () => {
     { deep: true },
   );
 
+  watch(
+    combinedColumns,
+    () => {
+      sampledBranch.value = null;
+    },
+    { deep: true },
+  );
+
+  watch([moduleId, targetPhaseGate, controlledPhaseGate], () => {
+    sampledBranch.value = null;
+    selectedStageIndex.value = combinedColumns.value.length;
+    interactions.clearPendingPlacement();
+  });
+
   const setSelectedStage = (index: number): void => {
     if (index < 0 || index >= stageViews.value.length) {
       return;
@@ -214,10 +257,10 @@ export const useEntanglementModel = () => {
   };
 
   const isValidWire = (row: QubitRow): boolean =>
-    Number.isInteger(row) && row >= 0 && row < scenario.value.qubitCount;
+    Number.isInteger(row) && row >= 0 && row < PHASE_KICKBACK_QUBIT_COUNT;
 
   const editableColumnAt = (absoluteColumn: number): CircuitColumn | null => {
-    const editableIndex = absoluteColumn - scenario.value.lockedCoreCount;
+    const editableIndex = absoluteColumn - lockedCoreColumnCount.value;
     if (editableIndex < 0) {
       return null;
     }
@@ -238,7 +281,7 @@ export const useEntanglementModel = () => {
     }
 
     const arity = operatorArityForGate(gate, []);
-    if (arity === null || arity < 1 || arity > scenario.value.qubitCount) {
+    if (arity === null || arity < 1 || arity > PHASE_KICKBACK_QUBIT_COUNT) {
       return;
     }
     selectedGate.value = gate;
@@ -279,11 +322,7 @@ export const useEntanglementModel = () => {
     return true;
   };
 
-  const placeGateOnWiresAt = (
-    column: number,
-    gate: GateId,
-    wires: ReadonlyArray<QubitRow>,
-  ): boolean => {
+  const placeGateOnWiresAt = (column: number, gate: GateId, wires: ReadonlyArray<QubitRow>): boolean => {
     const arity = operatorArityForGate(gate, []);
     if (arity === null || arity < 2 || wires.length !== arity) {
       return false;
@@ -328,7 +367,7 @@ export const useEntanglementModel = () => {
 
   const context: CircuitGridModelContext = {
     columns: computed(() => combinedColumns.value),
-    qubitCount: computed(() => scenario.value.qubitCount),
+    qubitCount: computed(() => PHASE_KICKBACK_QUBIT_COUNT),
     selectedGate: computed(() => selectedGate.value),
     gateArity: (gate: GateId): number => operatorArityForGate(gate, []) ?? 0,
     gateName: (gate: GateId): string => resolveOperator(gate, [])?.label ?? gate,
@@ -344,38 +383,19 @@ export const useEntanglementModel = () => {
     stageEntanglementModels,
   };
 
-  const lockPolicy: CircuitGridLockPolicy = {
-    isCellLockedAt: (column) => column >= 0 && column < scenario.value.lockedCoreCount,
-    lockReasonAt: (column) => (column >= 0 && column < scenario.value.lockedCoreCount ? scenario.value.coreLockReason : null),
-  };
-
   const interactions = useCircuitGridInteractions({
     context,
-    lockPolicy,
-  });
-
-  const resetScenarioState = () => {
-    coreColumns.value = scenario.value.createCoreColumns();
-    editableColumns.value = createEditableColumns(scenario.value.initialEditableColumns);
-    selectedStageIndex.value = coreColumns.value.length + editableColumns.value.length;
-    sampledBranch.value = null;
-    interactions.clearPendingPlacement();
-  };
-
-  watch(scenarioId, () => {
-    resetScenarioState();
-  });
-
-  watch(
-    combinedColumns,
-    () => {
-      sampledBranch.value = null;
+    lockPolicy: {
+      isCellLockedAt: (column) => column >= 0 && column < lockedCoreColumnCount.value,
+      lockReasonAt: (column) =>
+        column >= 0 && column < lockedCoreColumnCount.value
+          ? "These starting steps are fixed for this lesson module."
+          : null,
     },
-    { deep: true },
-  );
+  });
 
   const availableGates = computed<GateId[]>(() =>
-    availableBuiltinGatesForQubitCount(scenario.value.qubitCount).filter((gate) => paletteBuiltinGates.includes(gate)),
+    availableBuiltinGatesForQubitCount(PHASE_KICKBACK_QUBIT_COUNT).filter((gate) => paletteBuiltinGates.includes(gate)),
   );
 
   const paletteGroups = computed<PaletteGroup[]>(() => {
@@ -410,7 +430,7 @@ export const useEntanglementModel = () => {
   };
 
   const appendEditableColumn = () => {
-    if (editableColumns.value.length >= scenario.value.maxEditableColumns) {
+    if (editableColumns.value.length >= MAX_EDITABLE_COLUMNS) {
       return;
     }
     editableColumns.value = [...editableColumns.value, { gates: [] }];
@@ -419,7 +439,7 @@ export const useEntanglementModel = () => {
   };
 
   const removeLastEditableColumn = () => {
-    if (editableColumns.value.length <= scenario.value.minEditableColumns) {
+    if (editableColumns.value.length <= MIN_EDITABLE_COLUMNS) {
       return;
     }
     editableColumns.value = editableColumns.value.slice(0, -1);
@@ -428,67 +448,39 @@ export const useEntanglementModel = () => {
   };
 
   const resetEditableColumns = () => {
-    editableColumns.value = createEditableColumns(scenario.value.initialEditableColumns);
+    editableColumns.value = createEditableColumns(INITIAL_EDITABLE_COLUMNS);
     selectedStageIndex.value = combinedColumns.value.length;
     sampledBranch.value = null;
     interactions.clearPendingPlacement();
   };
 
-  const scenarioOptions = ENTANGLEMENT_SCENARIOS.map((entry) => ({
-    id: entry.id,
-    title: entry.title,
-  }));
-
-  const focusPairs = computed(() =>
-    scenario.value.focusPairs.map((pair) => normalizePair(pair[0], pair[1])),
+  const coreMetrics = computed(() => phaseKickbackCoreMetrics(editableColumns.value, kickbackConfig.value));
+  const controlBeforeKickback = computed(() => coreMetrics.value.controlBeforeKickback);
+  const controlAfterKickback = computed(() => coreMetrics.value.controlAfterKickback);
+  const targetBeforeKickback = computed(() => coreMetrics.value.targetBeforeKickback);
+  const targetAfterKickback = computed(() => coreMetrics.value.targetAfterKickback);
+  const readoutAfterFinalH = computed(() => coreMetrics.value.readoutAfterFinalH);
+  const phaseFlipDetected = computed(() => coreMetrics.value.phaseFlipDetected);
+  const effectiveKickbackFactor = computed(() => coreMetrics.value.effectiveFactor);
+  const sourcePhaseAngleRadians = computed(() =>
+    moduleId.value === "phase-gates"
+      ? Math.atan2(targetBeforeKickback.value.y, targetBeforeKickback.value.x)
+      : Math.atan2(controlAfterKickback.value.y, controlAfterKickback.value.x),
   );
 
-  const selectedLinks = computed(() => stageEntanglementLinks.value[selectedStageIndex.value] ?? []);
-  const finalLinks = computed(() => stageEntanglementLinks.value[stageEntanglementLinks.value.length - 1] ?? []);
-  const coreLinks = computed(() => stageEntanglementLinks.value[scenario.value.lockedCoreCount] ?? []);
-
-  const focusPairMetrics = computed<PairMetrics[]>(() =>
-    focusPairs.value.map(([from, to]) => {
-      const selectedLink = findPairLink(selectedLinks.value, from, to);
-      const finalLink = findPairLink(finalLinks.value, from, to);
-      const coreLink = findPairLink(coreLinks.value, from, to);
-      const branchLink = sampledBranch.value ? findPairLink(sampledBranch.value.links, from, to) : null;
-      return {
-        pairLabel: `q${from}-q${to}`,
-        coreBell: coreLink?.dominantBell ?? null,
-        selectedBell: selectedLink?.dominantBell ?? null,
-        finalBell: finalLink?.dominantBell ?? null,
-        selectedStrength: selectedLink?.strength ?? 0,
-        finalStrength: finalLink?.strength ?? 0,
-        branchStrength: branchLink?.strength ?? null,
-      };
-    }),
+  const controlPhaseBeforeLabel = computed(() =>
+    phaseLabel(controlBeforeKickback.value.x, controlBeforeKickback.value.y),
   );
-
-  const primaryPair = computed(() => focusPairs.value[0] ?? normalizePair(0, 1));
-  const selectedStageLink = computed<EntanglementLink | null>(() =>
-    findPairLink(selectedLinks.value, primaryPair.value[0], primaryPair.value[1]),
-  );
-  const finalStageLink = computed<EntanglementLink | null>(() =>
-    findPairLink(finalLinks.value, primaryPair.value[0], primaryPair.value[1]),
+  const controlPhaseAfterLabel = computed(() =>
+    phaseLabel(controlAfterKickback.value.x, controlAfterKickback.value.y),
   );
 
   const finalStage = computed<StageView>(() => stageViews.value[stageViews.value.length - 1]!);
   const finalDistribution = computed(() => finalStage.value.distribution);
 
-  const selectedCorrelation = computed(() =>
-    pairParityFromDistribution(selectedStage.value.distribution, primaryPair.value[0], primaryPair.value[1]),
-  );
-  const finalCorrelation = computed(() =>
-    pairParityFromDistribution(finalDistribution.value, primaryPair.value[0], primaryPair.value[1]),
-  );
-
-  const selectedModelSummary = computed(() =>
-    summarizeEntanglementModel(stageEntanglementModels.value[selectedStageIndex.value]),
-  );
-  const finalModelSummary = computed(() =>
-    summarizeEntanglementModel(stageEntanglementModels.value[stageEntanglementModels.value.length - 1]),
-  );
+  const baselineReadoutQ0P1 = computed(() => readoutAfterFinalH.value.p1);
+  const finalQ0P1 = computed(() => q0OneProbability(finalDistribution.value));
+  const finalQ0P0 = computed(() => q0ZeroProbability(finalDistribution.value));
 
   const measurementEvents = computed(() => {
     const events: Array<{ column: number; row: QubitRow }> = [];
@@ -516,68 +508,65 @@ export const useEntanglementModel = () => {
     return event.column < combinedColumns.value.length - 1;
   });
 
-  const runBranchMeasurement = () => {
-    sampledBranch.value = entanglementScenarioBranchSample(scenarioId.value, editableColumns.value);
+  const runSampledBranch = () => {
+    sampledBranch.value = phaseKickbackBranchSample(editableColumns.value, kickbackConfig.value);
   };
 
-  const sampledBranchPrimaryLink = computed<EntanglementLink | null>(() => {
-    if (!sampledBranch.value) {
-      return null;
-    }
-    return findPairLink(sampledBranch.value.links, primaryPair.value[0], primaryPair.value[1]);
-  });
-
-  const sampledBranchCorrelation = computed(() => {
-    if (!sampledBranch.value) {
-      return null;
-    }
-    return pairParityFromDistribution(
-      sampledBranch.value.distribution,
-      primaryPair.value[0],
-      primaryPair.value[1],
-    );
-  });
-
   const lessonStatus = computed(() => {
-    if (scenarioId.value === "ghz-growth") {
-      if (finalModelSummary.value.multipartiteCount > 0 && finalModelSummary.value.strongestStrength > 0.9) {
-        return "Multipartite GHZ structure is dominant even when pairwise links remain weak.";
+    if (hasEarlyMeasurement.value) {
+      return "An early measurement collapses branches and can hide kickback before the final q0 readout.";
+    }
+    const factor = effectiveKickbackFactor.value;
+    const prefix = moduleId.value === "controlled-phase-variants" ? "Controlled-phase" : "Kickback";
+    if (factor <= -0.9) {
+      if (finalQ0P1.value > 0.9) {
+        return `${prefix} shows full -1 behavior: q0 phase flips and reads out near q0=1.`;
       }
-      if (hasEarlyMeasurement.value) {
-        return "Early measurement reduced GHZ multipartite structure; compare selected vs final summaries.";
+      return `Full -1 ${prefix.toLowerCase()} happened, but later exploration gates changed the final q0 readout.`;
+    }
+    if (factor >= 0.9) {
+      if (finalQ0P0.value > 0.9) {
+        return `${prefix} shows full +1 behavior: no phase flip on q0, so readout stays near q0=0.`;
       }
-      return "Use local gates or early measurement to stress-test multipartite robustness.";
+      return `Full +1 ${prefix.toLowerCase()} appeared at the core step, but later exploration changed the final q0 readout.`;
     }
-
-    if (scenarioId.value === "entanglement-swapping") {
-      if (!sampledBranch.value) {
-        return "Run a branch measurement sample to reveal outcome-conditioned q0-q3 entanglement.";
-      }
-      const strength = sampledBranchPrimaryLink.value?.strength ?? 0;
-      if (strength > 0.9) {
-        return "Sampled branch shows strong swapped q0-q3 entanglement.";
-      }
-      return "Sampled branch has weak swapped link; run again to inspect another measurement branch.";
-    }
-
-    const strength = finalStageLink.value?.strength ?? 0;
-    if (hasEarlyMeasurement.value && strength < 0.2) {
-      return "Early measurement collapsed Bell coherence. Remaining correlation is mostly classical.";
-    }
-    if (strength > 0.98) {
-      return "Bell entanglement remains strong. Local X/Z/H changed Bell class or basis.";
-    }
-    if (strength > 0.45) {
-      return "Entanglement is partially preserved after your edits.";
-    }
-    return "Entanglement is weak. Reset and rebuild from the starting steps to compare.";
+    return `Intermediate/complex phase: q0 receives partial ${prefix.toLowerCase()}, so final readout is a bias instead of a full flip.`;
   });
+
+  const setModuleId = (next: KickbackModuleId) => {
+    if (!phaseKickbackModuleOptions.some((entry) => entry.id === next)) {
+      return;
+    }
+    moduleId.value = next;
+  };
+
+  const setTargetPhaseGate = (gate: KickbackPhaseGate) => {
+    if (!kickbackPhaseGateOptions.includes(gate)) {
+      return;
+    }
+    targetPhaseGate.value = gate;
+  };
+
+  const setControlledPhaseGate = (gate: ControlledPhaseGate) => {
+    if (!controlledPhaseGateOptions.includes(gate)) {
+      return;
+    }
+    controlledPhaseGate.value = gate;
+  };
 
   return {
-    scenarioId,
-    scenario,
-    scenarioOptions,
+    moduleId,
+    setModuleId,
+    moduleOptions: phaseKickbackModuleOptions,
+    module,
+    targetPhaseGate,
+    setTargetPhaseGate,
+    phaseGateChoices: kickbackPhaseGateOptions,
+    controlledPhaseGate,
+    setControlledPhaseGate,
+    controlledPhaseChoices: controlledPhaseGateOptions,
     columns: combinedColumns,
+    lockedCoreColumnCount,
     columnLabels,
     paletteGroups,
     measurementEntries,
@@ -585,29 +574,33 @@ export const useEntanglementModel = () => {
     selectedStageIndex,
     selectedStage,
     stageViews,
-    focusPairMetrics,
-    selectedStageLink,
-    finalStageLink,
+    controlBeforeKickback,
+    controlAfterKickback,
+    targetBeforeKickback,
+    targetAfterKickback,
+    readoutAfterFinalH,
+    controlPhaseBeforeLabel,
+    controlPhaseAfterLabel,
+    phaseFlipDetected,
+    effectiveKickbackFactor,
+    sourcePhaseAngleRadians,
+    baselineReadoutQ0P1,
+    finalQ0P1,
+    finalQ0P0,
     finalDistribution,
-    selectedCorrelation,
-    finalCorrelation,
-    selectedModelSummary,
-    finalModelSummary,
     firstMeasurement,
     hasEarlyMeasurement,
     lessonStatus,
     sampledBranch,
-    sampledBranchPrimaryLink,
-    sampledBranchCorrelation,
-    runBranchMeasurement,
     editableColumnCount: computed(() => editableColumns.value.length),
-    minEditableColumns: computed(() => scenario.value.minEditableColumns),
-    maxEditableColumns: computed(() => scenario.value.maxEditableColumns),
+    minEditableColumns: MIN_EDITABLE_COLUMNS,
+    maxEditableColumns: MAX_EDITABLE_COLUMNS,
     appendEditableColumn,
     removeLastEditableColumn,
     resetEditableColumns,
     setSelectedStage,
     handlePaletteChipClick,
+    runSampledBranch,
     ...interactions,
   };
 };

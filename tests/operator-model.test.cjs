@@ -91,6 +91,8 @@ test("palette arity data comes from unified operators", () => {
   assert.equal(stateOperators.operatorArityForGate("Y", []), 1);
   assert.equal(stateOperators.operatorArityForGate("M", []), 1);
   assert.equal(stateOperators.operatorArityForGate("CNOT", []), 2);
+  assert.equal(stateOperators.operatorArityForGate("CZ", []), 2);
+  assert.equal(stateOperators.operatorArityForGate("CP", []), 2);
   assert.equal(stateOperators.operatorArityForGate("SWAP", []), 2);
   assert.equal(stateOperators.operatorArityForGate("TOFFOLI", []), 3);
   assert.equal(stateOperators.operatorArityForGate("CSWAP", []), 3);
