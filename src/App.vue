@@ -18,6 +18,7 @@
         Free-Form
       </button>
       <button
+        v-if="isPadicWorkspaceEnabled"
         class="top-tab-btn"
         :class="{ active: selectedWorkspace === 'p-adic' }"
         type="button"
@@ -44,7 +45,7 @@
     </nav>
 
     <FreeFormWorkbench v-show="selectedWorkspace === 'free-form'" />
-    <PAdicFaithfulWorkbench v-show="selectedWorkspace === 'p-adic'" />
+    <PAdicFaithfulWorkbench v-if="isPadicWorkspaceEnabled && selectedWorkspace === 'p-adic'" />
     <AlgorithmsWorkbench
       v-show="selectedWorkspace === 'algorithms'"
       :selected-algorithm="selectedAlgorithm"
@@ -60,6 +61,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import type { WorkspaceMode } from "./app/persistence";
 import FreeFormWorkbench from "./components/FreeFormWorkbench.vue";
 import PAdicFaithfulWorkbench from "./components/padic-faithful/PAdicFaithfulWorkbench.vue";
 import AlgorithmsWorkbench from "./components/algorithms/AlgorithmsWorkbench.vue";
@@ -72,8 +74,14 @@ import {
   writeAlgorithmToStorage,
   writeWorkspaceToStorage,
 } from "./app/persistence";
+import { isPadicWorkspaceEnabledFromSearch } from "./app/padic-access";
 
-const selectedWorkspace = ref(readWorkspaceFromStorage(window.localStorage));
+const isPadicWorkspaceEnabled = isPadicWorkspaceEnabledFromSearch(window.location.search);
+const storedWorkspace = readWorkspaceFromStorage(window.localStorage);
+const initialWorkspace: WorkspaceMode =
+  !isPadicWorkspaceEnabled && storedWorkspace === "p-adic" ? "free-form" : storedWorkspace;
+
+const selectedWorkspace = ref(initialWorkspace);
 const selectedAlgorithm = ref(readAlgorithmFromStorage(window.localStorage));
 const selectedAbstraction = ref(readAbstractionFromStorage(window.localStorage));
 
