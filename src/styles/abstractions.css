@@ -146,3 +146,243 @@
   font-size: 0.78rem;
   font-family: "IBM Plex Mono", monospace;
 }
+
+.entanglement-panels {
+  align-items: start;
+}
+
+.ent-module-nav {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ent-module-btn {
+  text-align: left;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.78rem;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.ent-module-btn.active {
+  border-color: rgba(102, 245, 214, 0.72);
+  background: rgba(102, 245, 214, 0.18);
+}
+
+.ent-core-card {
+  border-radius: 14px;
+  padding: 12px;
+  border: 1px solid rgba(146, 197, 255, 0.44);
+  background:
+    linear-gradient(135deg, rgba(146, 197, 255, 0.16), rgba(102, 245, 214, 0.11)),
+    rgba(7, 12, 26, 0.42);
+  margin-bottom: 12px;
+}
+
+.ent-core-title {
+  margin: 0 0 5px;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(146, 197, 255, 0.96);
+}
+
+.ent-core-step {
+  margin: 0;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.82rem;
+}
+
+.ent-core-step + .ent-core-step {
+  margin-top: 4px;
+}
+
+.ent-metric-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.ent-metric-card {
+  border-radius: 12px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.ent-metric-card h3 {
+  margin: 0 0 5px;
+  font-size: 0.82rem;
+}
+
+.ent-metric-card p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.ent-metric-card p + p {
+  margin-top: 4px;
+}
+
+.ent-bell-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(146, 197, 255, 0.55);
+  background: rgba(146, 197, 255, 0.12);
+  color: rgba(219, 232, 255, 0.98);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.74rem;
+}
+
+.ent-try-list {
+  margin-top: 12px;
+  border-radius: 12px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.ent-try-list h3 {
+  margin: 0 0 6px;
+  font-size: 0.9rem;
+}
+
+.ent-try-list p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.ent-try-list p + p {
+  margin-top: 6px;
+}
+
+.ent-bell-explainer {
+  margin-top: 12px;
+  border-radius: 12px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.ent-bell-explainer h3 {
+  margin: 0 0 6px;
+  font-size: 0.9rem;
+}
+
+.ent-bell-explainer p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.ent-bell-explainer p + p {
+  margin-top: 5px;
+}
+
+.ent-spoiler {
+  margin-top: 12px;
+}
+
+.ent-spoiler summary {
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(146, 197, 255, 0.95);
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.ent-spoiler[open] summary {
+  margin-bottom: 6px;
+}
+
+.ent-spoiler p {
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.ent-spoiler p + p {
+  margin-top: 5px;
+}
+
+.ent-outcome-card {
+  border-radius: 12px;
+  padding: 10px;
+  border: 1px solid rgba(102, 245, 214, 0.34);
+  background: rgba(102, 245, 214, 0.09);
+}
+
+.ent-outcome-card p {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.ent-measure-note {
+  margin-top: 12px;
+  border-radius: 12px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.ent-measure-note.active {
+  border-color: rgba(255, 186, 126, 0.48);
+  background: rgba(255, 186, 126, 0.1);
+}
+
+.ent-measure-note p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.ent-sample-card {
+  margin-top: 12px;
+  border-radius: 12px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.03);
+  display: grid;
+  gap: 8px;
+}
+
+.ent-sample-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.ent-sample-head h3 {
+  margin: 0;
+  font-size: 0.86rem;
+}
+
+.ent-sample-card p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.ent-outcome-list {
+  margin: 0;
+  padding-left: 16px;
+  display: grid;
+  gap: 4px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.74rem;
+}

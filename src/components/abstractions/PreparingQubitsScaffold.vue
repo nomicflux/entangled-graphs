@@ -3,7 +3,7 @@
     <section class="panel">
       <div class="panel-header">
         <h2>Target Assignment</h2>
-        <p>Task: from prepared <strong>|00></strong>, use only X/H in two columns to match each row target.</p>
+        <p>Task: from <strong>|00></strong>, place only X/H in two steps so each row reaches its target.</p>
       </div>
 
       <div class="prep-task-card">
@@ -45,7 +45,7 @@
     <section class="panel panel-center">
       <div class="panel-header">
         <h2>Preparation Circuit</h2>
-        <p>Prepared state stays fixed at |0>; two editable columns are available for X/H placement.</p>
+        <p>The start state is fixed at |00>; use the two steps below for X/H placement.</p>
       </div>
 
       <div class="circuit-tools">
@@ -61,7 +61,7 @@
         />
 
         <div class="column-controls">
-          <span class="prep-columns-lock">Columns: {{ fixedColumnCount }} (fixed)</span>
+          <span class="prep-columns-lock">Steps: {{ fixedColumnCount }} total</span>
           <button class="column-btn" type="button" @click="resetEditableColumns">Reset lesson</button>
         </div>
       </div>
@@ -188,7 +188,7 @@
     <section class="panel">
       <div class="panel-header">
         <h2>Lesson Outcome</h2>
-        <p>Success when each qubit meets its assigned target.</p>
+        <p>Success when each row reaches target fidelity.</p>
       </div>
 
       <div class="prep-outcome" :class="{ complete: allRowsReady }">

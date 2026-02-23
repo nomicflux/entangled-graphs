@@ -17,6 +17,7 @@ Initial entries:
 3. Favor shared composables/components over one-off duplicated logic.
 4. Pedagogy-first representation: if two implementations are mathematically equivalent, prefer the one that is clearest for the learner.
 5. Do not force locked gate columns into lessons whose fixed requirement is a prepared state rather than a circuit backbone.
+6. Purpose-first rule for learner-facing code: every line must either enable a learner action, explain an observable result, or support a verified behavior.
 
 ## Locked Product Decisions
 1. Top-level tabs become: `Free-Form`, `p-adic (experimental)`, `Algorithms`, `Abstractions`.
@@ -201,12 +202,18 @@ Manual pedagogy review for clarity.
 
 ## Phase 5: Phase Kickback Entry
 ### Work
-1. Implement kickback model with locked simplified backbone (`H`, `X`, `H`, `CNOT`, `H`).
-2. Add phase-tracking/readout metrics:
+1. Run a purpose audit before implementation:
+   - each learner-facing line is tagged to one of:
+     - learner action
+     - observable outcome
+     - verified behavior
+   - remove or rewrite any line that does not map to one of those.
+2. Implement kickback model with locked simplified backbone (`H`, `X`, `H`, `CNOT`, `H`).
+3. Add phase-tracking/readout metrics:
    - control relative phase around kickback step
    - final control-wire decision meaning
-3. Allow post-core exploration with additional gates and optional measurement.
-4. Add deterministic tests for:
+4. Allow post-core exploration with additional gates and optional measurement.
+5. Add deterministic tests for:
    - kickback phase transfer signature
    - final `q0` readout expectation in baseline circuit
    - robustness when exploration gates alter phase/readout
@@ -214,6 +221,7 @@ Manual pedagogy review for clarity.
 ### Deliverable
 1. Phase kickback is visually and numerically explicit.
 2. User can interact beyond the core without editing the core itself.
+3. No learner-facing line remains that lacks a direct action/outcome/verification purpose.
 
 ### Stop Point
 Manual review of explanation quality and correctness.

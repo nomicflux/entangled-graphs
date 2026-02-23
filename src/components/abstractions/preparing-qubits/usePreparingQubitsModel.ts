@@ -281,7 +281,7 @@ export const usePreparingQubitsModel = () => {
   const targetById = (id: PreparationTargetId) => PREPARATION_TARGETS.find((entry) => entry.id === id) ?? PREPARATION_TARGETS[0]!;
   const selectedTargetsByRow = computed(() => rows.map((row) => targetById(targetIds.value[row] ?? "one")));
   const taskSummary = computed(() =>
-    rows.map((row) => `q${row} -> ${selectedTargetsByRow.value[row]!.label}`).join(" , "),
+    rows.map((row) => `q${row} -> ${selectedTargetsByRow.value[row]!.label}`).join(" | "),
   );
 
   const finalStage = computed<StageView>(() => stageViews.value[stageViews.value.length - 1]!);
@@ -295,7 +295,6 @@ export const usePreparingQubitsModel = () => {
       const fidelity = bloch ? preparationFidelity(bloch, targetIdForRow) : 0;
       return {
         row,
-        targetId: target.id,
         targetLabel: target.label,
         p0: bloch?.p0 ?? 0,
         p1: bloch?.p1 ?? 0,
