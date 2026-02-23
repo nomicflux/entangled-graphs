@@ -32,6 +32,11 @@
   gap: 16px;
 }
 
+.abstractions-workbench {
+  display: grid;
+  gap: 16px;
+}
+
 .subtabs {
   display: inline-flex;
   gap: 8px;

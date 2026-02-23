@@ -33,6 +33,14 @@
       >
         Algorithms
       </button>
+      <button
+        class="top-tab-btn"
+        :class="{ active: selectedWorkspace === 'abstractions' }"
+        type="button"
+        @click="selectedWorkspace = 'abstractions'"
+      >
+        Abstractions
+      </button>
     </nav>
 
     <FreeFormWorkbench v-show="selectedWorkspace === 'free-form'" />
@@ -42,6 +50,11 @@
       :selected-algorithm="selectedAlgorithm"
       @select-algorithm="selectedAlgorithm = $event"
     />
+    <AbstractionsWorkbench
+      v-show="selectedWorkspace === 'abstractions'"
+      :selected-abstraction="selectedAbstraction"
+      @select-abstraction="selectedAbstraction = $event"
+    />
   </div>
 </template>
 
@@ -50,15 +63,19 @@ import { ref, watch } from "vue";
 import FreeFormWorkbench from "./components/FreeFormWorkbench.vue";
 import PAdicFaithfulWorkbench from "./components/padic-faithful/PAdicFaithfulWorkbench.vue";
 import AlgorithmsWorkbench from "./components/algorithms/AlgorithmsWorkbench.vue";
+import AbstractionsWorkbench from "./components/abstractions/AbstractionsWorkbench.vue";
 import {
+  readAbstractionFromStorage,
   readAlgorithmFromStorage,
   readWorkspaceFromStorage,
+  writeAbstractionToStorage,
   writeAlgorithmToStorage,
   writeWorkspaceToStorage,
 } from "./app/persistence";
 
 const selectedWorkspace = ref(readWorkspaceFromStorage(window.localStorage));
 const selectedAlgorithm = ref(readAlgorithmFromStorage(window.localStorage));
+const selectedAbstraction = ref(readAbstractionFromStorage(window.localStorage));
 
 watch(selectedWorkspace, (value) => {
   writeWorkspaceToStorage(window.localStorage, value);
@@ -66,5 +83,9 @@ watch(selectedWorkspace, (value) => {
 
 watch(selectedAlgorithm, (value) => {
   writeAlgorithmToStorage(window.localStorage, value);
+});
+
+watch(selectedAbstraction, (value) => {
+  writeAbstractionToStorage(window.localStorage, value);
 });
 </script>
