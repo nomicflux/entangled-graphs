@@ -1,6 +1,5 @@
 import type { Ref } from "vue";
-import type { CircuitColumn, GateId, QubitRow } from "../../types";
-import { gateInstanceAt, gateLabel } from "../../state";
+import type { CircuitColumn, GateId, GateInstance, QubitRow } from "../../types";
 import type { DragPayload, DragSource, PendingPlacement } from "./grid-interaction-types";
 
 export type GridTokenHelperDeps = {
@@ -9,6 +8,9 @@ export type GridTokenHelperDeps = {
   dropTarget: Ref<DragSource | null>;
   gateArity: (gate: GateId) => number;
   isRowLockedAt: (column: number, row: QubitRow) => boolean;
+  isCellLockedAt: (column: number, row: QubitRow) => boolean;
+  gateInstanceAt: (column: CircuitColumn, row: QubitRow) => GateInstance | null;
+  gateLabel: (gate: GateId) => string;
 };
 
 export const useCircuitGridTokenHelpers = ({
@@ -17,6 +19,9 @@ export const useCircuitGridTokenHelpers = ({
   dropTarget,
   gateArity,
   isRowLockedAt,
+  isCellLockedAt,
+  gateInstanceAt,
+  gateLabel,
 }: GridTokenHelperDeps) => {
   const slotInstance = (column: CircuitColumn, row: QubitRow) => gateInstanceAt(column, row);
 
@@ -34,9 +39,12 @@ export const useCircuitGridTokenHelpers = ({
     return gateLabel(instance.gate);
   };
 
-  const isDraggableToken = (column: CircuitColumn, row: QubitRow): boolean => {
+  const isDraggableToken = (column: CircuitColumn, row: QubitRow, columnIndex: number): boolean => {
     const instance = slotInstance(column, row);
     if (!instance) {
+      return false;
+    }
+    if (isCellLockedAt(columnIndex, row)) {
       return false;
     }
     return gateArity(instance.gate) === 1;
@@ -130,7 +138,11 @@ export const useCircuitGridTokenHelpers = ({
   };
 
   const isDropTarget = (col: number, row: QubitRow): boolean =>
-    dropTarget.value !== null && dropTarget.value.col === col && dropTarget.value.row === row && !isRowLockedAt(col, row);
+    dropTarget.value !== null &&
+    dropTarget.value.col === col &&
+    dropTarget.value.row === row &&
+    !isRowLockedAt(col, row) &&
+    !isCellLockedAt(col, row);
 
   const isDragSource = (col: number, row: QubitRow): boolean => {
     if (!dragging.value?.from) {

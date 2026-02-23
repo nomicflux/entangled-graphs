@@ -1,19 +1,5 @@
 import type { Ref } from "vue";
 import type { GateId, QubitRow } from "../../types";
-import {
-  clearGateAt,
-  placeCnot,
-  placeMultiGate,
-  placeToffoli,
-  qubitCount,
-  setGateAt,
-  state,
-  toCellRef,
-  toCnotPlacement,
-  toMultiGatePlacement,
-  toSingleGatePlacement,
-  toToffoliPlacement,
-} from "../../state";
 import type { PendingPlacement } from "./grid-interaction-types";
 
 type GridPlacementHandlerDeps = {
@@ -22,6 +8,15 @@ type GridPlacementHandlerDeps = {
   gateArity: (gate: GateId) => number;
   firstMeasurementColumnAtRow: (row: QubitRow) => number | null;
   clearPendingPlacement: () => void;
+  isCellLockedAt: (column: number, row: QubitRow) => boolean;
+  lockReasonForCell: (column: number, row: QubitRow) => string | null;
+  qubitCount: () => number;
+  selectedGate: () => GateId | null;
+  clearGateAt: (column: number, row: QubitRow) => boolean;
+  setSingleGateAt: (column: number, row: QubitRow, gate: GateId) => boolean;
+  placeCnotAt: (column: number, control: QubitRow, target: QubitRow) => boolean;
+  placeToffoliAt: (column: number, controlA: QubitRow, controlB: QubitRow, target: QubitRow) => boolean;
+  placeMultiGateAt: (column: number, wires: ReadonlyArray<QubitRow>, gate: GateId) => boolean;
 };
 
 export const useCircuitGridPlacementHandlers = ({
@@ -30,6 +25,15 @@ export const useCircuitGridPlacementHandlers = ({
   gateArity,
   firstMeasurementColumnAtRow,
   clearPendingPlacement,
+  isCellLockedAt,
+  lockReasonForCell,
+  qubitCount,
+  selectedGate,
+  clearGateAt,
+  setSingleGateAt,
+  placeCnotAt,
+  placeToffoliAt,
+  placeMultiGateAt,
 }: GridPlacementHandlerDeps) => {
   const handleSlotHover = (col: number, row: QubitRow) => {
     const pending = pendingPlacement.value;
@@ -61,7 +65,7 @@ export const useCircuitGridPlacementHandlers = ({
   };
 
   const handleCnotSlotClick = (col: number, row: QubitRow) => {
-    if (qubitCount.value < 2) {
+    if (qubitCount() < 2) {
       return;
     }
 
@@ -76,18 +80,15 @@ export const useCircuitGridPlacementHandlers = ({
       return;
     }
 
-    const placement = toCnotPlacement(col, pending.control, row);
-    if (!placement) {
+    if (!placeCnotAt(col, pending.control, row)) {
       placementError.value = "CNOT placement is invalid for the current circuit.";
       return;
     }
-
-    placeCnot(placement);
     clearPendingPlacement();
   };
 
   const handleToffoliSlotClick = (col: number, row: QubitRow) => {
-    if (qubitCount.value < 3) {
+    if (qubitCount() < 3) {
       return;
     }
 
@@ -114,19 +115,16 @@ export const useCircuitGridPlacementHandlers = ({
       return;
     }
 
-    const placement = toToffoliPlacement(col, pending.controlA, pending.controlB, row);
-    if (!placement) {
+    if (!placeToffoliAt(col, pending.controlA, pending.controlB, row)) {
       placementError.value = "Toffoli placement is invalid for the current circuit.";
       return;
     }
-
-    placeToffoli(placement);
     clearPendingPlacement();
   };
 
   const handleMultiSlotClick = (col: number, row: QubitRow, gate: GateId) => {
     const arity = gateArity(gate);
-    if (arity < 2 || qubitCount.value < arity) {
+    if (arity < 2 || qubitCount() < arity) {
       return;
     }
 
@@ -148,29 +146,28 @@ export const useCircuitGridPlacementHandlers = ({
       return;
     }
 
-    const placement = toMultiGatePlacement(col, nextWires, gate);
-    if (!placement) {
+    if (!placeMultiGateAt(col, nextWires, gate)) {
       placementError.value = "Gate placement is invalid for the current circuit.";
       return;
     }
-
-    placeMultiGate(placement);
     clearPendingPlacement();
   };
 
   const handleSlotClick = (col: number, row: QubitRow, event: MouseEvent) => {
+    if (isCellLockedAt(col, row)) {
+      placementError.value = lockReasonForCell(col, row) ?? `Locked: q${row} at t${col + 1} cannot be edited.`;
+      return;
+    }
+
     if (event.altKey) {
-      const cell = toCellRef(col, row);
-      if (cell) {
-        clearGateAt(cell);
-      }
+      clearGateAt(col, row);
       if (pendingPlacement.value?.column === col) {
         clearPendingPlacement();
       }
       return;
     }
 
-    const selected = state.selectedGate;
+    const selected = selectedGate();
     if (!selected) {
       return;
     }
@@ -195,10 +192,7 @@ export const useCircuitGridPlacementHandlers = ({
     }
 
     clearPendingPlacement();
-    const placement = toSingleGatePlacement(col, row, selected);
-    if (placement) {
-      setGateAt(placement);
-    }
+    setSingleGateAt(col, row, selected);
   };
 
   return {

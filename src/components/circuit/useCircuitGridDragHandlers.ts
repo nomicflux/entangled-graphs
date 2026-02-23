@@ -1,14 +1,7 @@
 import type { Ref } from "vue";
 import type { CircuitColumn, GateId, QubitRow } from "../../types";
-import {
-  clearGateAt,
-  gateInstanceAt,
-  setGateAt,
-  setSelectedGate,
-  toCellRef,
-  toSingleGatePlacement,
-} from "../../state";
 import type { DragPayload, DragSource } from "./grid-interaction-types";
+import type { CircuitGridModelContext } from "./model-context";
 
 type GridDragHandlerDeps = {
   dragging: Ref<DragPayload | null>;
@@ -17,6 +10,12 @@ type GridDragHandlerDeps = {
   gateArity: (gate: GateId) => number;
   firstMeasurementColumnAtRow: (row: QubitRow) => number | null;
   clearPendingPlacement: () => void;
+  isCellLockedAt: (column: number, row: QubitRow) => boolean;
+  lockReasonForCell: (column: number, row: QubitRow) => string | null;
+  gateInstanceAt: CircuitGridModelContext["gateInstanceAt"];
+  setSelectedGate: CircuitGridModelContext["setSelectedGate"];
+  clearGateAt: CircuitGridModelContext["clearGateAt"];
+  setSingleGateAt: CircuitGridModelContext["setSingleGateAt"];
 };
 
 export const useCircuitGridDragHandlers = ({
@@ -26,6 +25,12 @@ export const useCircuitGridDragHandlers = ({
   gateArity,
   firstMeasurementColumnAtRow,
   clearPendingPlacement,
+  isCellLockedAt,
+  lockReasonForCell,
+  gateInstanceAt,
+  setSelectedGate,
+  clearGateAt,
+  setSingleGateAt,
 }: GridDragHandlerDeps) => {
   const isPaletteDraggable = (gate: GateId): boolean => gateArity(gate) === 1;
 
@@ -39,6 +44,11 @@ export const useCircuitGridDragHandlers = ({
   };
 
   const startCellDrag = (columns: readonly CircuitColumn[], col: number, row: QubitRow, event: DragEvent) => {
+    if (isCellLockedAt(col, row)) {
+      placementError.value = lockReasonForCell(col, row) ?? `Locked: q${row} at t${col + 1} cannot be moved.`;
+      event.preventDefault();
+      return;
+    }
     const instance = gateInstanceAt(columns[col]!, row);
     if (!instance || gateArity(instance.gate) !== 1) {
       return;
@@ -49,6 +59,10 @@ export const useCircuitGridDragHandlers = ({
 
   const handleDragOver = (col: number, row: QubitRow) => {
     if (!dragging.value) {
+      return;
+    }
+    if (isCellLockedAt(col, row)) {
+      dropTarget.value = null;
       return;
     }
     const measuredAt = firstMeasurementColumnAtRow(row);
@@ -67,6 +81,12 @@ export const useCircuitGridDragHandlers = ({
     }
 
     const { gate, from } = dragging.value;
+    if (isCellLockedAt(col, row)) {
+      placementError.value = lockReasonForCell(col, row) ?? `Locked: q${row} at t${col + 1} cannot be edited.`;
+      dragging.value = null;
+      dropTarget.value = null;
+      return;
+    }
     const measuredAt = firstMeasurementColumnAtRow(row);
     if (measuredAt !== null && col > measuredAt) {
       placementError.value = `q${row} was measured at t${measuredAt + 1}; later columns are locked.`;
@@ -82,14 +102,9 @@ export const useCircuitGridDragHandlers = ({
     }
 
     clearPendingPlacement();
-    const placement = toSingleGatePlacement(col, row, gate);
-    if (placement) {
-      setGateAt(placement);
+    if (setSingleGateAt(col, row, gate)) {
       if (from && (from.col !== col || from.row !== row)) {
-        const source = toCellRef(from.col, from.row);
-        if (source) {
-          clearGateAt(source);
-        }
+        clearGateAt(from.col, from.row);
       }
       setSelectedGate(gate);
     }

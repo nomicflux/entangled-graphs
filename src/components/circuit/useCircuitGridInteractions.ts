@@ -1,5 +1,4 @@
 import { ref } from "vue";
-import { state } from "../../state";
 import type { DragPayload, DragSource, PendingPlacement } from "./grid-interaction-types";
 import { useCircuitGridComputed } from "./useCircuitGridComputed";
 import { useCircuitGridTokenHelpers } from "./useCircuitGridTokenHelpers";
@@ -8,14 +7,25 @@ import { useCircuitGridEntanglement } from "./useCircuitGridEntanglement";
 import { useCircuitGridDragHandlers } from "./useCircuitGridDragHandlers";
 import { useCircuitGridPlacementHandlers } from "./useCircuitGridPlacementHandlers";
 import { useCircuitGridPlacementLifecycle } from "./useCircuitGridPlacementLifecycle";
+import { lockReasonForCell, noLockedCellsPolicy, type CircuitGridLockPolicy } from "./lock-policy";
+import { createFreeFormGridModelContext, type CircuitGridModelContext } from "./model-context";
 
 export type { ConnectorSegment, MultipartiteBand } from "./grid-interaction-types";
 
-export const useCircuitGridInteractions = () => {
+export type CircuitGridInteractionOptions = {
+  lockPolicy?: CircuitGridLockPolicy;
+  context?: CircuitGridModelContext;
+};
+
+export const useCircuitGridInteractions = (options: CircuitGridInteractionOptions = {}) => {
   const dragging = ref<DragPayload | null>(null);
   const dropTarget = ref<DragSource | null>(null);
   const pendingPlacement = ref<PendingPlacement | null>(null);
   const placementError = ref<string | null>(null);
+  const context = options.context ?? createFreeFormGridModelContext();
+  const lockPolicy = options.lockPolicy ?? noLockedCellsPolicy();
+  const isCellLockedAt = (column: number, row: number) => lockPolicy.isCellLockedAt(column, row);
+  const lockReasonAt = (column: number, row: number) => lockReasonForCell(lockPolicy, column, row);
 
   const clearPendingPlacement = () => {
     pendingPlacement.value = null;
@@ -25,6 +35,13 @@ export const useCircuitGridInteractions = () => {
   const { rows, gateArity, firstMeasurementColumnAtRow, isRowLockedAt, slotTitle, placementHint } = useCircuitGridComputed({
     pendingPlacement,
     placementError,
+    isCellLockedAt,
+    lockReasonForCell: lockReasonAt,
+    columns: () => context.columns.value,
+    qubitCount: () => context.qubitCount.value,
+    selectedGate: () => context.selectedGate.value,
+    gateArity: context.gateArity,
+    gateName: context.gateName,
   });
 
   const tokenHelpers = useCircuitGridTokenHelpers({
@@ -33,6 +50,9 @@ export const useCircuitGridInteractions = () => {
     dropTarget,
     gateArity,
     isRowLockedAt,
+    isCellLockedAt,
+    gateInstanceAt: context.gateInstanceAt,
+    gateLabel: context.gateLabel,
   });
 
   const { connectorSegments, connectorStyle } = useCircuitGridConnectors({ rows, pendingPlacement });
@@ -44,7 +64,7 @@ export const useCircuitGridInteractions = () => {
     multipartiteBandStyle,
     pairwiseTooltip,
     multipartiteTooltip,
-  } = useCircuitGridEntanglement(rows);
+  } = useCircuitGridEntanglement(rows, context.stageEntanglementLinks, context.stageEntanglementModels);
 
   const dragHandlers = useCircuitGridDragHandlers({
     dragging,
@@ -53,6 +73,12 @@ export const useCircuitGridInteractions = () => {
     gateArity,
     firstMeasurementColumnAtRow,
     clearPendingPlacement,
+    isCellLockedAt,
+    lockReasonForCell: lockReasonAt,
+    gateInstanceAt: context.gateInstanceAt,
+    setSelectedGate: context.setSelectedGate,
+    clearGateAt: context.clearGateAt,
+    setSingleGateAt: context.setSingleGateAt,
   });
 
   const placementHandlers = useCircuitGridPlacementHandlers({
@@ -61,6 +87,15 @@ export const useCircuitGridInteractions = () => {
     gateArity,
     firstMeasurementColumnAtRow,
     clearPendingPlacement,
+    isCellLockedAt,
+    lockReasonForCell: lockReasonAt,
+    qubitCount: () => context.qubitCount.value,
+    selectedGate: () => context.selectedGate.value,
+    clearGateAt: context.clearGateAt,
+    setSingleGateAt: context.setSingleGateAt,
+    placeCnotAt: context.placeCnotAt,
+    placeToffoliAt: context.placeToffoliAt,
+    placeMultiGateAt: context.placeMultiGateAt,
   });
 
   useCircuitGridPlacementLifecycle({
@@ -68,6 +103,9 @@ export const useCircuitGridInteractions = () => {
     placementError,
     gateArity,
     clearPendingPlacement,
+    qubitCount: () => context.qubitCount.value,
+    selectedGate: () => context.selectedGate.value,
+    columnCount: () => context.columns.value.length,
   });
 
   return {
@@ -87,7 +125,8 @@ export const useCircuitGridInteractions = () => {
     multipartiteTooltip,
     isPaletteDraggable: dragHandlers.isPaletteDraggable,
     startPaletteDrag: dragHandlers.startPaletteDrag,
-    startCellDrag: (col: number, row: number, event: DragEvent) => dragHandlers.startCellDrag(state.columns, col, row, event),
+    startCellDrag: (col: number, row: number, event: DragEvent) =>
+      dragHandlers.startCellDrag(context.columns.value, col, row, event),
     handleDragOver: dragHandlers.handleDragOver,
     handleDragLeave: dragHandlers.handleDragLeave,
     handleDrop: dragHandlers.handleDrop,
@@ -95,6 +134,7 @@ export const useCircuitGridInteractions = () => {
     handleSlotHover: placementHandlers.handleSlotHover,
     handleSlotLeave: placementHandlers.handleSlotLeave,
     handleSlotClick: placementHandlers.handleSlotClick,
+    isCellLockedAt,
     isRowLockedAt,
     slotTitle,
   };

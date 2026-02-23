@@ -1,6 +1,5 @@
 import { onMounted, onUnmounted, watch, type Ref } from "vue";
 import type { GateId } from "../../types";
-import { qubitCount, state } from "../../state";
 import type { PendingPlacement } from "./grid-interaction-types";
 
 type GridPlacementLifecycleDeps = {
@@ -8,6 +7,9 @@ type GridPlacementLifecycleDeps = {
   placementError: Ref<string | null>;
   gateArity: (gate: GateId) => number;
   clearPendingPlacement: () => void;
+  qubitCount: () => number;
+  selectedGate: () => GateId | null;
+  columnCount: () => number;
 };
 
 export const useCircuitGridPlacementLifecycle = ({
@@ -15,52 +17,55 @@ export const useCircuitGridPlacementLifecycle = ({
   placementError,
   gateArity,
   clearPendingPlacement,
+  qubitCount,
+  selectedGate,
+  columnCount,
 }: GridPlacementLifecycleDeps) => {
   const validatePendingPlacement = () => {
     const pending = pendingPlacement.value;
     if (!pending) {
       return;
     }
-    if (pending.column >= state.columns.length) {
+    if (pending.column >= columnCount()) {
       clearPendingPlacement();
       return;
     }
 
     if (pending.kind === "cnot") {
-      if (qubitCount.value < 2 || pending.control >= qubitCount.value || (pending.hoverRow ?? 0) >= qubitCount.value) {
+      if (qubitCount() < 2 || pending.control >= qubitCount() || (pending.hoverRow ?? 0) >= qubitCount()) {
         clearPendingPlacement();
       }
       return;
     }
 
     if (pending.kind === "multi") {
-      const wrongArity = gateArity(pending.gate) !== pending.arity || qubitCount.value < pending.arity;
-      const invalidWires = pending.wires.some((wire) => wire >= qubitCount.value);
+      const wrongArity = gateArity(pending.gate) !== pending.arity || qubitCount() < pending.arity;
+      const invalidWires = pending.wires.some((wire) => wire >= qubitCount());
       if (wrongArity || invalidWires) {
         clearPendingPlacement();
         return;
       }
-      if (pending.hoverRow !== null && pending.hoverRow >= qubitCount.value) {
+      if (pending.hoverRow !== null && pending.hoverRow >= qubitCount()) {
         pending.hoverRow = null;
       }
       return;
     }
 
-    if (qubitCount.value < 3 || pending.controlA >= qubitCount.value) {
+    if (qubitCount() < 3 || pending.controlA >= qubitCount()) {
       clearPendingPlacement();
       return;
     }
-    if (pending.controlB !== null && pending.controlB >= qubitCount.value) {
+    if (pending.controlB !== null && pending.controlB >= qubitCount()) {
       clearPendingPlacement();
       return;
     }
-    if (pending.hoverRow !== null && pending.hoverRow >= qubitCount.value) {
+    if (pending.hoverRow !== null && pending.hoverRow >= qubitCount()) {
       pending.hoverRow = null;
     }
   };
 
   watch(
-    () => state.selectedGate,
+    () => selectedGate(),
     (gate) => {
       if (gate === null) {
         clearPendingPlacement();
@@ -90,7 +95,7 @@ export const useCircuitGridPlacementLifecycle = ({
     },
   );
 
-  watch([() => qubitCount.value, () => state.columns.length], validatePendingPlacement);
+  watch([() => qubitCount(), () => columnCount()], validatePendingPlacement);
 
   const onWindowKeyDown = (event: KeyboardEvent) => {
     if (event.key === "Escape" && pendingPlacement.value) {

@@ -1,31 +1,41 @@
 import { computed, type Ref } from "vue";
-import type { GateId, QubitRow } from "../../types";
-import {
-  firstMeasurementColumnByRow,
-  isRowLockedAtColumn,
-  operatorArityForGate,
-  qubitCount,
-  resolveOperator,
-  state,
-} from "../../state";
+import type { CircuitColumn, GateId, QubitRow } from "../../types";
+import { firstMeasurementColumnByRow, isRowLockedAtColumn } from "../../state";
 import type { PendingPlacement } from "./grid-interaction-types";
 
 export type GridComputedDeps = {
   pendingPlacement: Ref<PendingPlacement | null>;
   placementError: Ref<string | null>;
+  isCellLockedAt: (column: number, row: QubitRow) => boolean;
+  lockReasonForCell: (column: number, row: QubitRow) => string | null;
+  columns: () => readonly CircuitColumn[];
+  qubitCount: () => number;
+  selectedGate: () => GateId | null;
+  gateArity: (gate: GateId) => number;
+  gateName: (gate: GateId) => string;
 };
 
-export const useCircuitGridComputed = ({ pendingPlacement, placementError }: GridComputedDeps) => {
-  const rows = computed<QubitRow[]>(() => Array.from({ length: qubitCount.value }, (_, index) => index));
+export const useCircuitGridComputed = ({
+  pendingPlacement,
+  placementError,
+  isCellLockedAt,
+  lockReasonForCell,
+  columns,
+  qubitCount,
+  selectedGate,
+  gateArity,
+  gateName,
+}: GridComputedDeps) => {
+  const rows = computed<QubitRow[]>(() => Array.from({ length: qubitCount() }, (_, index) => index));
 
-  const gateArity = (gate: GateId): number => operatorArityForGate(gate, state.customOperators) ?? 0;
-  const gateName = (gate: GateId): string => resolveOperator(gate, state.customOperators)?.label ?? gate;
-
-  const measurementLockByRow = computed(() => firstMeasurementColumnByRow(state.columns));
+  const measurementLockByRow = computed(() => firstMeasurementColumnByRow(columns()));
   const firstMeasurementColumnAtRow = (row: QubitRow): number | null => measurementLockByRow.value.get(row) ?? null;
-  const isRowLockedAt = (column: number, row: QubitRow): boolean => isRowLockedAtColumn(state.columns, row, column);
+  const isRowLockedAt = (column: number, row: QubitRow): boolean => isRowLockedAtColumn(columns(), row, column);
 
   const slotTitle = (column: number, row: QubitRow): string => {
+    if (isCellLockedAt(column, row)) {
+      return lockReasonForCell(column, row) ?? "";
+    }
     const measuredAt = firstMeasurementColumnAtRow(row);
     if (measuredAt === null || column <= measuredAt) {
       return "";
@@ -52,17 +62,18 @@ export const useCircuitGridComputed = ({ pendingPlacement, placementError }: Gri
       const nextStep = Math.min(pending.wires.length + 1, pending.arity);
       return `${gateName(pending.gate)} in t${pending.column + 1}: click wire ${nextStep}/${pending.arity} (Esc to cancel).`;
     }
-    if (state.selectedGate === "CNOT") {
+    if (selectedGate() === "CNOT") {
       return "CNOT: click a control wire to start placement.";
     }
-    if (state.selectedGate === "TOFFOLI") {
+    if (selectedGate() === "TOFFOLI") {
       return "Toffoli: click the first control wire to start placement.";
     }
-    if (state.selectedGate === "M") {
+    if (selectedGate() === "M") {
       return "M: click a wire to measure it. Later columns on that row are locked.";
     }
-    if (state.selectedGate !== null && gateArity(state.selectedGate) > 1) {
-      return `${gateName(state.selectedGate)}: click wire 1/${gateArity(state.selectedGate)} to start placement.`;
+    const selected = selectedGate();
+    if (selected !== null && gateArity(selected) > 1) {
+      return `${gateName(selected)}: click wire 1/${gateArity(selected)} to start placement.`;
     }
     return null;
   });

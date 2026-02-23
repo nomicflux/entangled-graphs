@@ -80,7 +80,11 @@
             v-for="row in rows"
             :key="row"
             class="gate-slot"
-            :class="{ 'is-drop-target': isDropTarget(colIndex, row), 'is-row-locked': isRowLockedAt(colIndex, row) }"
+            :class="{
+              'is-drop-target': isDropTarget(colIndex, row),
+              'is-row-locked': isRowLockedAt(colIndex, row),
+              'is-core-locked': isCellLockedAt(colIndex, row),
+            }"
             :title="slotTitle(colIndex, row)"
             @dragover.prevent="handleDragOver(colIndex, row)"
             @dragleave="handleDragLeave(colIndex, row)"
@@ -95,7 +99,7 @@
               class="gate-token"
               :class="{
                 empty: slotInstance(column, row) === null,
-                draggable: isDraggableToken(column, row),
+                draggable: isDraggableToken(column, row, colIndex),
                 'is-drag-source': isDragSource(colIndex, row),
                 'is-cnot-control': isCnotControl(column, row) || isPendingCnotControl(colIndex, row),
                 'is-cnot-target': isCnotTarget(column, row) || isPendingCnotTarget(colIndex, row),
@@ -105,8 +109,9 @@
                 'is-multi-custom-hover': isPendingMultiHover(colIndex, row),
                 'is-measurement': isMeasurementToken(column, row),
                 'is-row-locked-token': isRowLockedAt(colIndex, row),
+                'is-core-locked-token': isCellLockedAt(colIndex, row),
               }"
-              :draggable="isDraggableToken(column, row)"
+              :draggable="isDraggableToken(column, row, colIndex)"
               @dragstart="startCellDrag(colIndex, row, $event)"
               @dragend="endDrag"
             >
@@ -285,6 +290,7 @@ const {
   handleSlotClick,
   isDropTarget,
   isDragSource,
+  isCellLockedAt,
   isRowLockedAt,
   slotTitle,
 } = useCircuitGridInteractions();
