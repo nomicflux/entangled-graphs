@@ -17,6 +17,7 @@ const fakeStorage = (initial = {}) => {
 test("workspace parser falls back to free-form for invalid values", () => {
   assert.equal(persistence.parseWorkspaceMode("algorithms"), "algorithms");
   assert.equal(persistence.parseWorkspaceMode("abstractions"), "abstractions");
+  assert.equal(persistence.parseWorkspaceMode("error-codes"), "error-codes");
   assert.equal(persistence.parseWorkspaceMode("free-form"), "free-form");
   assert.equal(persistence.parseWorkspaceMode("p-adic"), "p-adic");
   assert.equal(persistence.parseWorkspaceMode("anything-else"), "free-form");
@@ -38,18 +39,29 @@ test("abstraction parser keeps current supported abstractions", () => {
   assert.equal(persistence.parseAbstractionView(null), "preparing-qubits");
 });
 
-test("read/write helpers persist workspace, algorithm, and abstraction selections", () => {
+test("error-code parser keeps current supported error-code views", () => {
+  assert.equal(persistence.parseErrorCodeView("bit-flip-repetition"), "bit-flip-repetition");
+  assert.equal(persistence.parseErrorCodeView("phase-flip-repetition"), "phase-flip-repetition");
+  assert.equal(persistence.parseErrorCodeView("shor-nine-qubit"), "shor-nine-qubit");
+  assert.equal(persistence.parseErrorCodeView("unknown"), "bit-flip-repetition");
+  assert.equal(persistence.parseErrorCodeView(null), "bit-flip-repetition");
+});
+
+test("read/write helpers persist workspace, algorithm, abstraction, and error-code selections", () => {
   const storage = fakeStorage();
-  persistence.writeWorkspaceToStorage(storage, "abstractions");
+  persistence.writeWorkspaceToStorage(storage, "error-codes");
   persistence.writeAlgorithmToStorage(storage, "deutsch");
   persistence.writeAbstractionToStorage(storage, "phase-kickback");
+  persistence.writeErrorCodeToStorage(storage, "shor-nine-qubit");
 
-  assert.equal(persistence.readWorkspaceFromStorage(storage), "abstractions");
+  assert.equal(persistence.readWorkspaceFromStorage(storage), "error-codes");
   assert.equal(persistence.readAlgorithmFromStorage(storage), "deutsch");
   assert.equal(persistence.readAbstractionFromStorage(storage), "phase-kickback");
+  assert.equal(persistence.readErrorCodeFromStorage(storage), "shor-nine-qubit");
 
   const dump = storage.dump();
-  assert.equal(dump[persistence.WORKSPACE_STORAGE_KEY], "abstractions");
+  assert.equal(dump[persistence.WORKSPACE_STORAGE_KEY], "error-codes");
   assert.equal(dump[persistence.ALGORITHM_STORAGE_KEY], "deutsch");
   assert.equal(dump[persistence.ABSTRACTION_STORAGE_KEY], "phase-kickback");
+  assert.equal(dump[persistence.ERROR_CODE_STORAGE_KEY], "shor-nine-qubit");
 });

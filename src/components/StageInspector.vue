@@ -10,13 +10,14 @@
 
     <div class="stage-probability">
       <p class="stage-probability-heading">{{ props.distributionHeading }}</p>
-      <div v-for="entry in props.stage.distribution" :key="entry.basis" class="prob-row" :class="{ 'prob-row-scalar': isScalarFormat }">
+      <div v-for="entry in displayDistribution" :key="entry.basis" class="prob-row" :class="{ 'prob-row-scalar': isScalarFormat }">
         <span>{{ props.metricLabel }}(|{{ entry.basis }}>)</span>
         <div v-if="!isScalarFormat" class="prob-bar-wrap">
           <div class="prob-bar" :style="{ width: `${entry.probability * 100}%` }"></div>
         </div>
         <span>{{ formatValue(entry.probability) }}</span>
       </div>
+      <p v-if="hiddenDistributionCount > 0" class="stage-inspector-context">+{{ hiddenDistributionCount }} more rows hidden</p>
     </div>
   </section>
 </template>
@@ -34,6 +35,7 @@ const props = withDefaults(
     distributionHeading?: string;
     distributionHint?: string;
     valueFormat?: "percent" | "scalar";
+    maxDistributionRows?: number;
   }>(),
   {
     animated: true,
@@ -41,6 +43,7 @@ const props = withDefaults(
     distributionHeading: "Distribution",
     distributionHint: "",
     valueFormat: "percent",
+    maxDistributionRows: Number.POSITIVE_INFINITY,
   },
 );
 
@@ -58,4 +61,12 @@ const formatScalar = (value: number): string => {
 const isScalarFormat = computed(() => props.valueFormat === "scalar");
 
 const formatValue = (value: number): string => (props.valueFormat === "percent" ? formatPercent(value) : formatScalar(value));
+
+const displayDistribution = computed(() =>
+  [...props.stage.distribution]
+    .sort((left, right) => right.probability - left.probability)
+    .slice(0, props.maxDistributionRows),
+);
+
+const hiddenDistributionCount = computed(() => Math.max(0, props.stage.distribution.length - displayDistribution.value.length));
 </script>

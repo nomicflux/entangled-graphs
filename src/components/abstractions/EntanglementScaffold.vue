@@ -64,152 +64,71 @@
       </div>
     </section>
 
-    <section class="panel panel-center">
-      <div class="panel-header">
-        <h2>Entanglement Circuit</h2>
-        <p>Starting steps are fixed for this lesson. Add, remove, or modify only later steps.</p>
-      </div>
-
-      <div class="circuit-tools">
-        <CircuitGatePalette
-          :groups="paletteGroups"
-          :measurement-entries="measurementEntries"
-          :selected-gate="selectedGate"
-          :is-palette-draggable="isPaletteDraggable"
-          :show-custom-actions="false"
-          @chip-click="handlePaletteChipClick"
-          @palette-dragstart="startPaletteDrag"
-          @drag-end="endDrag"
-        />
-
-        <div class="column-controls">
-          <span class="prep-columns-lock">Editable columns: {{ editableColumnCount }}</span>
-          <button class="column-btn" type="button" :disabled="!canAddColumn" @click="appendEditableColumn">Add column</button>
-          <button class="column-btn" type="button" :disabled="!canRemoveColumn" @click="removeLastEditableColumn">
-            Remove column
-          </button>
-          <button class="column-btn" type="button" @click="resetEditableColumns">Reset lesson</button>
-        </div>
-      </div>
-
-      <p v-if="placementHint" class="placement-hint">{{ placementHint }}</p>
-
-      <div class="circuit-shell">
-        <div class="circuit-columns">
-          <div
-            v-for="(column, colIndex) in columns"
-            :key="colIndex"
-            class="circuit-column"
-            :style="{ gridTemplateRows: `repeat(${rows.length}, minmax(56px, 1fr))` }"
-          >
-            <p class="algorithm-column-label">{{ columnLabels[colIndex] }}</p>
-
-            <svg
-              class="column-entanglement"
-              viewBox="0 0 100 100"
-              preserveAspectRatio="none"
-              aria-hidden="true"
-            >
-              <rect
-                v-for="band in multipartiteBandsForColumn(colIndex)"
-                :key="`ent-band-${colIndex}-${band.id}`"
-                class="entanglement-multipartite-band"
-                :x="band.x"
-                :y="band.y"
-                :width="band.width"
-                :height="band.height"
-                :rx="band.rx"
-                :style="multipartiteBandStyle(band.strength)"
-              >
-                <title>{{ multipartiteTooltip(band.rows, band.strength) }}</title>
-              </rect>
-              <path
-                v-for="(link, linkIndex) in entanglementLinksForColumn(colIndex)"
-                :key="`${colIndex}-${link.fromRow}-${link.toRow}-${linkIndex}`"
-                class="entanglement-arc"
-                :d="entanglementArcPath(link)"
-                :style="entanglementArcStyle(link)"
-              >
-                <title>{{ pairwiseTooltip(link) }}</title>
-              </path>
-            </svg>
-
-            <div class="column-connectors">
-              <div
-                v-for="connector in connectorSegments(column, colIndex)"
-                :key="connector.id"
-                class="column-connector"
-                :class="[connector.kind, { preview: connector.preview }]"
-                :style="connectorStyle(connector)"
-              ></div>
-            </div>
-
-            <div
-              v-for="row in rows"
-              :key="row"
-              class="gate-slot"
-              :class="{
-                'is-drop-target': isDropTarget(colIndex, row),
-                'is-row-locked': isRowLockedAt(colIndex, row),
-                'is-core-locked': isCellLockedAt(colIndex, row),
-              }"
-              :title="slotTitle(colIndex, row)"
-              @dragover.prevent="handleDragOver(colIndex, row)"
-              @dragleave="handleDragLeave(colIndex, row)"
-              @drop.prevent="handleDrop(colIndex, row)"
-              @mouseenter="handleSlotHover(colIndex, row)"
-              @mousemove="handleSlotHover(colIndex, row)"
-              @mouseleave="handleSlotLeave(colIndex, row)"
-              @click="handleSlotClick(colIndex, row, $event)"
-            >
-              <span class="gate-slot-label">q{{ row }}</span>
-              <div
-                class="gate-token"
-                :class="{
-                  empty: slotInstance(column, row) === null,
-                  draggable: isDraggableToken(column, row, colIndex),
-                  'is-drag-source': isDragSource(colIndex, row),
-                  'is-cnot-control': isCnotControl(column, row) || isPendingCnotControl(colIndex, row),
-                  'is-cnot-target': isCnotTarget(column, row) || isPendingCnotTarget(colIndex, row),
-                  'is-toffoli-control': isToffoliControl(column, row) || isPendingToffoliControl(colIndex, row),
-                  'is-toffoli-target': isToffoliTarget(column, row) || isPendingToffoliTarget(colIndex, row),
-                  'is-multi-custom-wire': isCustomMultiWire(column, row) || isPendingMultiWire(colIndex, row),
-                  'is-multi-custom-hover': isPendingMultiHover(colIndex, row),
-                  'is-measurement': isMeasurementToken(column, row),
-                  'is-row-locked-token': isRowLockedAt(colIndex, row),
-                  'is-core-locked-token': isCellLockedAt(colIndex, row),
-                }"
-                :draggable="isDraggableToken(column, row, colIndex)"
-                @dragstart="startCellDrag(colIndex, row, $event)"
-                @dragend="endDrag"
-              >
-                {{ tokenFor(column, row) }}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="circuit-legend">
-          <span class="circuit-legend-time">Time -></span>
-          <span class="circuit-legend-item">
-            <span class="circuit-legend-swatch pairwise"></span>
-            <span>Pairwise</span>
-          </span>
-          <span class="circuit-legend-item">
-            <span class="circuit-legend-swatch multipartite"></span>
-            <span>Multipartite</span>
-          </span>
-        </div>
-      </div>
-
-      <CircuitStageSnapshots
-        :stages="stageViews"
-        :selected-stage-index="selectedStageIndex"
-        @select-stage="setSelectedStage"
-      />
-
-      <StageInspector :stage="selectedStage" :animated="false" />
-    </section>
+    <LessonCircuitPanel
+      title="Entanglement Circuit"
+      subtitle="Starting steps are fixed for this lesson. Add, remove, or modify only later steps."
+      entanglement-key-prefix="ent"
+      :columns="columns"
+      :rows="rows"
+      :column-labels="columnLabels"
+      :palette-groups="paletteGroups"
+      :measurement-entries="measurementEntries"
+      :selected-gate="selectedGate"
+      :stage-views="stageViews"
+      :selected-stage-index="selectedStageIndex"
+      :selected-stage="selectedStage"
+      :is-palette-draggable="isPaletteDraggable"
+      :handle-palette-chip-click="handlePaletteChipClick"
+      :start-palette-drag="startPaletteDrag"
+      :end-drag="endDrag"
+      :placement-hint="placementHint"
+      :slot-instance="slotInstance"
+      :token-for="tokenFor"
+      :is-draggable-token="isDraggableToken"
+      :is-drag-source="isDragSource"
+      :is-cnot-control="isCnotControl"
+      :is-cnot-target="isCnotTarget"
+      :is-toffoli-control="isToffoliControl"
+      :is-toffoli-target="isToffoliTarget"
+      :is-custom-multi-wire="isCustomMultiWire"
+      :is-measurement-token="isMeasurementToken"
+      :is-pending-cnot-control="isPendingCnotControl"
+      :is-pending-cnot-target="isPendingCnotTarget"
+      :is-pending-toffoli-control="isPendingToffoliControl"
+      :is-pending-toffoli-target="isPendingToffoliTarget"
+      :is-pending-multi-wire="isPendingMultiWire"
+      :is-pending-multi-hover="isPendingMultiHover"
+      :connector-segments="connectorSegments"
+      :connector-style="connectorStyle"
+      :handle-drag-over="handleDragOver"
+      :handle-drag-leave="handleDragLeave"
+      :handle-drop="handleDrop"
+      :handle-slot-hover="handleSlotHover"
+      :handle-slot-leave="handleSlotLeave"
+      :handle-slot-click="handleSlotClick"
+      :start-cell-drag="startCellDrag"
+      :is-drop-target="isDropTarget"
+      :is-cell-locked-at="isCellLockedAt"
+      :is-row-locked-at="isRowLockedAt"
+      :slot-title="slotTitle"
+      :select-stage="setSelectedStage"
+      :entanglement-links-for-column="entanglementLinksForColumn"
+      :multipartite-bands-for-column="multipartiteBandsForColumn"
+      :entanglement-arc-path="entanglementArcPath"
+      :entanglement-arc-style="entanglementArcStyle"
+      :multipartite-band-style="multipartiteBandStyle"
+      :pairwise-tooltip="pairwiseTooltip"
+      :multipartite-tooltip="multipartiteTooltip"
+    >
+      <template #controls>
+        <span class="prep-columns-lock">Editable columns: {{ editableColumnCount }}</span>
+        <button class="column-btn" type="button" :disabled="!canAddColumn" @click="appendEditableColumn">Add column</button>
+        <button class="column-btn" type="button" :disabled="!canRemoveColumn" @click="removeLastEditableColumn">
+          Remove column
+        </button>
+        <button class="column-btn" type="button" @click="resetEditableColumns">Reset lesson</button>
+      </template>
+    </LessonCircuitPanel>
 
     <section class="panel">
       <div class="panel-header">
@@ -283,10 +202,15 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import StageInspector from "../StageInspector.vue";
-import CircuitGatePalette from "../circuit/CircuitGatePalette.vue";
-import CircuitStageSnapshots from "../circuit/CircuitStageSnapshots.vue";
+import LessonCircuitPanel from "../circuit/LessonCircuitPanel.vue";
+import { useCircuitGridPlacementLifecycle } from "../circuit/useCircuitGridPlacementLifecycle";
 import { useEntanglementModel } from "./entanglement/useEntanglementModel";
+
+const model = useEntanglementModel();
+useCircuitGridPlacementLifecycle({
+  pendingPlacement: model.pendingPlacement,
+  clearPendingPlacement: model.clearPendingPlacement,
+});
 
 const {
   scenarioId,
@@ -364,7 +288,7 @@ const {
   isCellLockedAt,
   isRowLockedAt,
   slotTitle,
-} = useEntanglementModel();
+} = model;
 
 const canAddColumn = computed(() => editableColumnCount.value < maxEditableColumns.value);
 const canRemoveColumn = computed(() => editableColumnCount.value > minEditableColumns.value);

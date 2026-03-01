@@ -42,6 +42,14 @@
       >
         Abstractions
       </button>
+      <button
+        class="top-tab-btn"
+        :class="{ active: selectedWorkspace === 'error-codes' }"
+        type="button"
+        @click="selectedWorkspace = 'error-codes'"
+      >
+        Error Codes
+      </button>
     </nav>
 
     <FreeFormWorkbench v-show="selectedWorkspace === 'free-form'" />
@@ -56,6 +64,11 @@
       :selected-abstraction="selectedAbstraction"
       @select-abstraction="selectedAbstraction = $event"
     />
+    <ErrorCodesWorkbench
+      v-show="selectedWorkspace === 'error-codes'"
+      :selected-error-code="selectedErrorCode"
+      @select-error-code="selectedErrorCode = $event"
+    />
   </div>
 </template>
 
@@ -66,12 +79,15 @@ import FreeFormWorkbench from "./components/FreeFormWorkbench.vue";
 import PAdicFaithfulWorkbench from "./components/padic-faithful/PAdicFaithfulWorkbench.vue";
 import AlgorithmsWorkbench from "./components/algorithms/AlgorithmsWorkbench.vue";
 import AbstractionsWorkbench from "./components/abstractions/AbstractionsWorkbench.vue";
+import ErrorCodesWorkbench from "./components/error-codes/ErrorCodesWorkbench.vue";
 import {
   readAbstractionFromStorage,
   readAlgorithmFromStorage,
+  readErrorCodeFromStorage,
   readWorkspaceFromStorage,
   writeAbstractionToStorage,
   writeAlgorithmToStorage,
+  writeErrorCodeToStorage,
   writeWorkspaceToStorage,
 } from "./app/persistence";
 import { isPadicWorkspaceEnabledFromSearch } from "./app/padic-access";
@@ -84,6 +100,7 @@ const initialWorkspace: WorkspaceMode =
 const selectedWorkspace = ref(initialWorkspace);
 const selectedAlgorithm = ref(readAlgorithmFromStorage(window.localStorage));
 const selectedAbstraction = ref(readAbstractionFromStorage(window.localStorage));
+const selectedErrorCode = ref(readErrorCodeFromStorage(window.localStorage));
 
 watch(selectedWorkspace, (value) => {
   writeWorkspaceToStorage(window.localStorage, value);
@@ -95,5 +112,9 @@ watch(selectedAlgorithm, (value) => {
 
 watch(selectedAbstraction, (value) => {
   writeAbstractionToStorage(window.localStorage, value);
+});
+
+watch(selectedErrorCode, (value) => {
+  writeErrorCodeToStorage(window.localStorage, value);
 });
 </script>

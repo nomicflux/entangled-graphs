@@ -37,6 +37,11 @@
   gap: 16px;
 }
 
+.error-codes-workbench {
+  display: grid;
+  gap: 16px;
+}
+
 .subtabs {
   display: inline-flex;
   gap: 8px;

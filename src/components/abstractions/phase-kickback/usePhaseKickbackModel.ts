@@ -24,7 +24,7 @@ import { isRowLockedAtColumn } from "../../../state/measurement-locks";
 import { availableBuiltinGatesForQubitCount, operatorArityForGate, resolveOperator } from "../../../state/operators";
 import type { CircuitGridModelContext } from "../../circuit/model-context";
 import type { PaletteEntry, PaletteGroup } from "../../circuit/palette-types";
-import { useCircuitGridInteractions } from "../../circuit/useCircuitGridInteractions";
+import { useCircuitGridInteractionCore } from "../../circuit/useCircuitGridInteractionCore";
 import {
   createPhaseKickbackCoreColumns,
   type ControlledPhaseGate,
@@ -383,7 +383,7 @@ export const usePhaseKickbackModel = () => {
     stageEntanglementModels,
   };
 
-  const interactions = useCircuitGridInteractions({
+  const interactions = useCircuitGridInteractionCore({
     context,
     lockPolicy: {
       isCellLockedAt: (column) => column >= 0 && column < lockedCoreColumnCount.value,

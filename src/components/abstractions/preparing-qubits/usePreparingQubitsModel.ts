@@ -24,7 +24,7 @@ import { resolveOperator } from "../../../state/operators";
 import type { CircuitGridModelContext } from "../../circuit/model-context";
 import type { PaletteEntry, PaletteGroup } from "../../circuit/palette-types";
 import { noLockedCellsPolicy } from "../../circuit/lock-policy";
-import { useCircuitGridInteractions } from "../../circuit/useCircuitGridInteractions";
+import { useCircuitGridInteractionCore } from "../../circuit/useCircuitGridInteractionCore";
 import { PREPARATION_TARGETS, preparationFidelity } from "./engine";
 import type { PreparationTargetId } from "./model-types";
 
@@ -251,7 +251,7 @@ export const usePreparingQubitsModel = () => {
 
   const lockPolicy = noLockedCellsPolicy();
 
-  const interactions = useCircuitGridInteractions({
+  const interactions = useCircuitGridInteractionCore({
     context,
     lockPolicy,
   });

@@ -25,7 +25,7 @@ import { availableBuiltinGatesForQubitCount, operatorArityForGate, resolveOperat
 import type { CircuitGridModelContext } from "../../circuit/model-context";
 import type { CircuitGridLockPolicy } from "../../circuit/lock-policy";
 import type { PaletteEntry, PaletteGroup } from "../../circuit/palette-types";
-import { useCircuitGridInteractions } from "../../circuit/useCircuitGridInteractions";
+import { useCircuitGridInteractionCore } from "../../circuit/useCircuitGridInteractionCore";
 import {
   ENTANGLEMENT_SCENARIOS,
   entanglementScenarioBranchSample,
@@ -349,7 +349,7 @@ export const useEntanglementModel = () => {
     lockReasonAt: (column) => (column >= 0 && column < scenario.value.lockedCoreCount ? scenario.value.coreLockReason : null),
   };
 
-  const interactions = useCircuitGridInteractions({
+  const interactions = useCircuitGridInteractionCore({
     context,
     lockPolicy,
   });

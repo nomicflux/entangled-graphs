@@ -11,9 +11,13 @@
       <p class="snapshot-title">{{ stage.label }}</p>
       <p v-if="props.metricHint" class="snapshot-hint">{{ props.metricHint }}</p>
       <BlochPairView :pair="stage.blochPair" size="sm" :animated="false" compact />
-      <p v-for="entry in stage.distribution" :key="entry.basis" class="snapshot-row">
+      <p v-for="entry in displayDistribution(stage)" :key="entry.basis" class="snapshot-row">
         <span>{{ props.metricLabel }}(|{{ entry.basis }}>)</span>
         <span>{{ formatValue(entry.probability) }}</span>
+      </p>
+      <p v-if="hiddenDistributionCount(stage) > 0" class="snapshot-row">
+        <span>More rows</span>
+        <span>+{{ hiddenDistributionCount(stage) }}</span>
       </p>
     </button>
   </div>
@@ -30,11 +34,13 @@ const props = withDefaults(
     metricLabel?: string;
     metricHint?: string;
     valueFormat?: "percent" | "scalar";
+    maxDistributionRows?: number;
   }>(),
   {
     metricLabel: "P",
     metricHint: "",
     valueFormat: "percent",
+    maxDistributionRows: Number.POSITIVE_INFINITY,
   },
 );
 
@@ -54,4 +60,12 @@ const formatScalar = (value: number): string => {
 };
 
 const formatValue = (value: number): string => (props.valueFormat === "percent" ? formatPercent(value) : formatScalar(value));
+
+const displayDistribution = (stage: StageView) =>
+  [...stage.distribution]
+    .sort((left, right) => right.probability - left.probability)
+    .slice(0, props.maxDistributionRows);
+
+const hiddenDistributionCount = (stage: StageView): number =>
+  Math.max(0, stage.distribution.length - displayDistribution(stage).length);
 </script>
