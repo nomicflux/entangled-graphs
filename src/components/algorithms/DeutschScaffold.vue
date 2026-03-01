@@ -24,10 +24,10 @@
       slot-title="Fixed Deutsch backbone."
       :columns="labeledColumns"
       :rows="[0, 1]"
-      :stage-views="stageViews"
+      :stage-snapshots="stageSnapshots"
       :stage-entanglement-models="stageEntanglementModels"
       :selected-stage-index="selectedStageIndex"
-      :selected-stage="selectedStage"
+      :selected-stage-snapshot="selectedStageSnapshot"
       :entanglement-links-for-column="entanglementLinksForColumn"
       :entanglement-arc-path="entanglementArcPath"
       :entanglement-arc-style="entanglementArcStyle"
@@ -68,9 +68,9 @@ const {
   q0Bloch,
   q1Bloch,
   labeledColumns,
-  stageViews,
+  stageSnapshots,
   selectedStageIndex,
-  selectedStage,
+  selectedStageSnapshot,
   expected,
   expectedDecision,
   shouldHideDecision,

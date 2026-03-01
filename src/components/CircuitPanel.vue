@@ -134,12 +134,12 @@
     </div>
 
     <CircuitStageSnapshots
-      :stages="stageViews"
+      :stages="stageSnapshots"
       :selected-stage-index="state.selectedStageIndex"
       @select-stage="setSelectedStage"
     />
 
-    <StageInspector :stage="selectedStage" :animated="false" />
+    <StageInspector :stage="selectedStageSnapshot" :animated="false" />
   </section>
 
   <CircuitSingleCustomModal
@@ -170,11 +170,11 @@ import {
   qubitCount,
   removeLastColumn,
   resolveBlock2x2Selection,
-  selectedStage,
+  selectedStageSnapshot,
   setSelectedGate,
   setSelectedStage,
   singleQubitBuilderOptions,
-  stageViews,
+  stageSnapshots,
   state,
 } from "../state";
 import type { BuilderBlockId, SingleQubitBuilderOption } from "../state/custom-operator-builder";

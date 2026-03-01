@@ -1,10 +1,8 @@
 import { computed, ref, watch } from "vue";
-import type { BlochParams, GateId, Qubit, StageView } from "../../../types";
+import type { BlochParams, GateId, Qubit, StageSnapshot } from "../../../types";
 import * as complex from "../../../complex";
 import {
-  bloch_pair_from_ensemble,
   measurement_distribution,
-  measurement_distribution_for_ensemble,
   sample_circuit_run,
   sample_distribution,
   simulate_columns_ensemble,
@@ -138,7 +136,7 @@ export const useTeleportationModel = () => {
     simulate_columns_ensemble(preparedState.value, quantumColumns.value, resolveGate, 3),
   );
 
-  const stageViews = computed<StageView[]>(() => {
+  const stageSnapshots = computed<StageSnapshot[]>(() => {
     const labels = ["Prepared", ...circuitColumns.value.map((column) => column.label)];
     const lastIndex = ensembleSnapshots.value.length - 1;
 
@@ -146,18 +144,19 @@ export const useTeleportationModel = () => {
       id: index === 0 ? "tele-prepared" : `tele-t${index}`,
       index,
       label: labels[index] ?? `t${index}`,
-      distribution: measurement_distribution_for_ensemble(snapshot),
-      blochPair: bloch_pair_from_ensemble(snapshot),
+      ensemble: snapshot,
       isFinal: index === lastIndex,
     }));
   });
 
-  const selectedStage = computed<StageView>(() => stageViews.value[selectedStageIndex.value] ?? stageViews.value[0]!);
+  const selectedStageSnapshot = computed<StageSnapshot>(() =>
+    stageSnapshots.value[selectedStageIndex.value] ?? stageSnapshots.value[0]!,
+  );
 
   watch(
-    stageViews,
-    (views) => {
-      const maxIndex = Math.max(0, views.length - 1);
+    stageSnapshots,
+    (snapshots) => {
+      const maxIndex = Math.max(0, snapshots.length - 1);
       if (selectedStageIndex.value > maxIndex) {
         selectedStageIndex.value = maxIndex;
       }
@@ -166,7 +165,7 @@ export const useTeleportationModel = () => {
   );
 
   const branchStageIndex = 4;
-  const branchStageLabel = computed(() => stageViews.value[branchStageIndex]?.label ?? "Alice H");
+  const branchStageLabel = computed(() => stageSnapshots.value[branchStageIndex]?.label ?? "Alice H");
   const preMeasurementState = computed(() => ensembleSnapshots.value[branchStageIndex]?.[0]?.state ?? preparedState.value);
 
   const teleportationBranches = computed<TeleportationBranchResult[]>(() =>
@@ -315,10 +314,10 @@ export const useTeleportationModel = () => {
     sampledResult,
     circuitColumns,
     rows: TELEPORT_ROWS,
-    stageViews,
+    stageSnapshots,
     stageEntanglementModels: entanglement.stageEntanglementModels,
     selectedStageIndex,
-    selectedStage,
+    selectedStageSnapshot,
     applyPreset,
     runSample,
     resampleFrom,

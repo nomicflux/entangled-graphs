@@ -135,7 +135,7 @@
     </div>
 
     <CircuitStageSnapshots
-      :stages="props.stageViews"
+      :stages="props.stageSnapshots"
       :selected-stage-index="props.selectedStageIndex"
       :metric-label="props.metricLabel"
       :metric-hint="props.metricHint"
@@ -145,7 +145,7 @@
     />
 
     <StageInspector
-      :stage="props.selectedStage"
+      :stage="props.selectedStageSnapshot"
       :animated="false"
       :metric-label="props.metricLabel"
       :distribution-heading="props.distributionHeading"
@@ -157,7 +157,7 @@
 </template>
 
 <script setup lang="ts">
-import type { CircuitColumn, EntanglementLink, GateId, GateInstance, QubitRow, StageView } from "../../types";
+import type { CircuitColumn, EntanglementLink, GateId, GateInstance, QubitRow, StageSnapshot } from "../../types";
 import StageInspector from "../StageInspector.vue";
 import CircuitGatePalette from "./CircuitGatePalette.vue";
 import CircuitStageSnapshots from "./CircuitStageSnapshots.vue";
@@ -174,9 +174,9 @@ const props = withDefaults(
     paletteGroups: PaletteGroup[];
     measurementEntries: PaletteEntry[];
     selectedGate: GateId | null;
-    stageViews: StageView[];
+    stageSnapshots: StageSnapshot[];
     selectedStageIndex: number;
-    selectedStage: StageView;
+    selectedStageSnapshot: StageSnapshot;
     isPaletteDraggable: (gate: GateId) => boolean;
     handlePaletteChipClick: (entry: PaletteEntry, event: MouseEvent) => void;
     startPaletteDrag: (gate: GateId, event: DragEvent) => void;

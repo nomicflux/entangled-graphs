@@ -84,17 +84,17 @@
     </div>
 
     <CircuitStageSnapshots
-      :stages="stageViews"
+      :stages="stageSnapshots"
       :selected-stage-index="selectedStageIndex"
       @select-stage="$emit('select-stage', $event)"
     />
 
-    <StageInspector :stage="selectedStage" :animated="false" />
+    <StageInspector :stage="selectedStageSnapshot" :animated="false" />
   </section>
 </template>
 
 <script setup lang="ts">
-import type { EntanglementLink, GateId, GateInstance, QubitRow, StageEntanglementModel, StageView } from "../../../types";
+import type { EntanglementLink, GateId, GateInstance, QubitRow, StageEntanglementModel, StageSnapshot } from "../../../types";
 import { multipartiteBandStyle, multipartiteTooltip } from "../../circuit/entanglement-display";
 import { multipartiteBandsForStageColumn } from "../../circuit/entanglement-overlays";
 import type { MultipartiteBand } from "../../circuit/grid-interaction-types";
@@ -116,10 +116,10 @@ const props = withDefaults(
     slotTitle?: string;
     columns: AlgorithmColumn[];
     rows: readonly QubitRow[];
-    stageViews: StageView[];
+    stageSnapshots: StageSnapshot[];
     stageEntanglementModels: StageEntanglementModel[];
     selectedStageIndex: number;
-    selectedStage: StageView;
+    selectedStageSnapshot: StageSnapshot;
     entanglementLinksForColumn: (columnIndex: number) => EntanglementLink[];
     entanglementArcPath: (link: EntanglementLink) => string;
     entanglementArcStyle: (link: EntanglementLink) => Record<string, string>;

@@ -10,7 +10,7 @@
     >
       <p class="snapshot-title">{{ stage.label }}</p>
       <p v-if="props.metricHint" class="snapshot-hint">{{ props.metricHint }}</p>
-      <BlochPairView :pair="stage.blochPair" size="sm" :animated="false" compact />
+      <StageStateView :stage="stage" size="sm" :animated="false" compact />
       <p v-for="entry in displayDistribution(stage)" :key="entry.basis" class="snapshot-row">
         <span>{{ props.metricLabel }}(|{{ entry.basis }}>)</span>
         <span>{{ formatValue(entry.probability) }}</span>
@@ -24,12 +24,13 @@
 </template>
 
 <script setup lang="ts">
-import type { StageView } from "../../types";
-import BlochPairView from "../BlochPairView.vue";
+import type { StageSnapshot } from "../../types";
+import { distributionForStageSnapshot } from "./stage-visual-model";
+import StageStateView from "../StageStateView.vue";
 
 const props = withDefaults(
   defineProps<{
-    stages: StageView[];
+    stages: StageSnapshot[];
     selectedStageIndex: number;
     metricLabel?: string;
     metricHint?: string;
@@ -61,11 +62,11 @@ const formatScalar = (value: number): string => {
 
 const formatValue = (value: number): string => (props.valueFormat === "percent" ? formatPercent(value) : formatScalar(value));
 
-const displayDistribution = (stage: StageView) =>
-  [...stage.distribution]
+const displayDistribution = (stage: StageSnapshot) =>
+  [...distributionForStageSnapshot(stage)]
     .sort((left, right) => right.probability - left.probability)
     .slice(0, props.maxDistributionRows);
 
-const hiddenDistributionCount = (stage: StageView): number =>
-  Math.max(0, stage.distribution.length - displayDistribution(stage).length);
+const hiddenDistributionCount = (stage: StageSnapshot): number =>
+  Math.max(0, distributionForStageSnapshot(stage).length - displayDistribution(stage).length);
 </script>

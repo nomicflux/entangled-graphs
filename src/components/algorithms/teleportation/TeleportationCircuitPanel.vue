@@ -5,10 +5,10 @@
     slot-title="Fixed teleportation backbone."
     :columns="props.columns"
     :rows="props.rows"
-    :stage-views="props.stageViews"
+    :stage-snapshots="props.stageSnapshots"
     :stage-entanglement-models="props.stageEntanglementModels"
     :selected-stage-index="props.selectedStageIndex"
-    :selected-stage="props.selectedStage"
+    :selected-stage-snapshot="props.selectedStageSnapshot"
     :entanglement-links-for-column="props.entanglementLinksForColumn"
     :entanglement-arc-path="props.entanglementArcPath"
     :entanglement-arc-style="props.entanglementArcStyle"
@@ -19,17 +19,17 @@
 </template>
 
 <script setup lang="ts">
-import type { EntanglementLink, QubitRow, StageEntanglementModel, StageView } from "../../../types";
+import type { EntanglementLink, QubitRow, StageEntanglementModel, StageSnapshot } from "../../../types";
 import type { TeleportationColumn } from "./model-types";
 import FixedCircuitPanel from "../shared/FixedCircuitPanel.vue";
 
 const props = defineProps<{
   columns: TeleportationColumn[];
   rows: readonly QubitRow[];
-  stageViews: StageView[];
+  stageSnapshots: StageSnapshot[];
   stageEntanglementModels: StageEntanglementModel[];
   selectedStageIndex: number;
-  selectedStage: StageView;
+  selectedStageSnapshot: StageSnapshot;
   entanglementLinksForColumn: (columnIndex: number) => EntanglementLink[];
   entanglementArcPath: (link: EntanglementLink) => string;
   entanglementArcStyle: (link: EntanglementLink) => Record<string, string>;

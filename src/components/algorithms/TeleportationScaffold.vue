@@ -12,10 +12,10 @@
     <TeleportationCircuitPanel
       :columns="circuitColumns"
       :rows="rows"
-      :stage-views="stageViews"
+      :stage-snapshots="stageSnapshots"
       :stage-entanglement-models="stageEntanglementModels"
       :selected-stage-index="selectedStageIndex"
-      :selected-stage="selectedStage"
+      :selected-stage-snapshot="selectedStageSnapshot"
       :entanglement-links-for-column="entanglementLinksForColumn"
       :entanglement-arc-path="entanglementArcPath"
       :entanglement-arc-style="entanglementArcStyle"
@@ -62,10 +62,10 @@ const {
   sampledResult,
   circuitColumns,
   rows,
-  stageViews,
+  stageSnapshots,
   stageEntanglementModels,
   selectedStageIndex,
-  selectedStage,
+  selectedStageSnapshot,
   applyPreset,
   runSample,
   resampleFrom,

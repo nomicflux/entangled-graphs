@@ -6,7 +6,7 @@
     </div>
     <p v-if="props.distributionHint" class="stage-inspector-context">{{ props.distributionHint }}</p>
 
-    <BlochPairView :pair="props.stage.blochPair" :animated="props.animated" size="md" />
+    <StageStateView :stage="props.stage" :animated="props.animated" size="md" />
 
     <div class="stage-probability">
       <p class="stage-probability-heading">{{ props.distributionHeading }}</p>
@@ -24,12 +24,13 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import type { StageView } from "../types";
-import BlochPairView from "./BlochPairView.vue";
+import type { StageSnapshot } from "../types";
+import { distributionForStageSnapshot } from "./circuit/stage-visual-model";
+import StageStateView from "./StageStateView.vue";
 
 const props = withDefaults(
   defineProps<{
-    stage: StageView;
+    stage: StageSnapshot;
     animated?: boolean;
     metricLabel?: string;
     distributionHeading?: string;
@@ -63,10 +64,12 @@ const isScalarFormat = computed(() => props.valueFormat === "scalar");
 const formatValue = (value: number): string => (props.valueFormat === "percent" ? formatPercent(value) : formatScalar(value));
 
 const displayDistribution = computed(() =>
-  [...props.stage.distribution]
+  [...distributionForStageSnapshot(props.stage)]
     .sort((left, right) => right.probability - left.probability)
     .slice(0, props.maxDistributionRows),
 );
 
-const hiddenDistributionCount = computed(() => Math.max(0, props.stage.distribution.length - displayDistribution.value.length));
+const hiddenDistributionCount = computed(() =>
+  Math.max(0, distributionForStageSnapshot(props.stage).length - displayDistribution.value.length),
+);
 </script>

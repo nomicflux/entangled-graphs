@@ -7,11 +7,10 @@ import type {
   GateInstance,
   QubitRow,
   StageEntanglementModel,
-  StageView,
+  StageSnapshot,
 } from "../../../types";
 import * as complex from "../../../complex";
 import {
-  bloch_pair_from_ensemble,
   entanglement_links_from_ensemble,
   measurement_distribution_for_ensemble,
   simulate_columns_ensemble,
@@ -173,19 +172,20 @@ export const useEntanglementModel = () => {
     ),
   );
 
-  const stageViews = computed<StageView[]>(() => {
+  const stageSnapshots = computed<StageSnapshot[]>(() => {
     const lastIndex = ensembleSnapshots.value.length - 1;
     return ensembleSnapshots.value.map((snapshot, index) => ({
       id: index === 0 ? `ent-${scenarioId.value}-prepared` : `ent-${scenarioId.value}-t${index}`,
       index,
       label: stageLabels.value[index] ?? `t${index}`,
-      distribution: measurement_distribution_for_ensemble(snapshot),
-      blochPair: bloch_pair_from_ensemble(snapshot),
+      ensemble: snapshot,
       isFinal: index === lastIndex,
     }));
   });
 
-  const selectedStage = computed<StageView>(() => stageViews.value[selectedStageIndex.value] ?? stageViews.value[0]!);
+  const selectedStageSnapshot = computed<StageSnapshot>(() =>
+    stageSnapshots.value[selectedStageIndex.value] ?? stageSnapshots.value[0]!,
+  );
 
   const stageEntanglementLinks = computed<ReadonlyArray<ReadonlyArray<EntanglementLink>>>(() =>
     ensembleSnapshots.value.map((snapshot) => entanglement_links_from_ensemble(snapshot)),
@@ -196,9 +196,9 @@ export const useEntanglementModel = () => {
   );
 
   watch(
-    stageViews,
-    (views) => {
-      const maxIndex = Math.max(0, views.length - 1);
+    stageSnapshots,
+    (snapshots) => {
+      const maxIndex = Math.max(0, snapshots.length - 1);
       if (selectedStageIndex.value > maxIndex) {
         selectedStageIndex.value = maxIndex;
       }
@@ -207,7 +207,7 @@ export const useEntanglementModel = () => {
   );
 
   const setSelectedStage = (index: number): void => {
-    if (index < 0 || index >= stageViews.value.length) {
+    if (index < 0 || index >= stageSnapshots.value.length) {
       return;
     }
     selectedStageIndex.value = index;
@@ -473,11 +473,14 @@ export const useEntanglementModel = () => {
     findPairLink(finalLinks.value, primaryPair.value[0], primaryPair.value[1]),
   );
 
-  const finalStage = computed<StageView>(() => stageViews.value[stageViews.value.length - 1]!);
-  const finalDistribution = computed(() => finalStage.value.distribution);
+  const finalStageSnapshot = computed<StageSnapshot>(() => stageSnapshots.value[stageSnapshots.value.length - 1]!);
+  const selectedDistribution = computed(() =>
+    measurement_distribution_for_ensemble(selectedStageSnapshot.value.ensemble),
+  );
+  const finalDistribution = computed(() => measurement_distribution_for_ensemble(finalStageSnapshot.value.ensemble));
 
   const selectedCorrelation = computed(() =>
-    pairParityFromDistribution(selectedStage.value.distribution, primaryPair.value[0], primaryPair.value[1]),
+    pairParityFromDistribution(selectedDistribution.value, primaryPair.value[0], primaryPair.value[1]),
   );
   const finalCorrelation = computed(() =>
     pairParityFromDistribution(finalDistribution.value, primaryPair.value[0], primaryPair.value[1]),
@@ -583,8 +586,8 @@ export const useEntanglementModel = () => {
     measurementEntries,
     selectedGate,
     selectedStageIndex,
-    selectedStage,
-    stageViews,
+    selectedStageSnapshot,
+    stageSnapshots,
     focusPairMetrics,
     selectedStageLink,
     finalStageLink,

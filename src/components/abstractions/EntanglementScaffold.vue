@@ -74,9 +74,9 @@
       :palette-groups="paletteGroups"
       :measurement-entries="measurementEntries"
       :selected-gate="selectedGate"
-      :stage-views="stageViews"
+      :stage-snapshots="stageSnapshots"
       :selected-stage-index="selectedStageIndex"
-      :selected-stage="selectedStage"
+      :selected-stage-snapshot="selectedStageSnapshot"
       :is-palette-draggable="isPaletteDraggable"
       :handle-palette-chip-click="handlePaletteChipClick"
       :start-palette-drag="startPaletteDrag"
@@ -223,8 +223,8 @@ const {
   measurementEntries,
   selectedGate,
   selectedStageIndex,
-  selectedStage,
-  stageViews,
+  selectedStageSnapshot,
+  stageSnapshots,
   focusPairMetrics,
   selectedStageLink,
   finalStageLink,

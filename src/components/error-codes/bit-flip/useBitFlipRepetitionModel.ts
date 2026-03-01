@@ -1,7 +1,7 @@
 import { computed, ref } from "vue";
 import type { BasisProbability } from "../../../types";
 import * as complex from "../../../complex";
-import { tensor_product_qubits } from "../../../quantum";
+import { bloch_pair_from_ensemble, measurement_distribution_for_ensemble, tensor_product_qubits } from "../../../quantum";
 import { formatInjectedErrorsLabel } from "../shared/error-labels";
 import { logicalPresetById, logicalPresetFidelity, type LogicalPresetId } from "../shared/logical-presets";
 import { bitFlipEncodeColumns, bitFlipRecoveryColumns, repetitionSyndromeMeaning } from "../shared/repetition-code";
@@ -75,10 +75,12 @@ export const useBitFlipRepetitionModel = () => {
     gateIdPrefix: "bit-code",
   });
 
-  const finalStage = computed(() => circuit.stageViews.value[circuit.stageViews.value.length - 1]!);
-  const recoveredLogical = computed(() => finalStage.value.blochPair[0] ?? null);
+  const finalStageSnapshot = computed(() => circuit.stageSnapshots.value[circuit.stageSnapshots.value.length - 1]!);
+  const recoveredLogical = computed(() => bloch_pair_from_ensemble(finalStageSnapshot.value.ensemble)[0] ?? null);
   const recoveryFidelity = computed(() => logicalPresetFidelity(selectedPreset.value, recoveredLogical.value));
-  const syndromeRows = computed(() => syndromeDistribution(finalStage.value.distribution));
+  const syndromeRows = computed(() =>
+    syndromeDistribution(measurement_distribution_for_ensemble(finalStageSnapshot.value.ensemble)),
+  );
   const dominantSyndrome = computed(() =>
     syndromeRows.value.reduce((best, current) => (current.probability > best.probability ? current : best), syndromeRows.value[0]!),
   );

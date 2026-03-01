@@ -56,6 +56,14 @@ export type BasisProbability = {
     probability: number;
 };
 
+export type StageSnapshot = {
+    id: string;
+    index: number;
+    label: string;
+    ensemble: StateEnsemble;
+    isFinal: boolean;
+};
+
 export type BlochVector = {
     x: number;
     y: number;
@@ -67,6 +75,30 @@ export type BlochVector = {
 };
 
 export type BlochPair = BlochVector[];
+
+export type QubitPhaseOverlay = {
+    row: QubitRow;
+    angle: number;
+    magnitude: number;
+    paletteBias: number;
+};
+
+export type PairPhaseOverlay = {
+    fromRow: QubitRow;
+    toRow: QubitRow;
+    sameParityMagnitude: number;
+    sameParityAngle: number;
+    oppositeParityMagnitude: number;
+    oppositeParityAngle: number;
+};
+
+export type StageVisualModel = {
+    distribution: BasisProbability[];
+    blochPair: BlochPair;
+    renderPair: BlochPair;
+    qubitPhaseOverlays: ReadonlyArray<QubitPhaseOverlay>;
+    pairPhaseOverlays: ReadonlyArray<PairPhaseOverlay>;
+};
 
 export type BellStateId = "phi+" | "phi-" | "psi+" | "psi-";
 
@@ -96,12 +128,3 @@ export type StageEntanglementModel = {
     cuts: ReadonlyArray<CutEntanglementScore>;
     components: ReadonlyArray<EntanglementComponent>;
 }
-
-export type StageView = {
-    id: string;
-    index: number;
-    label: string;
-    distribution: BasisProbability[];
-    blochPair: BlochPair;
-    isFinal: boolean;
-};

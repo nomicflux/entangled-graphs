@@ -6,11 +6,10 @@ import type {
   GateInstance,
   Qubit,
   QubitState,
-  StageView,
+  StageSnapshot,
   StateEnsemble,
 } from "../types";
 import {
-  bloch_pair_from_ensemble,
   entanglement_links_from_ensemble,
   measurement_distribution_for_ensemble,
   simulate_columns_ensemble,
@@ -40,15 +39,14 @@ export const finalEnsemble = computed<StateEnsemble>(() => ensembleSnapshots.val
 
 export const finalDistribution = computed(() => measurement_distribution_for_ensemble(finalEnsemble.value));
 
-export const stageViews = computed<StageView[]>(() => {
+export const stageSnapshots = computed<StageSnapshot[]>(() => {
   const lastIndex = ensembleSnapshots.value.length - 1;
 
   return ensembleSnapshots.value.map((snapshot, index) => ({
     id: index === 0 ? "prepared" : index === lastIndex ? "final" : `t${index}`,
     index,
     label: index === 0 ? "Prepared" : index === lastIndex ? "Final" : `After t${index}`,
-    distribution: measurement_distribution_for_ensemble(snapshot),
-    blochPair: bloch_pair_from_ensemble(snapshot),
+    ensemble: snapshot,
     isFinal: index === lastIndex,
   }));
 });
@@ -61,7 +59,7 @@ export const stageEntanglementModels = computed(() =>
   stage_entanglement_models_from_snapshots(ensembleSnapshots.value),
 );
 
-export const selectedStage = computed<StageView>(() => stageViews.value[state.selectedStageIndex]!);
+export const selectedStageSnapshot = computed<StageSnapshot>(() => stageSnapshots.value[state.selectedStageIndex]!);
 
 export const gateInstanceAt = (column: CircuitColumn, row: number): GateInstance | null =>
   column.gates.find((entry) => gateTouchesRow(entry, row)) ?? null;

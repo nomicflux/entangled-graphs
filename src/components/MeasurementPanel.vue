@@ -63,9 +63,9 @@
 
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from "vue";
-import { finalDistribution, preparedState, qubitCount, stageViews, state } from "../state";
+import { preparedState, qubitCount, stageSnapshots, state } from "../state";
 import { resolveOperator } from "../state/operators";
-import { basis_to_bloch_pair, measurement_distribution, sample_circuit_run } from "../quantum";
+import { basis_to_bloch_pair, bloch_pair_from_ensemble, measurement_distribution, measurement_distribution_for_ensemble, sample_circuit_run } from "../quantum";
 import type { BasisLabel, BasisProbability, GateId } from "../types";
 import type { CircuitMeasurementOutcome } from "../quantum";
 import BlochPairView from "./BlochPairView.vue";
@@ -78,7 +78,8 @@ const latestRunOutcomes = ref<CircuitMeasurementOutcome[]>([]);
 const maxHistory = 6;
 let highlightTimer: ReturnType<typeof setTimeout> | undefined;
 
-const finalStage = computed(() => stageViews.value[stageViews.value.length - 1]!);
+const finalStageSnapshot = computed(() => stageSnapshots.value[stageSnapshots.value.length - 1]!);
+const finalDistribution = computed(() => measurement_distribution_for_ensemble(finalStageSnapshot.value.ensemble));
 const displayedDistribution = computed(() => sampledDistribution.value ?? finalDistribution.value);
 const distributionContext = computed(() =>
   sampledDistribution.value === null ? "Expected over all branches" : "Sampled branch from latest run",
@@ -98,7 +99,7 @@ const latestProbability = computed(() => {
   return value ?? null;
 });
 const measurementBlochPair = computed(() =>
-  latestBasis.value ? basis_to_bloch_pair(latestBasis.value) : finalStage.value.blochPair,
+  latestBasis.value ? basis_to_bloch_pair(latestBasis.value) : bloch_pair_from_ensemble(finalStageSnapshot.value.ensemble),
 );
 
 const formatPercent = (value: number): string => `${(value * 100).toFixed(1)}%`;

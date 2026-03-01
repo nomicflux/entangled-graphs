@@ -7,13 +7,9 @@ import type {
   QubitRow,
   QubitState,
   StageEntanglementModel,
-  StageView,
+  StageSnapshot,
 } from "../../../types";
-import {
-  bloch_pair_from_ensemble,
-  measurement_distribution_for_ensemble,
-  simulate_columns_ensemble,
-} from "../../../quantum";
+import { simulate_columns_ensemble } from "../../../quantum";
 import { gateTouchesRow, removeOverlaps } from "../../../state/gate-instance-utils";
 import { isRowLockedAtColumn } from "../../../state/measurement-locks";
 import { operatorArityForGate, resolveOperator } from "../../../state/operators";
@@ -82,19 +78,20 @@ export const useSingleErrorColumnModel = (config: SingleErrorColumnConfig) => {
     simulate_columns_ensemble(config.preparedState.value, columns.value, resolveGate, config.qubitCount),
   );
 
-  const stageViews = computed<StageView[]>(() => {
+  const stageSnapshots = computed<StageSnapshot[]>(() => {
     const lastIndex = ensembleSnapshots.value.length - 1;
     return ensembleSnapshots.value.map((snapshot, index) => ({
       id: index === 0 ? `${config.gateIdPrefix}-prepared` : `${config.gateIdPrefix}-t${index}`,
       index,
       label: config.stageLabels.value[index] ?? `t${index}`,
-      distribution: measurement_distribution_for_ensemble(snapshot),
-      blochPair: bloch_pair_from_ensemble(snapshot),
+      ensemble: snapshot,
       isFinal: index === lastIndex,
     }));
   });
 
-  const selectedStage = computed<StageView>(() => stageViews.value[selectedStageIndex.value] ?? stageViews.value[0]!);
+  const selectedStageSnapshot = computed<StageSnapshot>(() =>
+    stageSnapshots.value[selectedStageIndex.value] ?? stageSnapshots.value[0]!,
+  );
 
   const stageEntanglementLinks = computed<ReadonlyArray<ReadonlyArray<EntanglementLink>>>(() =>
     Array.from({ length: ensembleSnapshots.value.length }, () => []),
@@ -105,9 +102,9 @@ export const useSingleErrorColumnModel = (config: SingleErrorColumnConfig) => {
   );
 
   watch(
-    stageViews,
-    (views) => {
-      const maxIndex = Math.max(0, views.length - 1);
+    stageSnapshots,
+    (snapshots) => {
+      const maxIndex = Math.max(0, snapshots.length - 1);
       if (selectedStageIndex.value > maxIndex) {
         selectedStageIndex.value = maxIndex;
       }
@@ -233,7 +230,7 @@ export const useSingleErrorColumnModel = (config: SingleErrorColumnConfig) => {
   };
 
   const setSelectedStage = (index: number): void => {
-    if (index < 0 || index >= stageViews.value.length) {
+    if (index < 0 || index >= stageSnapshots.value.length) {
       return;
     }
     selectedStageIndex.value = index;
@@ -242,9 +239,9 @@ export const useSingleErrorColumnModel = (config: SingleErrorColumnConfig) => {
   return {
     columns,
     columnLabels: config.columnLabels,
-    stageViews,
+    stageSnapshots,
     selectedStageIndex,
-    selectedStage,
+    selectedStageSnapshot,
     selectedGate,
     allowedErrorGates: config.allowedErrorGates,
     paletteGroups,

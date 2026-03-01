@@ -1,7 +1,7 @@
 import { computed, ref } from "vue";
 import type { BasisProbability, CircuitColumn, GateInstance } from "../../../types";
 import * as complex from "../../../complex";
-import { tensor_product_qubits } from "../../../quantum";
+import { bloch_pair_from_ensemble, measurement_distribution_for_ensemble, tensor_product_qubits } from "../../../quantum";
 import { formatInjectedErrorsLabel } from "../shared/error-labels";
 import { logicalPresetById, logicalPresetFidelity, type LogicalPresetId } from "../shared/logical-presets";
 import { repetitionSyndromeMeaning } from "../shared/repetition-code";
@@ -184,13 +184,14 @@ export const useShorNineQubitModel = () => {
     gateIdPrefix: "shor-code",
   });
 
-  const finalStage = computed(() => circuit.stageViews.value[circuit.stageViews.value.length - 1]!);
-  const recoveredLogical = computed(() => finalStage.value.blochPair[0] ?? null);
+  const finalStageSnapshot = computed(() => circuit.stageSnapshots.value[circuit.stageSnapshots.value.length - 1]!);
+  const finalDistribution = computed(() => measurement_distribution_for_ensemble(finalStageSnapshot.value.ensemble));
+  const recoveredLogical = computed(() => bloch_pair_from_ensemble(finalStageSnapshot.value.ensemble)[0] ?? null);
   const recoveryFidelity = computed(() => logicalPresetFidelity(selectedPreset.value, recoveredLogical.value));
 
   const blockSyndromes = computed(() =>
     BLOCKS.map((block, blockIndex) => {
-      const rows = marginalBits(finalStage.value.distribution, [block.ancillaA, block.ancillaB]);
+      const rows = marginalBits(finalDistribution.value, [block.ancillaA, block.ancillaB]);
       const dominant = rows[0] ?? { bits: "00", probability: 0 };
       const wireInBlock = wireInBlockFromBits(dominant.bits);
       return {
@@ -206,7 +207,7 @@ export const useShorNineQubitModel = () => {
   );
 
   const phaseSyndrome = computed(() => {
-    const rows = marginalBits(finalStage.value.distribution, [3, 6]);
+    const rows = marginalBits(finalDistribution.value, [3, 6]);
     const dominant = rows[0] ?? { bits: "00", probability: 0 };
     const blockIndex = phaseBlockFromBits(dominant.bits);
     return {

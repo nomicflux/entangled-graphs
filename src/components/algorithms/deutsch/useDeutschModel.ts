@@ -1,6 +1,5 @@
 import { computed, ref, watch } from "vue";
-import type { BlochParams, StageView } from "../../../types";
-import { bloch_pair_from_ensemble, measurement_distribution_for_ensemble } from "../../../quantum";
+import type { BlochParams, StageSnapshot } from "../../../types";
 import { qubitFromBloch } from "../../../state/qubit-helpers";
 import { useAlgorithmEntanglement } from "../shared/useAlgorithmEntanglement";
 import { loadBlochParams, saveBlochParams } from "../shared/storage";
@@ -82,26 +81,27 @@ export const useDeutschModel = () => {
   });
 
   const ensembleSnapshots = computed(() => deutschEnsembleSnapshots(activeOracleId.value, inputs.value));
-  const stageViews = computed<StageView[]>(() => {
+  const stageSnapshots = computed<StageSnapshot[]>(() => {
     const lastIndex = ensembleSnapshots.value.length - 1;
     return ensembleSnapshots.value.map((snapshot, index) => ({
       id: index === 0 ? "deutsch-prepared" : `deutsch-t${index}`,
       index,
       label: deutschStageLabels[index] ?? `t${index}`,
-      distribution: measurement_distribution_for_ensemble(snapshot),
-      blochPair: bloch_pair_from_ensemble(snapshot),
+      ensemble: snapshot,
       isFinal: index === lastIndex,
     }));
   });
 
-  watch(stageViews, (views) => {
-    const maxIndex = Math.max(0, views.length - 1);
+  watch(stageSnapshots, (snapshots) => {
+    const maxIndex = Math.max(0, snapshots.length - 1);
     if (selectedStageIndex.value > maxIndex) {
       selectedStageIndex.value = maxIndex;
     }
   });
 
-  const selectedStage = computed(() => stageViews.value[selectedStageIndex.value] ?? stageViews.value[0]!);
+  const selectedStageSnapshot = computed(() =>
+    stageSnapshots.value[selectedStageIndex.value] ?? stageSnapshots.value[0]!,
+  );
   const expected = computed(() => deutschExpectedResult(activeOracleId.value, inputs.value));
   const actualOracleClass = computed(() => deutschOracleClass(activeOracleId.value));
   const actualOracleDescriptor = computed(() => deutschOracleDescriptor(activeOracleId.value));
@@ -160,9 +160,9 @@ export const useDeutschModel = () => {
     q0Bloch,
     q1Bloch,
     labeledColumns,
-    stageViews,
+    stageSnapshots,
     selectedStageIndex,
-    selectedStage,
+    selectedStageSnapshot,
     expected,
     expectedDecision,
     shouldHideDecision,

@@ -5,8 +5,8 @@ import type {
   GateId,
   GateInstance,
   QubitRow,
+  StageSnapshot,
   StageEntanglementModel,
-  StageView,
 } from "../../../types";
 import * as complex from "../../../complex";
 import {
@@ -106,19 +106,18 @@ export const usePreparingQubitsModel = () => {
     simulate_columns_ensemble(preparedState.value, combinedColumns.value, resolveGate, PREPARING_QUBIT_COUNT),
   );
 
-  const stageViews = computed<StageView[]>(() => {
+  const stageSnapshots = computed<StageSnapshot[]>(() => {
     const lastIndex = ensembleSnapshots.value.length - 1;
     return ensembleSnapshots.value.map((snapshot, index) => ({
       id: index === 0 ? "prep-prepared" : `prep-t${index}`,
       index,
       label: stageLabels.value[index] ?? `t${index}`,
-      distribution: measurement_distribution_for_ensemble(snapshot),
-      blochPair: bloch_pair_from_ensemble(snapshot),
+      ensemble: snapshot,
       isFinal: index === lastIndex,
     }));
   });
 
-  const selectedStage = computed<StageView>(() => stageViews.value[selectedStageIndex.value] ?? stageViews.value[0]!);
+  const selectedStageSnapshot = computed<StageSnapshot>(() => stageSnapshots.value[selectedStageIndex.value] ?? stageSnapshots.value[0]!);
 
   const stageEntanglementLinks = computed<ReadonlyArray<ReadonlyArray<EntanglementLink>>>(() =>
     ensembleSnapshots.value.map((snapshot) => entanglement_links_from_ensemble(snapshot)),
@@ -129,9 +128,9 @@ export const usePreparingQubitsModel = () => {
   );
 
   watch(
-    stageViews,
-    (views) => {
-      const maxIndex = Math.max(0, views.length - 1);
+    stageSnapshots,
+    (snapshots) => {
+      const maxIndex = Math.max(0, snapshots.length - 1);
       if (selectedStageIndex.value > maxIndex) {
         selectedStageIndex.value = maxIndex;
       }
@@ -148,7 +147,7 @@ export const usePreparingQubitsModel = () => {
   );
 
   const setSelectedStage = (index: number) => {
-    if (index < 0 || index >= stageViews.value.length) {
+    if (index < 0 || index >= stageSnapshots.value.length) {
       return;
     }
     selectedStageIndex.value = index;
@@ -284,12 +283,13 @@ export const usePreparingQubitsModel = () => {
     rows.map((row) => `q${row} -> ${selectedTargetsByRow.value[row]!.label}`).join(" | "),
   );
 
-  const finalStage = computed<StageView>(() => stageViews.value[stageViews.value.length - 1]!);
-  const finalDistribution = computed(() => finalStage.value.distribution);
+  const finalStageSnapshot = computed<StageSnapshot>(() => stageSnapshots.value[stageSnapshots.value.length - 1]!);
+  const finalDistribution = computed(() => measurement_distribution_for_ensemble(finalStageSnapshot.value.ensemble));
+  const finalBlochPair = computed(() => bloch_pair_from_ensemble(finalStageSnapshot.value.ensemble));
 
   const rowReadouts = computed(() =>
     rows.map((row) => {
-      const bloch = finalStage.value.blochPair[row];
+      const bloch = finalBlochPair.value[row];
       const targetIdForRow = targetIds.value[row] ?? "one";
       const target = targetById(targetIdForRow);
       const fidelity = bloch ? preparationFidelity(bloch, targetIdForRow) : 0;
@@ -313,8 +313,8 @@ export const usePreparingQubitsModel = () => {
     measurementEntries,
     selectedGate,
     selectedStageIndex,
-    selectedStage,
-    stageViews,
+    selectedStageSnapshot,
+    stageSnapshots,
     targetIds,
     targetOptions,
     selectedTargetsByRow,

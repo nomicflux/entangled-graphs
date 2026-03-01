@@ -7,11 +7,10 @@ import type {
   GateInstance,
   QubitRow,
   StageEntanglementModel,
-  StageView,
+  StageSnapshot,
 } from "../../../types";
 import * as complex from "../../../complex";
 import {
-  bloch_pair_from_ensemble,
   entanglement_links_from_ensemble,
   measurement_distribution_for_ensemble,
   simulate_columns_ensemble,
@@ -202,19 +201,20 @@ export const usePhaseKickbackModel = () => {
     ),
   );
 
-  const stageViews = computed<StageView[]>(() => {
+  const stageSnapshots = computed<StageSnapshot[]>(() => {
     const lastIndex = ensembleSnapshots.value.length - 1;
     return ensembleSnapshots.value.map((snapshot, index) => ({
       id: index === 0 ? "kick-prepared" : `kick-t${index}`,
       index,
       label: stageLabels.value[index] ?? `t${index}`,
-      distribution: measurement_distribution_for_ensemble(snapshot),
-      blochPair: bloch_pair_from_ensemble(snapshot),
+      ensemble: snapshot,
       isFinal: index === lastIndex,
     }));
   });
 
-  const selectedStage = computed<StageView>(() => stageViews.value[selectedStageIndex.value] ?? stageViews.value[0]!);
+  const selectedStageSnapshot = computed<StageSnapshot>(() =>
+    stageSnapshots.value[selectedStageIndex.value] ?? stageSnapshots.value[0]!,
+  );
 
   const stageEntanglementLinks = computed<ReadonlyArray<ReadonlyArray<EntanglementLink>>>(() =>
     ensembleSnapshots.value.map((snapshot) => entanglement_links_from_ensemble(snapshot)),
@@ -225,9 +225,9 @@ export const usePhaseKickbackModel = () => {
   );
 
   watch(
-    stageViews,
-    (views) => {
-      const maxIndex = Math.max(0, views.length - 1);
+    stageSnapshots,
+    (snapshots) => {
+      const maxIndex = Math.max(0, snapshots.length - 1);
       if (selectedStageIndex.value > maxIndex) {
         selectedStageIndex.value = maxIndex;
       }
@@ -250,7 +250,7 @@ export const usePhaseKickbackModel = () => {
   });
 
   const setSelectedStage = (index: number): void => {
-    if (index < 0 || index >= stageViews.value.length) {
+    if (index < 0 || index >= stageSnapshots.value.length) {
       return;
     }
     selectedStageIndex.value = index;
@@ -475,8 +475,8 @@ export const usePhaseKickbackModel = () => {
     phaseLabel(controlAfterKickback.value.x, controlAfterKickback.value.y),
   );
 
-  const finalStage = computed<StageView>(() => stageViews.value[stageViews.value.length - 1]!);
-  const finalDistribution = computed(() => finalStage.value.distribution);
+  const finalStageSnapshot = computed<StageSnapshot>(() => stageSnapshots.value[stageSnapshots.value.length - 1]!);
+  const finalDistribution = computed(() => measurement_distribution_for_ensemble(finalStageSnapshot.value.ensemble));
 
   const baselineReadoutQ0P1 = computed(() => readoutAfterFinalH.value.p1);
   const finalQ0P1 = computed(() => q0OneProbability(finalDistribution.value));
@@ -572,8 +572,8 @@ export const usePhaseKickbackModel = () => {
     measurementEntries,
     selectedGate,
     selectedStageIndex,
-    selectedStage,
-    stageViews,
+    selectedStageSnapshot,
+    stageSnapshots,
     controlBeforeKickback,
     controlAfterKickback,
     targetBeforeKickback,
