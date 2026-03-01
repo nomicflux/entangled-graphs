@@ -55,7 +55,13 @@ test("bit-flip repetition supports multiple injected errors and fails outside th
   assert.equal(model.setInjectedError("X", 1), true);
 
   assert.equal(model.injectedErrors.value.length, 2);
-  assert.match(model.injectedErrorLabel.value, /2 injected errors:/);
+  assert.deepEqual(
+    model.injectedErrors.value.map((entry) => [entry.gate, entry.row]),
+    [
+      ["X", 0],
+      ["X", 1],
+    ],
+  );
   assert.ok(model.recoveryFidelity.value < 0.01);
 });
 
@@ -86,7 +92,13 @@ test("phase-flip repetition supports multiple injected errors and fails outside 
   assert.equal(model.setInjectedError("Z", 1), true);
 
   assert.equal(model.injectedErrors.value.length, 2);
-  assert.match(model.injectedErrorLabel.value, /2 injected errors:/);
+  assert.deepEqual(
+    model.injectedErrors.value.map((entry) => [entry.gate, entry.row]),
+    [
+      ["Z", 0],
+      ["Z", 1],
+    ],
+  );
   assert.ok(model.recoveryFidelity.value < 0.01);
 });
 
@@ -131,6 +143,12 @@ test("shor code allows multiple injected errors and can fail outside the single-
   assert.equal(model.setInjectedError("Z", 3), true);
 
   assert.equal(model.injectedErrors.value.length, 2);
-  assert.match(model.injectedErrorLabel.value, /2 injected errors:/);
+  assert.deepEqual(
+    model.injectedErrors.value.map((entry) => [entry.gate, entry.row]),
+    [
+      ["Y", 0],
+      ["Z", 3],
+    ],
+  );
   assert.ok(model.recoveryFidelity.value < 0.01);
 });

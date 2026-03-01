@@ -1,10 +1,46 @@
 <template>
-  <main class="panels">
-    <LogicalSourcePresetPanel
-      :selected-preset="selectedPreset"
-      note="Each 3-qubit block handles X errors; the block leaders handle Z errors."
-      @select-preset="selectedPreset = $event"
-    />
+  <main class="panels error-code-layout">
+    <div class="error-code-side-column">
+      <LogicalSourcePresetPanel
+        :selected-preset="selectedPreset"
+        @select-preset="selectedPreset = $event"
+      />
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Output</h2>
+          <p>Current output and syndromes.</p>
+        </div>
+
+        <div class="error-code-summary-grid">
+          <ErrorCodeSummaryCard label="Input" :value="selectedPresetLabel" mono />
+          <ErrorCodeSummaryCard label="Output" :value="outputPresetLabel" detail="closest preset" mono />
+          <ErrorCodeSummaryCard
+            label="Match"
+            :value="formatPercent(recoveryFidelity)"
+            :tone="recoveryFidelity > 0.99 ? 'good' : 'warn'"
+          />
+          <ErrorCodeSummaryCard label="Diagnosis" :value="diagnosisSummary" mono />
+        </div>
+
+        <div class="error-code-summary-grid">
+          <ErrorCodeSummaryCard
+            v-for="block in blockSyndromes"
+            :key="block.blockLabel"
+            :label="block.blockLabel"
+            :value="block.dominantBits"
+            :detail="block.wireLabel ?? '—'"
+            mono
+          />
+          <ErrorCodeSummaryCard
+            label="Phase"
+            :value="phaseSyndrome.dominantBits"
+            :detail="phaseSyndrome.blockLabel ?? '—'"
+            mono
+          />
+        </div>
+      </section>
+    </div>
 
     <LessonCircuitPanel
       title="Shor's 9-Qubit Code"
@@ -58,70 +94,16 @@
       :select-stage="setSelectedStage"
     >
       <template #controls>
-        <span class="prep-columns-lock">Edit only Inject errors.</span>
         <button class="column-btn" type="button" @click="clearInjectedError">Clear</button>
       </template>
     </LessonCircuitPanel>
-
-    <div class="error-code-side-column">
-      <ErrorInjectionPanel
-        :instructions="shorInstructions"
-        :current-error-label="injectedErrorLabel"
-        :status-summary="statusSummary"
-        :allowed-gates="allowedErrorGates"
-        @clear-error="clearInjectedError"
-      />
-
-      <section class="panel">
-        <div class="panel-header">
-          <h2>Output</h2>
-          <p>Compare output with input and read the syndromes.</p>
-        </div>
-
-        <div class="error-code-kv">
-          <article>
-            <h3>Recovered Logical State</h3>
-            <p><strong>Target:</strong> {{ selectedPresetLabel }}</p>
-            <p><strong>Recovery fidelity:</strong> {{ formatPercent(recoveryFidelity) }}</p>
-            <p>{{ diagnosisSummary }}</p>
-          </article>
-        </div>
-
-        <div class="error-code-syndrome-card">
-          <h3>Within-Block Bit Syndromes</h3>
-          <ul class="error-code-syndrome-list">
-            <li v-for="block in blockSyndromes" :key="block.blockLabel">
-              <strong>{{ block.blockLabel }}:</strong>
-              <span class="error-code-pill">{{ block.dominantBits }}</span>
-              {{ repetitionSyndromeMeaning(block.dominantBits) }}
-              <span v-if="block.wireLabel"> Most likely wire: {{ block.wireLabel }}.</span>
-              <span> Weight: {{ formatPercent(block.dominantProbability) }}.</span>
-            </li>
-          </ul>
-        </div>
-
-        <div class="error-code-syndrome-card">
-          <h3>Phase Syndrome</h3>
-          <p>
-            Most likely syndrome:
-            <span class="error-code-pill">{{ phaseSyndrome.dominantBits }}</span>
-            {{ phaseSyndromeMeaning(phaseSyndrome.dominantBits) }}
-          </p>
-          <ul class="error-code-syndrome-list">
-            <li v-for="row in phaseSyndrome.rows" :key="row.bits">
-              {{ row.bits }} -> {{ formatPercent(row.probability) }}. {{ phaseSyndromeMeaning(row.bits) }}
-            </li>
-          </ul>
-        </div>
-      </section>
-    </div>
   </main>
 </template>
 
 <script setup lang="ts">
 import LessonCircuitPanel from "../../circuit/LessonCircuitPanel.vue";
 import { useCircuitGridPlacementLifecycle } from "../../circuit/useCircuitGridPlacementLifecycle";
-import ErrorInjectionPanel from "../shared/ErrorInjectionPanel.vue";
+import ErrorCodeSummaryCard from "../shared/ErrorCodeSummaryCard.vue";
 import LogicalSourcePresetPanel from "../shared/LogicalSourcePresetPanel.vue";
 import { useShorNineQubitModel } from "./useShorNineQubitModel";
 
@@ -134,19 +116,15 @@ useCircuitGridPlacementLifecycle({
 const {
   selectedPreset,
   selectedPresetLabel,
-  injectedErrorLabel,
+  outputPresetLabel,
   recoveryFidelity,
-  statusSummary,
   diagnosisSummary,
   blockSyndromes,
   phaseSyndrome,
   clearInjectedError,
-  repetitionSyndromeMeaning,
-  phaseSyndromeMeaning,
   rows,
   columns,
   columnLabels,
-  allowedErrorGates,
   paletteGroups,
   measurementEntries,
   selectedGate,
@@ -189,11 +167,6 @@ const {
   isRowLockedAt,
   slotTitle,
 } = model;
-
-const shorInstructions = [
-  "Place X, Y, or Z gates in Inject errors.",
-  "Try one error, then more.",
-] as const;
 
 const formatPercent = (value: number): string => `${(value * 100).toFixed(1)}%`;
 </script>

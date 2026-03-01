@@ -36,3 +36,16 @@ export const repetitionSyndromeMeaning = (bits: string): string => {
   }
   return "Not in the single-error lookup.";
 };
+
+export const repetitionSyndromeTarget = (bits: string): string => {
+  if (bits === "01") {
+    return "q2";
+  }
+  if (bits === "10") {
+    return "q1";
+  }
+  if (bits === "11") {
+    return "q0";
+  }
+  return "—";
+};

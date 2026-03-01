@@ -1,10 +1,8 @@
 import { computed, ref } from "vue";
-import type { BasisProbability, CircuitColumn, GateInstance } from "../../../types";
+import type { BasisProbability, CircuitColumn } from "../../../types";
 import * as complex from "../../../complex";
 import { bloch_pair_from_ensemble, measurement_distribution_for_ensemble, tensor_product_qubits } from "../../../quantum";
-import { formatInjectedErrorsLabel } from "../shared/error-labels";
-import { logicalPresetById, logicalPresetFidelity, type LogicalPresetId } from "../shared/logical-presets";
-import { repetitionSyndromeMeaning } from "../shared/repetition-code";
+import { closestLogicalPreset, logicalPresetById, logicalPresetFidelity, type LogicalPresetId } from "../shared/logical-presets";
 import { useSingleErrorColumnModel } from "../shared/useSingleErrorColumnModel";
 
 const ZERO_QUBIT = {
@@ -92,22 +90,6 @@ const phaseBlockFromBits = (bits: string): number | null => {
   return null;
 };
 
-const phaseSyndromeMeaning = (bits: string): string => {
-  if (bits === "00") {
-    return "No block-level phase mismatch.";
-  }
-  if (bits === "01") {
-    return "Points to Block C.";
-  }
-  if (bits === "10") {
-    return "Points to Block B.";
-  }
-  if (bits === "11") {
-    return "Points to Block A.";
-  }
-  return "Not in the single-error lookup.";
-};
-
 const blockWireLabel = (blockIndex: number, wireInBlock: number | null): string | null => {
   if (wireInBlock === null) {
     return null;
@@ -180,7 +162,6 @@ export const useShorNineQubitModel = () => {
     suffixColumns,
     columnLabels,
     stageLabels,
-    lockReason: "Encoding and recovery are fixed in this lesson. Edit only the Inject errors column.",
     gateIdPrefix: "shor-code",
   });
 
@@ -220,51 +201,35 @@ export const useShorNineQubitModel = () => {
   });
 
   const selectedPresetLabel = computed(() => logicalPresetById(selectedPreset.value).label);
-  const injectedErrorLabel = computed(() => formatInjectedErrorsLabel(circuit.injectedErrors.value));
+  const outputPresetLabel = computed(() => closestLogicalPreset(recoveredLogical.value)?.label ?? "—");
 
   const diagnosisSummary = computed(() => {
     const phaseBlock = phaseSyndrome.value.blockIndex;
     const bitFinding = blockSyndromes.value.find((entry) => entry.wireInBlock !== null) ?? null;
 
     if (phaseBlock === null && !bitFinding) {
-      return "No clear single-error signature.";
+      return "—";
     }
     if (phaseBlock === null && bitFinding?.wireLabel) {
-      return `${bitFinding.wireLabel} looks like an X error.`;
+      return `X @ ${bitFinding.wireLabel}`;
     }
     if (phaseBlock !== null && !bitFinding) {
-      return `${BLOCKS[phaseBlock]!.label} looks like a Z error in that block.`;
+      return `Z @ ${BLOCKS[phaseBlock]!.label}`;
     }
     if (phaseBlock !== null && bitFinding && bitFinding.blockIndex === phaseBlock && bitFinding.wireLabel) {
-      return `${bitFinding.wireLabel} looks like a Y error.`;
+      return `Y @ ${bitFinding.wireLabel}`;
     }
-    return "No clean single-error diagnosis.";
-  });
-
-  const statusSummary = computed(() => {
-    if (circuit.injectedErrors.value.length === 0) {
-      return "No injected errors. Output should match input.";
-    }
-    if (circuit.injectedErrors.value.length > 1) {
-      return "Multiple errors injected. This code corrects one single-qubit Pauli error.";
-    }
-    if (recoveryFidelity.value > 0.99) {
-      return "One single-qubit Pauli error corrected.";
-    }
-    return "Output does not match input.";
+    return "mixed";
   });
 
   return {
     selectedPreset,
     selectedPresetLabel,
-    injectedErrorLabel,
+    outputPresetLabel,
     recoveryFidelity,
-    statusSummary,
     diagnosisSummary,
     blockSyndromes,
     phaseSyndrome,
-    repetitionSyndromeMeaning,
-    phaseSyndromeMeaning,
     ...circuit,
   };
 };

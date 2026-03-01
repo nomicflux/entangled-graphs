@@ -11,7 +11,7 @@ Initial `Error Codes` entries:
 2. `3-Qubit Replication (Phase Errors)`
 3. `Shor 9-Qubit Code`
 
-Each module must also include an explicit `Error Injection` section that lets the learner introduce an error and see whether the code catches/corrects it. For the bit-error module, stray phase errors must be shown as not protected by that code.
+Each module must let the learner introduce errors in the editable in-circuit `Inject errors` column and see whether the code catches/corrects them. For the bit-error module, stray phase errors must be shown as not protected by that code.
 
 ## Implementation Status
 Current state in the repo:
@@ -21,7 +21,7 @@ Current state in the repo:
    - bounded large-register stage output for 9-qubit readability
    - `ErrorCodesWorkbench` plus the three initial module scaffolds
    - logical preset input, editable in-circuit error stage with multiple simultaneous injected errors, and code-specific output panels
-   - shared `ErrorInjectionPanel` that gives each module a distinct error-focused teaching section
+   - in-circuit error injection with no separate side-panel explainer
    - detailed Shor syndrome readout and model-level correctness tests
 2. Completed architectural cleanup:
    - the circuit-grid layer is now split into:
@@ -35,7 +35,7 @@ Current state in the repo:
 4. Product-shape note:
    - error introduction remains in the editable in-circuit `Inject error` column, per the locked product decision
    - that in-circuit stage supports multiple simultaneous physical errors across different wires
-   - the new right-side error panel explains the current injected errors and expected correction behavior without creating a second competing editor
+   - the editable circuit column is the only error-injection surface
 
 ## Hard Constraints
 1. Add a new top-level tab named `Error Codes`.
@@ -51,7 +51,7 @@ Current state in the repo:
    - circuit
    - output
    - locked key gates
-   - an extra error section showing caught/corrected behavior, or not-caught behavior where appropriate
+   - visible error-injection behavior through the editable in-circuit error column and the output readout
 
 ## Locked Product Decisions
 1. `Error Codes` is a top-level workspace with three initial subtabs:
@@ -202,15 +202,11 @@ Plan:
 1. Add a shared source-state input model patterned after teleportation’s source panel:
    - preset-only logical input for the source qubit
    - presets should include at least `|0>`, `|1>`, `|+>`, `|->`
-2. Add a shared `ErrorInjectionPanel` component for genuinely new behavior:
-   - explain that error placement happens in the editable in-circuit `Inject error` column
-   - summarize the currently injected error set
-   - show what each code should correct or fail to correct, including representative multi-error failure cases beyond the guaranteed regime
-3. Add shared large-register output helpers for genuinely new 9-qubit work:
+2. Add shared large-register output helpers for genuinely new 9-qubit work:
    - summarized distribution rows
    - syndrome display
    - logical-state fidelity display
-4. Reuse `StageInspector`/`CircuitStageSnapshots` by extending them; do not fork them.
+3. Reuse `StageInspector`/`CircuitStageSnapshots` by extending them; do not fork them.
 
 ## Representation Decisions By Module
 

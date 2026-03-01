@@ -1,10 +1,30 @@
 <template>
-  <main class="panels">
-    <LogicalSourcePresetPanel
-      :selected-preset="selectedPreset"
-      note="Hadamards move the protection into the X basis."
-      @select-preset="selectedPreset = $event"
-    />
+  <main class="panels error-code-layout">
+    <div class="error-code-side-column">
+      <LogicalSourcePresetPanel
+        :selected-preset="selectedPreset"
+        @select-preset="selectedPreset = $event"
+      />
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Output</h2>
+          <p>Current output and syndrome.</p>
+        </div>
+
+        <div class="error-code-summary-grid">
+          <ErrorCodeSummaryCard label="Input" :value="selectedPresetLabel" mono />
+          <ErrorCodeSummaryCard label="Output" :value="outputPresetLabel" detail="closest preset" mono />
+          <ErrorCodeSummaryCard
+            label="Match"
+            :value="formatPercent(recoveryFidelity)"
+            :tone="recoveryFidelity > 0.99 ? 'good' : 'warn'"
+          />
+          <ErrorCodeSummaryCard label="Syndrome" :value="dominantSyndrome.bits" mono />
+          <ErrorCodeSummaryCard label="Correction" :value="syndromeTargetLabel" mono />
+        </div>
+      </section>
+    </div>
 
     <LessonCircuitPanel
       title="3-Qubit Phase-Flip Code"
@@ -57,56 +77,16 @@
       :select-stage="setSelectedStage"
     >
       <template #controls>
-        <span class="prep-columns-lock">Edit only Inject errors.</span>
         <button class="column-btn" type="button" @click="clearInjectedError">Clear</button>
       </template>
     </LessonCircuitPanel>
-
-    <div class="error-code-side-column">
-      <ErrorInjectionPanel
-        :instructions="phaseFlipInstructions"
-        :current-error-label="injectedErrorLabel"
-        :status-summary="statusSummary"
-        :allowed-gates="allowedErrorGates"
-        @clear-error="clearInjectedError"
-      />
-
-      <section class="panel">
-        <div class="panel-header">
-          <h2>Output</h2>
-          <p>Compare output with input and read the syndrome bits.</p>
-        </div>
-
-        <div class="error-code-kv">
-          <article>
-            <h3>Recovered Logical State</h3>
-            <p><strong>Target:</strong> {{ selectedPresetLabel }}</p>
-            <p><strong>Recovery fidelity:</strong> {{ formatPercent(recoveryFidelity) }}</p>
-          </article>
-        </div>
-
-        <div class="error-code-syndrome-card">
-          <h3>Syndrome</h3>
-          <p>
-            Most likely syndrome:
-            <span class="error-code-pill">{{ dominantSyndrome.bits }}</span>
-            {{ repetitionSyndromeMeaning(dominantSyndrome.bits) }}
-          </p>
-          <ul class="error-code-syndrome-list">
-            <li v-for="row in syndromeRows" :key="row.bits">
-              {{ row.bits }} -> {{ formatPercent(row.probability) }}. {{ repetitionSyndromeMeaning(row.bits) }}
-            </li>
-          </ul>
-        </div>
-      </section>
-    </div>
   </main>
 </template>
 
 <script setup lang="ts">
 import LessonCircuitPanel from "../../circuit/LessonCircuitPanel.vue";
 import { useCircuitGridPlacementLifecycle } from "../../circuit/useCircuitGridPlacementLifecycle";
-import ErrorInjectionPanel from "../shared/ErrorInjectionPanel.vue";
+import ErrorCodeSummaryCard from "../shared/ErrorCodeSummaryCard.vue";
 import LogicalSourcePresetPanel from "../shared/LogicalSourcePresetPanel.vue";
 import { usePhaseFlipRepetitionModel } from "./usePhaseFlipRepetitionModel";
 
@@ -119,17 +99,14 @@ useCircuitGridPlacementLifecycle({
 const {
   selectedPreset,
   selectedPresetLabel,
-  injectedErrorLabel,
-  statusSummary,
+  outputPresetLabel,
   recoveryFidelity,
   dominantSyndrome,
-  syndromeRows,
+  syndromeTargetLabel,
   clearInjectedError,
-  repetitionSyndromeMeaning,
   rows,
   columns,
   columnLabels,
-  allowedErrorGates,
   paletteGroups,
   measurementEntries,
   selectedGate,
@@ -172,11 +149,6 @@ const {
   isRowLockedAt,
   slotTitle,
 } = model;
-
-const phaseFlipInstructions = [
-  "Place X or Z gates in Inject errors.",
-  "Try one error, then more.",
-] as const;
 
 const formatPercent = (value: number): string => `${(value * 100).toFixed(1)}%`;
 </script>

@@ -209,7 +209,7 @@ export const useSingleErrorColumnModel = (config: SingleErrorColumnConfig) => {
       lockReasonAt: (column) =>
         column === errorColumnIndex.value
           ? null
-          : config.lockReason ?? "This lesson keeps the encoding and recovery steps fixed. Edit only the error-injection column.",
+          : config.lockReason ?? "Locked.",
     },
   });
 

@@ -6,7 +6,6 @@ export type LogicalPresetId = "zero" | "one" | "plus" | "minus";
 export type LogicalPreset = {
   id: LogicalPresetId;
   label: string;
-  description: string;
   qubit: Qubit;
   bloch: {
     x: number;
@@ -21,7 +20,6 @@ export const LOGICAL_PRESETS: readonly LogicalPreset[] = [
   {
     id: "zero",
     label: "|0>",
-    description: "Basis state.",
     qubit: {
       a: complex.from_real(1),
       b: complex.from_real(0),
@@ -31,7 +29,6 @@ export const LOGICAL_PRESETS: readonly LogicalPreset[] = [
   {
     id: "one",
     label: "|1>",
-    description: "Basis state.",
     qubit: {
       a: complex.from_real(0),
       b: complex.from_real(1),
@@ -41,7 +38,6 @@ export const LOGICAL_PRESETS: readonly LogicalPreset[] = [
   {
     id: "plus",
     label: "|+>",
-    description: "Superposition state.",
     qubit: {
       a: complex.from_real(rootHalf),
       b: complex.from_real(rootHalf),
@@ -51,7 +47,6 @@ export const LOGICAL_PRESETS: readonly LogicalPreset[] = [
   {
     id: "minus",
     label: "|->",
-    description: "Phase-flipped superposition.",
     qubit: {
       a: complex.from_real(rootHalf),
       b: complex.from_real(-rootHalf),
@@ -71,4 +66,23 @@ export const logicalPresetFidelity = (presetId: LogicalPresetId, vector: BlochVe
   const target = logicalPresetById(presetId).bloch;
   const fidelity = (1 + (target.x * vector.x) + (target.y * vector.y) + (target.z * vector.z)) / 2;
   return Math.max(0, Math.min(1, fidelity));
+};
+
+export const closestLogicalPreset = (vector: BlochVector | null | undefined): LogicalPreset | null => {
+  if (!vector) {
+    return null;
+  }
+
+  let bestPreset: LogicalPreset | null = null;
+  let bestFidelity = -1;
+
+  for (const preset of LOGICAL_PRESETS) {
+    const fidelity = logicalPresetFidelity(preset.id, vector);
+    if (fidelity > bestFidelity) {
+      bestFidelity = fidelity;
+      bestPreset = preset;
+    }
+  }
+
+  return bestPreset;
 };

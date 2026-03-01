@@ -2,9 +2,8 @@ import { computed, ref } from "vue";
 import type { BasisProbability, CircuitColumn } from "../../../types";
 import * as complex from "../../../complex";
 import { bloch_pair_from_ensemble, measurement_distribution_for_ensemble, tensor_product_qubits } from "../../../quantum";
-import { formatInjectedErrorsLabel } from "../shared/error-labels";
-import { logicalPresetById, logicalPresetFidelity, type LogicalPresetId } from "../shared/logical-presets";
-import { bitFlipEncodeColumns, bitFlipRecoveryColumns, repetitionSyndromeMeaning } from "../shared/repetition-code";
+import { closestLogicalPreset, logicalPresetById, logicalPresetFidelity, type LogicalPresetId } from "../shared/logical-presets";
+import { bitFlipEncodeColumns, bitFlipRecoveryColumns, repetitionSyndromeTarget } from "../shared/repetition-code";
 import { useSingleErrorColumnModel } from "../shared/useSingleErrorColumnModel";
 
 const ZERO_QUBIT = {
@@ -94,7 +93,6 @@ export const usePhaseFlipRepetitionModel = () => {
     suffixColumns,
     columnLabels,
     stageLabels,
-    lockReason: "Encoding, basis changes, and recovery are fixed in this lesson. Edit only the Inject errors column.",
     gateIdPrefix: "phase-code",
   });
 
@@ -109,33 +107,16 @@ export const usePhaseFlipRepetitionModel = () => {
   );
 
   const selectedPresetLabel = computed(() => logicalPresetById(selectedPreset.value).label);
-  const injectedErrorLabel = computed(() => formatInjectedErrorsLabel(circuit.injectedErrors.value));
-
-  const statusSummary = computed(() => {
-    const injected = circuit.injectedErrors.value;
-    if (injected.length === 0) {
-      return "No injected errors. Output should match input.";
-    }
-    if (injected.length > 1) {
-      return "Multiple errors injected. This code corrects one Z error.";
-    }
-    if (injected[0]!.gate === "Z") {
-      return recoveryFidelity.value > 0.99
-        ? "One Z error corrected."
-        : "Output does not match input.";
-    }
-    return "X errors are not corrected by this code.";
-  });
+  const outputPresetLabel = computed(() => closestLogicalPreset(recoveredLogical.value)?.label ?? "—");
+  const syndromeTargetLabel = computed(() => repetitionSyndromeTarget(dominantSyndrome.value.bits));
 
   return {
     selectedPreset,
     selectedPresetLabel,
-    injectedErrorLabel,
-    statusSummary,
+    outputPresetLabel,
     recoveryFidelity,
     dominantSyndrome,
-    syndromeRows,
-    repetitionSyndromeMeaning,
+    syndromeTargetLabel,
     ...circuit,
   };
 };
