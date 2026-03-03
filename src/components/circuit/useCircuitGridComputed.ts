@@ -72,6 +72,9 @@ export const useCircuitGridComputed = ({
       return "M: click a wire to measure it. Later columns on that row are locked.";
     }
     const selected = selectedGate();
+    if (selected !== null && gateArity(selected) === 1) {
+      return `${gateName(selected)}: click a wire to place it.`;
+    }
     if (selected !== null && gateArity(selected) > 1) {
       return `${gateName(selected)}: click wire 1/${gateArity(selected)} to start placement.`;
     }

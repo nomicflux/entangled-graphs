@@ -1,6 +1,6 @@
 <template>
   <div class="gate-palette">
-    <section v-for="group in groups" :key="group.arity" class="gate-group">
+    <section v-for="group in groups" :key="`${group.title}-${group.arity}`" class="gate-group">
       <p class="gate-group-title">{{ group.title }}</p>
       <div class="gate-group-chips">
         <button

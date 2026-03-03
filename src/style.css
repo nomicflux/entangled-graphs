@@ -2,6 +2,7 @@
 @import "./styles/layout.css";
 @import "./styles/app-tabs.css";
 @import "./styles/panels.css";
+@import "./styles/free-form-split.css";
 @import "./styles/bloch.css";
 @import "./styles/prep-panel.css";
 @import "./styles/circuit-tools.css";
@@ -15,3 +16,4 @@
 @import "./styles/deutsch.css";
 @import "./styles/abstractions.css";
 @import "./styles/error-codes.css";
+@import "./styles/density.css";

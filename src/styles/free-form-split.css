@@ -1,0 +1,144 @@
+.free-form-workbench {
+  display: grid;
+  gap: 16px;
+}
+
+.rho-card {
+  display: grid;
+  gap: 12px;
+}
+
+.rho-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.rho-input {
+  display: grid;
+  gap: 5px;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.rho-input input {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  padding: 8px 10px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.82rem;
+}
+
+.rho-input-wide {
+  grid-column: span 1;
+}
+
+.rho-conjugate {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+
+.rho-errors {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 5px;
+  font-size: 0.74rem;
+  color: rgba(255, 140, 153, 0.92);
+}
+
+.distribution-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.distribution-basis-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.basis-btn {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.73rem;
+  cursor: pointer;
+}
+
+.basis-btn.active {
+  background: rgba(102, 245, 214, 0.22);
+  border-color: rgba(102, 245, 214, 0.76);
+}
+
+.mixed-palette-stack {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+}
+
+.mixed-noise-group {
+  padding-top: 10px;
+  border-top: 1px dashed rgba(255, 196, 122, 0.45);
+}
+
+.mixed-noise-strength {
+  display: grid;
+  gap: 8px;
+}
+
+.mixed-noise-strength-note {
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.mixed-noise-strength-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.mixed-measurement-visual {
+  min-height: 112px;
+}
+
+.mixed-noise-token {
+  white-space: normal;
+  text-align: center;
+  line-height: 1.15;
+  font-size: 0.73rem;
+  padding-inline: 6px;
+}
+
+.mixed-correlation-band {
+  fill: rgba(255, 196, 122, 0.08);
+  stroke: rgba(255, 196, 122, 0.2);
+  stroke-width: 1;
+}
+
+.mixed-correlation-arc {
+  fill: none;
+  stroke-linecap: round;
+}
+
+@media (max-width: 780px) {
+  .rho-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .distribution-head {
+    align-items: start;
+  }
+}

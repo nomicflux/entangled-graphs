@@ -47,21 +47,31 @@ test("error-code parser keeps current supported error-code views", () => {
   assert.equal(persistence.parseErrorCodeView(null), "bit-flip-repetition");
 });
 
-test("read/write helpers persist workspace, algorithm, abstraction, and error-code selections", () => {
+test("free-form section parser keeps supported selections", () => {
+  assert.equal(persistence.parseFreeFormSection("pure"), "pure");
+  assert.equal(persistence.parseFreeFormSection("mixed"), "mixed");
+  assert.equal(persistence.parseFreeFormSection("unknown"), "pure");
+  assert.equal(persistence.parseFreeFormSection(null), "pure");
+});
+
+test("read/write helpers persist workspace, algorithm, abstraction, error-code, and free-form selections", () => {
   const storage = fakeStorage();
   persistence.writeWorkspaceToStorage(storage, "error-codes");
   persistence.writeAlgorithmToStorage(storage, "deutsch");
   persistence.writeAbstractionToStorage(storage, "phase-kickback");
   persistence.writeErrorCodeToStorage(storage, "shor-nine-qubit");
+  persistence.writeFreeFormSectionToStorage(storage, "mixed");
 
   assert.equal(persistence.readWorkspaceFromStorage(storage), "error-codes");
   assert.equal(persistence.readAlgorithmFromStorage(storage), "deutsch");
   assert.equal(persistence.readAbstractionFromStorage(storage), "phase-kickback");
   assert.equal(persistence.readErrorCodeFromStorage(storage), "shor-nine-qubit");
+  assert.equal(persistence.readFreeFormSectionFromStorage(storage), "mixed");
 
   const dump = storage.dump();
   assert.equal(dump[persistence.WORKSPACE_STORAGE_KEY], "error-codes");
   assert.equal(dump[persistence.ALGORITHM_STORAGE_KEY], "deutsch");
   assert.equal(dump[persistence.ABSTRACTION_STORAGE_KEY], "phase-kickback");
   assert.equal(dump[persistence.ERROR_CODE_STORAGE_KEY], "shor-nine-qubit");
+  assert.equal(dump[persistence.FREE_FORM_SECTION_STORAGE_KEY], "mixed");
 });

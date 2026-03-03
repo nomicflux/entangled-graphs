@@ -1,4 +1,4 @@
-import type { Complex, QubitState, StateEnsemble } from "../types";
+import type { Complex, DensityMatrix, QubitState, StateEnsemble } from "../types";
 import * as complex from "../complex";
 
 export type ComplexMatrix = Complex[][];
@@ -78,3 +78,27 @@ export const reduced_density_for_subset_ensemble = (
   return rho;
 };
 
+export const reduced_density_for_subset_density = (
+  rho: DensityMatrix,
+  subsetWires: ReadonlyArray<number>,
+  qubitCount: number,
+): ComplexMatrix => {
+  const subsetDim = 1 << subsetWires.length;
+  const restWires = complementWires(subsetWires, qubitCount);
+  const restDim = 1 << restWires.length;
+  const reduced = zeros(subsetDim, subsetDim);
+
+  for (let row = 0; row < subsetDim; row += 1) {
+    for (let col = 0; col < subsetDim; col += 1) {
+      let value = complex.from_real(0);
+      for (let rest = 0; rest < restDim; rest += 1) {
+        const leftIndex = mergeBasisIndexes(row, subsetWires, rest, restWires, qubitCount);
+        const rightIndex = mergeBasisIndexes(col, subsetWires, rest, restWires, qubitCount);
+        value = complex.add(value, rho[leftIndex]![rightIndex]!);
+      }
+      reduced[row]![col] = value;
+    }
+  }
+
+  return reduced;
+};

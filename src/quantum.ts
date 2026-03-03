@@ -15,6 +15,29 @@ export {
 } from "./quantum/measurement";
 export type { MeasurementSample } from "./quantum/measurement";
 
+export {
+  applyNoiseChannelToDensityMatrix,
+  applyMixedProcessToDensityMatrix,
+  densityMatrixForSingleQubitPureState,
+  densityTensorDifferenceNorm,
+  frobeniusNorm,
+  measurementDistributionForDensityMatrix,
+  measurementDistributionForDensityMatrixInBasis,
+  nonSelectiveMeasurementOnWire,
+  preferredMeasurementBasisForDensityMatrix,
+  sampleMixedCircuitRun,
+  simulateMixedColumns,
+  singleQubitDensityMatrix,
+  tensorProductDensityMatrices,
+  zeroDensityMatrix,
+} from "./quantum/density";
+export type {
+  MixedCircuitMeasurementOutcome,
+  MixedGateResolver,
+  MixedSamplingReplayOptions,
+  SampledMixedCircuitRun,
+} from "./quantum/density";
+
 export { basis_to_bloch_pair, bloch_pair_from_ensemble, bloch_pair_from_state } from "./quantum/bloch";
 export { entanglement_delta_links, entanglement_links_from_ensemble } from "./quantum/entanglement";
 export {
