@@ -27,9 +27,16 @@
     <div class="circuit-shell">
       <div class="circuit-columns">
         <div
-          v-for="(column, colIndex) in props.columns"
-          :key="colIndex"
+          v-for="(visibleColumn, colIndex) in props.visibleColumns"
+          :key="visibleColumn.id"
           class="circuit-column"
+          :class="{
+            'is-regular-column': visibleColumn.width === 'regular',
+            'is-matrix-column': visibleColumn.width === 'matrix-3',
+            'is-parity-family-column': visibleColumn.kind === 'parity-family',
+            'is-parity-z-basis': visibleColumn.kind === 'parity-family' && visibleColumn.basis === 'Z',
+            'is-parity-x-basis': visibleColumn.kind === 'parity-family' && visibleColumn.basis === 'X',
+          }"
           :style="{ gridTemplateRows: `repeat(${props.rows.length}, minmax(56px, 1fr))` }"
         >
           <p class="algorithm-column-label">{{ props.columnLabels[colIndex] }}</p>
@@ -67,11 +74,20 @@
 
           <div class="column-connectors">
             <div
-              v-for="connector in props.connectorSegments(column, colIndex)"
+              v-for="connector in props.connectorSegments(renderColumnAt(colIndex), colIndex)"
               :key="connector.id"
               class="column-connector"
               :class="[connector.kind, { preview: connector.preview }]"
               :style="props.connectorStyle(connector)"
+            ></div>
+          </div>
+
+          <div v-if="visibleColumn.kind === 'parity-family'" class="parity-family-rails" aria-hidden="true">
+            <div
+              v-for="lane in visibleColumn.lanes"
+              :key="`${visibleColumn.id}-rail-${lane.laneIndex}`"
+              class="parity-family-rail"
+              :style="parityRailStyle(lane)"
             ></div>
           </div>
 
@@ -94,28 +110,47 @@
             @click="props.handleSlotClick(colIndex, row, $event)"
           >
             <span class="gate-slot-label">q{{ row }}</span>
+            <div v-if="visibleColumn.kind === 'parity-family'" class="parity-slot-grid" aria-hidden="true">
+              <div
+                v-for="laneIndex in parityLaneIndexes"
+                :key="`${visibleColumn.id}-row-${row}-lane-${laneIndex}`"
+                class="parity-slot-lane"
+                :style="parityLaneStyle(laneIndex)"
+              >
+                <span
+                  v-if="parityNodeKind(visibleColumn, laneIndex, row)"
+                  class="parity-node"
+                  :class="`is-${parityNodeKind(visibleColumn, laneIndex, row)}-node`"
+                ></span>
+              </div>
+            </div>
             <div
+              v-else
               class="gate-token"
               :class="{
-                empty: props.slotInstance(column, row) === null,
-                draggable: props.isDraggableToken(column, row, colIndex),
+                empty: props.slotInstance(renderColumnAt(colIndex), row) === null,
+                draggable: props.isDraggableToken(renderColumnAt(colIndex), row, colIndex),
                 'is-drag-source': props.isDragSource(colIndex, row),
-                'is-cnot-control': props.isCnotControl(column, row) || props.isPendingCnotControl(colIndex, row),
-                'is-cnot-target': props.isCnotTarget(column, row) || props.isPendingCnotTarget(colIndex, row),
+                'is-cnot-control':
+                  props.isCnotControl(renderColumnAt(colIndex), row) || props.isPendingCnotControl(colIndex, row),
+                'is-cnot-target':
+                  props.isCnotTarget(renderColumnAt(colIndex), row) || props.isPendingCnotTarget(colIndex, row),
                 'is-toffoli-control':
-                  props.isToffoliControl(column, row) || props.isPendingToffoliControl(colIndex, row),
-                'is-toffoli-target': props.isToffoliTarget(column, row) || props.isPendingToffoliTarget(colIndex, row),
-                'is-multi-custom-wire': props.isCustomMultiWire(column, row) || props.isPendingMultiWire(colIndex, row),
+                  props.isToffoliControl(renderColumnAt(colIndex), row) || props.isPendingToffoliControl(colIndex, row),
+                'is-toffoli-target':
+                  props.isToffoliTarget(renderColumnAt(colIndex), row) || props.isPendingToffoliTarget(colIndex, row),
+                'is-multi-custom-wire':
+                  props.isCustomMultiWire(renderColumnAt(colIndex), row) || props.isPendingMultiWire(colIndex, row),
                 'is-multi-custom-hover': props.isPendingMultiHover(colIndex, row),
-                'is-measurement': props.isMeasurementToken(column, row),
+                'is-measurement': props.isMeasurementToken(renderColumnAt(colIndex), row),
                 'is-row-locked-token': props.isRowLockedAt(colIndex, row),
                 'is-core-locked-token': props.isCellLockedAt(colIndex, row),
               }"
-              :draggable="props.isDraggableToken(column, row, colIndex)"
+              :draggable="props.isDraggableToken(renderColumnAt(colIndex), row, colIndex)"
               @dragstart="props.startCellDrag(colIndex, row, $event)"
               @dragend="props.endDrag"
             >
-              {{ props.tokenFor(column, row) }}
+              {{ props.tokenFor(renderColumnAt(colIndex), row) }}
             </div>
           </div>
         </div>
@@ -141,6 +176,7 @@
       :metric-hint="props.metricHint"
       :value-format="props.valueFormat"
       :max-distribution-rows="props.maxStageDistributionRows"
+      :show-distribution-details="props.showDistributionDetails"
       @select-stage="props.selectStage"
     />
 
@@ -152,23 +188,29 @@
       :distribution-hint="props.distributionHint"
       :value-format="props.valueFormat"
       :max-distribution-rows="props.maxStageDistributionRows"
+      :show-zero-probability-rows="props.showZeroProbabilityRows"
     />
   </section>
 </template>
 
 <script setup lang="ts">
 import type { CircuitColumn, EntanglementLink, GateId, GateInstance, QubitRow, StageSnapshot } from "../../types";
+import type { ParityLaneView, VisibleLessonColumn } from "../error-codes/shared/lesson-spec";
 import StageInspector from "../StageInspector.vue";
 import CircuitGatePalette from "./CircuitGatePalette.vue";
 import CircuitStageSnapshots from "./CircuitStageSnapshots.vue";
 import type { PaletteEntry, PaletteGroup } from "./palette-types";
 import type { ConnectorSegment, MultipartiteBand } from "./useCircuitGridInteractions";
 
+const EMPTY_COLUMN: CircuitColumn = { gates: [] };
+const parityLaneIndexes = [0, 1, 2] as const;
+
 const props = withDefaults(
   defineProps<{
     title: string;
     subtitle: string;
     columns: readonly CircuitColumn[];
+    visibleColumns: readonly VisibleLessonColumn[];
     rows: readonly QubitRow[];
     columnLabels: readonly string[];
     paletteGroups: PaletteGroup[];
@@ -228,6 +270,8 @@ const props = withDefaults(
     distributionHint?: string;
     valueFormat?: "percent" | "scalar";
     maxStageDistributionRows?: number;
+    showDistributionDetails?: boolean;
+    showZeroProbabilityRows?: boolean;
   }>(),
   {
     placementHint: "",
@@ -247,6 +291,49 @@ const props = withDefaults(
     distributionHint: "",
     valueFormat: "percent",
     maxStageDistributionRows: Number.POSITIVE_INFINITY,
+    showDistributionDetails: true,
+    showZeroProbabilityRows: true,
   },
 );
+
+const renderColumnAt = (columnIndex: number): CircuitColumn => props.columns[columnIndex] ?? EMPTY_COLUMN;
+
+const parityLaneLeftPercent = (laneIndex: number): number => 20 + laneIndex * 30;
+
+const rowCenterPercent = (row: number): number => ((row + 0.5) / props.rows.length) * 100;
+
+const laneForIndex = (column: Extract<VisibleLessonColumn, { kind: "parity-family" }>, laneIndex: number): ParityLaneView | null =>
+  column.lanes.find((lane) => lane.laneIndex === laneIndex) ?? null;
+
+const parityNodeKind = (
+  column: Extract<VisibleLessonColumn, { kind: "parity-family" }>,
+  laneIndex: number,
+  row: QubitRow,
+): "support" | "collector" | null => {
+  const lane = laneForIndex(column, laneIndex);
+  if (!lane) {
+    return null;
+  }
+  if (lane.syndromeRow === row) {
+    return "collector";
+  }
+  return lane.supportRows.includes(row) ? "support" : null;
+};
+
+const parityLaneStyle = (laneIndex: number): Record<string, string> => ({
+  left: `${parityLaneLeftPercent(laneIndex)}%`,
+});
+
+const parityRailStyle = (lane: ParityLaneView): Record<string, string> => {
+  const topRow = Math.min(lane.syndromeRow, ...lane.supportRows);
+  const bottomRow = Math.max(lane.syndromeRow, ...lane.supportRows);
+  const top = rowCenterPercent(topRow);
+  const bottom = rowCenterPercent(bottomRow);
+
+  return {
+    left: `${parityLaneLeftPercent(lane.laneIndex)}%`,
+    top: `${top}%`,
+    height: `${Math.max(0, bottom - top)}%`,
+  };
+};
 </script>

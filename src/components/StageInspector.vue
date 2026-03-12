@@ -37,6 +37,7 @@ const props = withDefaults(
     distributionHint?: string;
     valueFormat?: "percent" | "scalar";
     maxDistributionRows?: number;
+    showZeroProbabilityRows?: boolean;
   }>(),
   {
     animated: true,
@@ -45,6 +46,7 @@ const props = withDefaults(
     distributionHint: "",
     valueFormat: "percent",
     maxDistributionRows: Number.POSITIVE_INFINITY,
+    showZeroProbabilityRows: true,
   },
 );
 
@@ -63,13 +65,15 @@ const isScalarFormat = computed(() => props.valueFormat === "scalar");
 
 const formatValue = (value: number): string => (props.valueFormat === "percent" ? formatPercent(value) : formatScalar(value));
 
-const displayDistribution = computed(() =>
+const filteredDistribution = computed(() =>
   [...distributionForStageSnapshot(props.stage)]
     .sort((left, right) => right.probability - left.probability)
-    .slice(0, props.maxDistributionRows),
+    .filter((entry) => props.showZeroProbabilityRows || entry.probability > 0),
 );
 
+const displayDistribution = computed(() => filteredDistribution.value.slice(0, props.maxDistributionRows));
+
 const hiddenDistributionCount = computed(() =>
-  Math.max(0, distributionForStageSnapshot(props.stage).length - displayDistribution.value.length),
+  Math.max(0, filteredDistribution.value.length - displayDistribution.value.length),
 );
 </script>

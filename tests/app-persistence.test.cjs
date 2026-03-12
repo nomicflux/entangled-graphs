@@ -43,6 +43,7 @@ test("error-code parser keeps current supported error-code views", () => {
   assert.equal(persistence.parseErrorCodeView("bit-flip-repetition"), "bit-flip-repetition");
   assert.equal(persistence.parseErrorCodeView("phase-flip-repetition"), "phase-flip-repetition");
   assert.equal(persistence.parseErrorCodeView("shor-nine-qubit"), "shor-nine-qubit");
+  assert.equal(persistence.parseErrorCodeView("steane-seven-qubit"), "steane-seven-qubit");
   assert.equal(persistence.parseErrorCodeView("unknown"), "bit-flip-repetition");
   assert.equal(persistence.parseErrorCodeView(null), "bit-flip-repetition");
 });
@@ -59,19 +60,19 @@ test("read/write helpers persist workspace, algorithm, abstraction, error-code, 
   persistence.writeWorkspaceToStorage(storage, "error-codes");
   persistence.writeAlgorithmToStorage(storage, "deutsch");
   persistence.writeAbstractionToStorage(storage, "phase-kickback");
-  persistence.writeErrorCodeToStorage(storage, "shor-nine-qubit");
+  persistence.writeErrorCodeToStorage(storage, "steane-seven-qubit");
   persistence.writeFreeFormSectionToStorage(storage, "mixed");
 
   assert.equal(persistence.readWorkspaceFromStorage(storage), "error-codes");
   assert.equal(persistence.readAlgorithmFromStorage(storage), "deutsch");
   assert.equal(persistence.readAbstractionFromStorage(storage), "phase-kickback");
-  assert.equal(persistence.readErrorCodeFromStorage(storage), "shor-nine-qubit");
+  assert.equal(persistence.readErrorCodeFromStorage(storage), "steane-seven-qubit");
   assert.equal(persistence.readFreeFormSectionFromStorage(storage), "mixed");
 
   const dump = storage.dump();
   assert.equal(dump[persistence.WORKSPACE_STORAGE_KEY], "error-codes");
   assert.equal(dump[persistence.ALGORITHM_STORAGE_KEY], "deutsch");
   assert.equal(dump[persistence.ABSTRACTION_STORAGE_KEY], "phase-kickback");
-  assert.equal(dump[persistence.ERROR_CODE_STORAGE_KEY], "shor-nine-qubit");
+  assert.equal(dump[persistence.ERROR_CODE_STORAGE_KEY], "steane-seven-qubit");
   assert.equal(dump[persistence.FREE_FORM_SECTION_STORAGE_KEY], "mixed");
 });

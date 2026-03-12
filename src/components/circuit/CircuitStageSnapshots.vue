@@ -11,14 +11,16 @@
       <p class="snapshot-title">{{ stage.label }}</p>
       <p v-if="props.metricHint" class="snapshot-hint">{{ props.metricHint }}</p>
       <StageStateView :stage="stage" size="sm" :animated="false" compact />
-      <p v-for="entry in displayDistribution(stage)" :key="entry.basis" class="snapshot-row">
-        <span>{{ props.metricLabel }}(|{{ entry.basis }}>)</span>
-        <span>{{ formatValue(entry.probability) }}</span>
-      </p>
-      <p v-if="hiddenDistributionCount(stage) > 0" class="snapshot-row">
-        <span>More rows</span>
-        <span>+{{ hiddenDistributionCount(stage) }}</span>
-      </p>
+      <template v-if="props.showDistributionDetails">
+        <p v-for="entry in displayDistribution(stage)" :key="entry.basis" class="snapshot-row">
+          <span>{{ props.metricLabel }}(|{{ entry.basis }}>)</span>
+          <span>{{ formatValue(entry.probability) }}</span>
+        </p>
+        <p v-if="hiddenDistributionCount(stage) > 0" class="snapshot-row">
+          <span>More rows</span>
+          <span>+{{ hiddenDistributionCount(stage) }}</span>
+        </p>
+      </template>
     </button>
   </div>
 </template>
@@ -36,12 +38,14 @@ const props = withDefaults(
     metricHint?: string;
     valueFormat?: "percent" | "scalar";
     maxDistributionRows?: number;
+    showDistributionDetails?: boolean;
   }>(),
   {
     metricLabel: "P",
     metricHint: "",
     valueFormat: "percent",
     maxDistributionRows: Number.POSITIVE_INFINITY,
+    showDistributionDetails: true,
   },
 );
 

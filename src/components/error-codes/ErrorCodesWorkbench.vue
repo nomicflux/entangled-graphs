@@ -25,11 +25,20 @@
       >
         Shor 9-Qubit
       </button>
+      <button
+        class="subtab-btn"
+        :class="{ active: selectedErrorCode === 'steane-seven-qubit' }"
+        type="button"
+        @click="$emit('select-error-code', 'steane-seven-qubit')"
+      >
+        7-Qubit Steane
+      </button>
     </nav>
 
     <BitFlipRepetitionScaffold v-show="selectedErrorCode === 'bit-flip-repetition'" />
     <PhaseFlipRepetitionScaffold v-show="selectedErrorCode === 'phase-flip-repetition'" />
     <ShorNineQubitScaffold v-show="selectedErrorCode === 'shor-nine-qubit'" />
+    <SteaneSevenQubitScaffold v-show="selectedErrorCode === 'steane-seven-qubit'" />
   </div>
 </template>
 
@@ -37,12 +46,24 @@
 import BitFlipRepetitionScaffold from "./bit-flip/BitFlipRepetitionScaffold.vue";
 import PhaseFlipRepetitionScaffold from "./phase-flip/PhaseFlipRepetitionScaffold.vue";
 import ShorNineQubitScaffold from "./shor/ShorNineQubitScaffold.vue";
+import SteaneSevenQubitScaffold from "./steane/SteaneSevenQubitScaffold.vue";
 
 defineProps<{
-  selectedErrorCode: "bit-flip-repetition" | "phase-flip-repetition" | "shor-nine-qubit";
+  selectedErrorCode:
+    | "bit-flip-repetition"
+    | "phase-flip-repetition"
+    | "shor-nine-qubit"
+    | "steane-seven-qubit";
 }>();
 
 defineEmits<{
-  (e: "select-error-code", errorCode: "bit-flip-repetition" | "phase-flip-repetition" | "shor-nine-qubit"): void;
+  (
+    e: "select-error-code",
+    errorCode:
+      | "bit-flip-repetition"
+      | "phase-flip-repetition"
+      | "shor-nine-qubit"
+      | "steane-seven-qubit",
+  ): void;
 }>();
 </script>

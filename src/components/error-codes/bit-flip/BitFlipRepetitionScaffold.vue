@@ -32,6 +32,7 @@
       entanglement-key-prefix="bit-code"
       :show-entanglement="false"
       :columns="columns"
+      :visible-columns="visibleColumns"
       :rows="rows"
       :column-labels="columnLabels"
       :palette-groups="paletteGroups"
@@ -106,6 +107,7 @@ const {
   clearInjectedError,
   rows,
   columns,
+  visibleColumns,
   columnLabels,
   paletteGroups,
   measurementEntries,

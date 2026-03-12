@@ -5,6 +5,7 @@ const { effectScope } = require("vue");
 const { useBitFlipRepetitionModel } = require("../.tmp-test/components/error-codes/bit-flip/useBitFlipRepetitionModel.js");
 const { usePhaseFlipRepetitionModel } = require("../.tmp-test/components/error-codes/phase-flip/usePhaseFlipRepetitionModel.js");
 const { useShorNineQubitModel } = require("../.tmp-test/components/error-codes/shor/useShorNineQubitModel.js");
+const { useSteaneSevenQubitModel } = require("../.tmp-test/components/error-codes/steane/useSteaneSevenQubitModel.js");
 
 const near = (actual, expected, epsilon = 1e-9) => Math.abs(actual - expected) <= epsilon;
 
@@ -24,6 +25,8 @@ test("bit-flip repetition preserves the logical state when no error is injected"
   model.selectedPreset.value = "plus";
   model.clearInjectedError();
 
+  assert.equal(model.visibleColumns.value.length, model.columns.value.length);
+  assert.equal(model.stageSnapshots.value.length, model.visibleColumns.value.length + 1);
   assert.ok(near(model.recoveryFidelity.value, 1));
   assert.equal(model.dominantSyndrome.value.bits, "00");
 });
@@ -108,6 +111,8 @@ test("shor code corrects a single X error", (t) => {
   model.selectedPreset.value = "plus";
   assert.equal(model.setInjectedError("X", 4), true);
 
+  assert.equal(model.visibleColumns.value.length, model.columns.value.length);
+  assert.equal(model.stageSnapshots.value.length, model.visibleColumns.value.length + 1);
   assert.ok(model.recoveryFidelity.value > 0.999999);
   assert.equal(model.blockSyndromes.value[1].dominantBits, "10");
   assert.equal(model.phaseSyndrome.value.dominantBits, "00");
@@ -150,5 +155,81 @@ test("shor code allows multiple injected errors and can fail outside the single-
       ["Z", 3],
     ],
   );
+  assert.ok(model.recoveryFidelity.value < 0.01);
+});
+
+test("steane code keeps a compact six-column lesson and reports no-error diagnosis", (t) => {
+  const { model, stop } = createScopedModel(useSteaneSevenQubitModel);
+  t.after(stop);
+  model.selectedPreset.value = "plus";
+  model.clearInjectedError();
+
+  assert.equal(model.visibleColumns.value.length, 6);
+  assert.deepEqual(
+    model.visibleColumns.value.map((column) => column.kind),
+    ["primitive", "error", "parity-family", "parity-family", "primitive", "primitive"],
+  );
+  assert.equal(model.visibleColumns.value[2].basis, "Z");
+  assert.equal(model.visibleColumns.value[3].basis, "X");
+  assert.equal(model.stageSnapshots.value.length, 7);
+  assert.equal(model.diagnosisSummary.value, "—");
+  assert.equal(model.xSyndromeBits.value, "000");
+  assert.equal(model.zSyndromeBits.value, "000");
+  assert.ok(near(model.recoveryFidelity.value, 1));
+});
+
+test("steane code corrects a single X error", (t) => {
+  const { model, stop } = createScopedModel(useSteaneSevenQubitModel);
+  t.after(stop);
+  model.selectedPreset.value = "plus";
+  assert.equal(model.setInjectedError("X", 4), true);
+
+  assert.ok(model.recoveryFidelity.value > 0.999999);
+  assert.equal(model.xSyndromeBits.value, "101");
+  assert.equal(model.zSyndromeBits.value, "000");
+  assert.equal(model.diagnosisSummary.value, "X @ q4");
+});
+
+test("steane code corrects a single Z error", (t) => {
+  const { model, stop } = createScopedModel(useSteaneSevenQubitModel);
+  t.after(stop);
+  model.selectedPreset.value = "plus";
+  assert.equal(model.setInjectedError("Z", 6), true);
+
+  assert.ok(model.recoveryFidelity.value > 0.999999);
+  assert.equal(model.xSyndromeBits.value, "000");
+  assert.equal(model.zSyndromeBits.value, "111");
+  assert.equal(model.diagnosisSummary.value, "Z @ q6");
+});
+
+test("steane code combines syndromes for a single Y error", (t) => {
+  const { model, stop } = createScopedModel(useSteaneSevenQubitModel);
+  t.after(stop);
+  model.selectedPreset.value = "plus";
+  assert.equal(model.setInjectedError("Y", 1), true);
+
+  assert.ok(model.recoveryFidelity.value > 0.999999);
+  assert.equal(model.xSyndromeBits.value, "010");
+  assert.equal(model.zSyndromeBits.value, "010");
+  assert.equal(model.diagnosisSummary.value, "Y @ q1");
+});
+
+test("steane code keeps helper rows locked for error injection", (t) => {
+  const { model, stop } = createScopedModel(useSteaneSevenQubitModel);
+  t.after(stop);
+
+  assert.equal(model.setInjectedError("X", 7), false);
+  assert.equal(model.setInjectedError("Z", 8), false);
+});
+
+test("steane code marks mixed diagnosis and fails outside the single-error regime", (t) => {
+  const { model, stop } = createScopedModel(useSteaneSevenQubitModel);
+  t.after(stop);
+  model.selectedPreset.value = "zero";
+  assert.equal(model.setInjectedError("X", 0), true);
+  assert.equal(model.setInjectedError("Z", 3), true);
+
+  assert.equal(model.injectedErrors.value.length, 2);
+  assert.equal(model.diagnosisSummary.value, "mixed");
   assert.ok(model.recoveryFidelity.value < 0.01);
 });

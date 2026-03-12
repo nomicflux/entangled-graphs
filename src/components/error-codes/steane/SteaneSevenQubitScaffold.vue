@@ -9,7 +9,7 @@
       <section class="panel">
         <div class="panel-header">
           <h2>Output</h2>
-          <p>Current output and syndrome.</p>
+          <p>Current output and Steane syndromes.</p>
         </div>
 
         <div class="error-code-summary-grid">
@@ -20,17 +20,23 @@
             :value="formatPercent(recoveryFidelity)"
             :tone="recoveryFidelity > 0.99 ? 'good' : 'warn'"
           />
-          <ErrorCodeSummaryCard label="Syndrome" :value="dominantSyndrome.bits" mono />
-          <ErrorCodeSummaryCard label="Correction" :value="syndromeTargetLabel" mono />
+          <ErrorCodeSummaryCard label="Diagnosis" :value="diagnosisSummary" mono />
+        </div>
+
+        <div class="error-code-summary-grid">
+          <ErrorCodeSummaryCard label="X syndrome" :value="xSyndromeBits" mono />
+          <ErrorCodeSummaryCard label="Z syndrome" :value="zSyndromeBits" mono />
         </div>
       </section>
     </div>
 
     <LessonCircuitPanel
-      title="3-Qubit Phase-Flip Code"
-      subtitle="The repetition code, viewed in the X basis."
-      entanglement-key-prefix="phase-code"
+      title="7-Qubit Steane Code"
+      subtitle="A CSS/Hamming code: Z checks catch X errors, X checks catch Z errors."
+      entanglement-key-prefix="steane-code"
       :show-entanglement="false"
+      :show-distribution-details="false"
+      :show-zero-probability-rows="false"
       :columns="columns"
       :visible-columns="visibleColumns"
       :rows="rows"
@@ -89,9 +95,9 @@ import LessonCircuitPanel from "../../circuit/LessonCircuitPanel.vue";
 import { useCircuitGridPlacementLifecycle } from "../../circuit/useCircuitGridPlacementLifecycle";
 import ErrorCodeSummaryCard from "../shared/ErrorCodeSummaryCard.vue";
 import LogicalSourcePresetPanel from "../shared/LogicalSourcePresetPanel.vue";
-import { usePhaseFlipRepetitionModel } from "./usePhaseFlipRepetitionModel";
+import { useSteaneSevenQubitModel } from "./useSteaneSevenQubitModel";
 
-const model = usePhaseFlipRepetitionModel();
+const model = useSteaneSevenQubitModel();
 useCircuitGridPlacementLifecycle({
   pendingPlacement: model.pendingPlacement,
   clearPendingPlacement: model.clearPendingPlacement,
@@ -102,8 +108,9 @@ const {
   selectedPresetLabel,
   outputPresetLabel,
   recoveryFidelity,
-  dominantSyndrome,
-  syndromeTargetLabel,
+  diagnosisSummary,
+  xSyndromeBits,
+  zSyndromeBits,
   clearInjectedError,
   rows,
   columns,

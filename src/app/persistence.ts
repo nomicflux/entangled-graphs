@@ -1,7 +1,11 @@
 export type WorkspaceMode = "free-form" | "p-adic" | "algorithms" | "abstractions" | "error-codes";
 export type AlgorithmView = "teleportation" | "deutsch";
 export type AbstractionView = "preparing-qubits" | "entanglement" | "phase-kickback";
-export type ErrorCodeView = "bit-flip-repetition" | "phase-flip-repetition" | "shor-nine-qubit";
+export type ErrorCodeView =
+  | "bit-flip-repetition"
+  | "phase-flip-repetition"
+  | "shor-nine-qubit"
+  | "steane-seven-qubit";
 export type FreeFormSection = "pure" | "mixed";
 
 type ReadStorage = Pick<Storage, "getItem">;
@@ -48,6 +52,9 @@ export const parseAbstractionView = (value: string | null): AbstractionView => {
 };
 
 export const parseErrorCodeView = (value: string | null): ErrorCodeView => {
+  if (value === "steane-seven-qubit") {
+    return "steane-seven-qubit";
+  }
   if (value === "shor-nine-qubit") {
     return "shor-nine-qubit";
   }

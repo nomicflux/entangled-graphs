@@ -48,7 +48,10 @@
       entanglement-key-prefix="shor-code"
       :show-entanglement="false"
       :max-stage-distribution-rows="8"
+      :show-distribution-details="false"
+      :show-zero-probability-rows="false"
       :columns="columns"
+      :visible-columns="visibleColumns"
       :rows="rows"
       :column-labels="columnLabels"
       :palette-groups="paletteGroups"
@@ -124,6 +127,7 @@ const {
   clearInjectedError,
   rows,
   columns,
+  visibleColumns,
   columnLabels,
   paletteGroups,
   measurementEntries,
