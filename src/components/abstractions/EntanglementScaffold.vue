@@ -69,6 +69,8 @@
       subtitle="Starting steps are fixed for this lesson. Add, remove, or modify only later steps."
       entanglement-key-prefix="ent"
       :columns="columns"
+      :visible-columns="visibleColumns"
+      :row-specs="rowSpecs"
       :rows="rows"
       :column-labels="columnLabels"
       :palette-groups="paletteGroups"
@@ -218,6 +220,8 @@ const {
   scenarioOptions,
   rows,
   columns,
+  visibleColumns,
+  rowSpecs,
   columnLabels,
   paletteGroups,
   measurementEntries,

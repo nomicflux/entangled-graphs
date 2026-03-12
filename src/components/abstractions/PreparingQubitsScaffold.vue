@@ -47,6 +47,8 @@
       subtitle="The start state is fixed at |00>; use the two steps below for X/H placement."
       entanglement-key-prefix="prep"
       :columns="columns"
+      :visible-columns="visibleColumns"
+      :row-specs="rowSpecs"
       :rows="rows"
       :column-labels="columnLabels"
       :palette-groups="paletteGroups"
@@ -143,6 +145,8 @@ useCircuitGridPlacementLifecycle({
 const {
   rows,
   columns,
+  visibleColumns,
+  rowSpecs,
   columnLabels,
   paletteGroups,
   measurementEntries,

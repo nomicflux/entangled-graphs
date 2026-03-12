@@ -1,4 +1,5 @@
 import { computed, ref, watch } from "vue";
+import { classicalStatesFromEnsemble } from "../../../classical";
 import type {
   BasisProbability,
   CircuitColumn,
@@ -24,6 +25,7 @@ import { availableBuiltinGatesForQubitCount, operatorArityForGate, resolveOperat
 import type { CircuitGridModelContext } from "../../circuit/model-context";
 import type { PaletteEntry, PaletteGroup } from "../../circuit/palette-types";
 import { useCircuitGridInteractionCore } from "../../circuit/useCircuitGridInteractionCore";
+import { dataLessonRowSpecs, primitiveVisibleColumns } from "../../error-codes/shared/lesson-spec";
 import {
   createPhaseKickbackCoreColumns,
   type ControlledPhaseGate,
@@ -185,6 +187,8 @@ export const usePhaseKickbackModel = () => {
       return `Explore t${index - (lockedCoreColumnCount.value - 1)}`;
     }),
   );
+  const visibleColumns = computed(() => primitiveVisibleColumns(combinedColumns.value.length));
+  const rowSpecs = computed(() => dataLessonRowSpecs([0, 1] as const));
 
   const preparedState = computed(() =>
     tensor_product_qubits(Array.from({ length: PHASE_KICKBACK_QUBIT_COUNT }, () => ketZero)),
@@ -208,6 +212,7 @@ export const usePhaseKickbackModel = () => {
       index,
       label: stageLabels.value[index] ?? `t${index}`,
       ensemble: snapshot,
+      classicalStates: classicalStatesFromEnsemble(snapshot),
       isFinal: index === lastIndex,
     }));
   });
@@ -566,6 +571,8 @@ export const usePhaseKickbackModel = () => {
     setControlledPhaseGate,
     controlledPhaseChoices: controlledPhaseGateOptions,
     columns: combinedColumns,
+    visibleColumns,
+    rowSpecs,
     lockedCoreColumnCount,
     columnLabels,
     paletteGroups,

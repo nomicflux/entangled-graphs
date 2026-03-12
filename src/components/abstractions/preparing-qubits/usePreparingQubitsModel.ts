@@ -1,4 +1,5 @@
 import { computed, ref, watch } from "vue";
+import { classicalStatesFromEnsemble } from "../../../classical";
 import type {
   CircuitColumn,
   EntanglementLink,
@@ -25,6 +26,7 @@ import type { CircuitGridModelContext } from "../../circuit/model-context";
 import type { PaletteEntry, PaletteGroup } from "../../circuit/palette-types";
 import { noLockedCellsPolicy } from "../../circuit/lock-policy";
 import { useCircuitGridInteractionCore } from "../../circuit/useCircuitGridInteractionCore";
+import { dataLessonRowSpecs, primitiveVisibleColumns } from "../../error-codes/shared/lesson-spec";
 import { PREPARATION_TARGETS, preparationFidelity } from "./engine";
 import type { PreparationTargetId } from "./model-types";
 
@@ -97,6 +99,8 @@ export const usePreparingQubitsModel = () => {
   const columnLabels = computed<string[]>(() =>
     combinedColumns.value.map((_, index) => `Prep t${index + 1}`),
   );
+  const visibleColumns = computed(() => primitiveVisibleColumns(combinedColumns.value.length));
+  const rowSpecs = computed(() => dataLessonRowSpecs(rows));
 
   const preparedState = computed(() => tensor_product_qubits(Array.from({ length: PREPARING_QUBIT_COUNT }, () => ketZero)));
 
@@ -113,6 +117,7 @@ export const usePreparingQubitsModel = () => {
       index,
       label: stageLabels.value[index] ?? `t${index}`,
       ensemble: snapshot,
+      classicalStates: classicalStatesFromEnsemble(snapshot),
       isFinal: index === lastIndex,
     }));
   });
@@ -308,6 +313,8 @@ export const usePreparingQubitsModel = () => {
 
   return {
     columns: combinedColumns,
+    visibleColumns,
+    rowSpecs,
     columnLabels,
     paletteGroups,
     measurementEntries,

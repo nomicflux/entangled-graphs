@@ -11,6 +11,7 @@
 
     <TeleportationCircuitPanel
       :columns="circuitColumns"
+      :classical-layout="classicalLayout"
       :rows="rows"
       :stage-snapshots="stageSnapshots"
       :stage-entanglement-models="stageEntanglementModels"
@@ -61,6 +62,7 @@ const {
   manualApplyX,
   sampledResult,
   circuitColumns,
+  classicalLayout,
   rows,
   stageSnapshots,
   stageEntanglementModels,

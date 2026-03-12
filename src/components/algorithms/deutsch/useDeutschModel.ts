@@ -1,4 +1,5 @@
 import { computed, ref, watch } from "vue";
+import { classicalStatesFromEnsemble } from "../../../classical";
 import type { BlochParams, StageSnapshot } from "../../../types";
 import { qubitFromBloch } from "../../../state/qubit-helpers";
 import { useAlgorithmEntanglement } from "../shared/useAlgorithmEntanglement";
@@ -88,6 +89,7 @@ export const useDeutschModel = () => {
       index,
       label: deutschStageLabels[index] ?? `t${index}`,
       ensemble: snapshot,
+      classicalStates: classicalStatesFromEnsemble(snapshot),
       isFinal: index === lastIndex,
     }));
   });

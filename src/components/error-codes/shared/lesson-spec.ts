@@ -137,3 +137,16 @@ export const visibleColumnsFromLessonSteps = (
   return columns;
 };
 
+export const primitiveVisibleColumns = (count: number): readonly VisibleLessonColumn[] =>
+  Array.from({ length: count }, (_, index) => ({
+    id: `column-${index}`,
+    kind: "primitive",
+    width: "regular",
+    executionRange: [index, index + 1],
+  }));
+
+export const dataLessonRowSpecs = (rows: readonly QubitRow[]): readonly LessonRowSpec[] =>
+  rows.map((row) => ({
+    row,
+    role: "data",
+  }));

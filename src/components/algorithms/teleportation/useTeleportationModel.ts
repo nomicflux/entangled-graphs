@@ -1,8 +1,10 @@
 import { computed, ref, watch } from "vue";
-import type { BlochParams, GateId, Qubit, StageSnapshot } from "../../../types";
+import { classicalStatesFromEnsemble } from "../../../classical";
+import type { BlochParams, FixedPanelClassicalLayout, GateId, Qubit, StageSnapshot } from "../../../types";
 import * as complex from "../../../complex";
 import {
   measurement_distribution,
+  measurement_distribution_for_ensemble,
   sample_circuit_run,
   sample_distribution,
   simulate_columns_ensemble,
@@ -10,8 +12,6 @@ import {
 } from "../../../quantum";
 import { qubitFromBloch } from "../../../state/qubit-helpers";
 import { resolveOperator } from "../../../state/operators";
-import { X, Z } from "../../../operator";
-import { apply_single_qubit_gate } from "../../../quantum/core";
 import { useAlgorithmEntanglement } from "../shared/useAlgorithmEntanglement";
 import { loadBlochParams, saveBlochParams } from "../shared/storage";
 import {
@@ -81,6 +81,16 @@ export const useTeleportationModel = () => {
     sampledResult.value = null;
   });
 
+  const correctionPolicy = computed<TeleportationCorrectionPolicy>(() => {
+    if (correctionMode.value === "auto") {
+      return { applyZ: true, applyX: true };
+    }
+    return {
+      applyZ: manualApplyZ.value,
+      applyX: manualApplyX.value,
+    };
+  });
+
   const circuitColumns = computed<TeleportationColumn[]>(() => [
     {
       id: "bell-h",
@@ -106,19 +116,37 @@ export const useTeleportationModel = () => {
       id: "measure",
       label: "Measure",
       gates: [
-        { id: "measure-q0", gate: "M", wires: [0] },
-        { id: "measure-q1", gate: "M", wires: [1] },
+        { id: "measure-q0", gate: "M", wires: [0], writesClassicalBit: { register: "teleport", index: 0 } },
+        { id: "measure-q1", gate: "M", wires: [1], writesClassicalBit: { register: "teleport", index: 1 } },
       ],
     },
     {
       id: "corr-z",
       label: "Corr Z (m0)",
-      gates: [],
+      gates: correctionPolicy.value.applyZ
+        ? [
+            {
+              id: "corr-z-gate",
+              gate: "Z",
+              wires: [2],
+              condition: { kind: "bit-equals", bit: { register: "teleport", index: 0 }, value: 1 },
+            },
+          ]
+        : [],
     },
     {
       id: "corr-x",
       label: "Corr X (m1)",
-      gates: [],
+      gates: correctionPolicy.value.applyX
+        ? [
+            {
+              id: "corr-x-gate",
+              gate: "X",
+              wires: [2],
+              condition: { kind: "bit-equals", bit: { register: "teleport", index: 1 }, value: 1 },
+            },
+          ]
+        : [],
     },
   ]);
 
@@ -145,6 +173,7 @@ export const useTeleportationModel = () => {
       index,
       label: labels[index] ?? `t${index}`,
       ensemble: snapshot,
+      classicalStates: classicalStatesFromEnsemble(snapshot),
       isFinal: index === lastIndex,
     }));
   });
@@ -181,18 +210,69 @@ export const useTeleportationModel = () => {
   );
 
   const teleportationOutput = computed(() => teleportationSummaries(teleportationBranches.value, sourceAmplitudes.value));
-  const correctionPolicy = computed<TeleportationCorrectionPolicy>(() => {
-    if (correctionMode.value === "auto") {
-      return { applyZ: true, applyX: true };
-    }
-    return {
-      applyZ: manualApplyZ.value,
-      applyX: manualApplyX.value,
-    };
-  });
-  const activeExpected = computed(() =>
+  const activeExpectedSummary = computed(() =>
     teleportationSummaryForPolicy(teleportationBranches.value, sourceAmplitudes.value, correctionPolicy.value),
   );
+  const activeExpectedDistribution = computed(() =>
+    measurement_distribution_for_ensemble(ensembleSnapshots.value[ensembleSnapshots.value.length - 1] ?? []),
+  );
+  const activeExpected = computed(() => ({
+    summary: activeExpectedSummary.value.summary,
+    distribution: activeExpectedDistribution.value,
+  }));
+
+  const classicalLayout = computed<FixedPanelClassicalLayout>(() => {
+    const m0Value = sampledResult.value ? `=${sampledResult.value.m0}` : "=?";
+    const m1Value = sampledResult.value ? `=${sampledResult.value.m1}` : "=?";
+    return {
+      lanes: [
+        { id: "m0", label: "m0" },
+        { id: "m1", label: "m1" },
+      ],
+      registers: [
+        {
+          id: "teleport-register-m0",
+          label: "m0",
+          lane: "m0",
+          anchorColumnId: "measure",
+          valueText: m0Value,
+          kind: "bit",
+        },
+        {
+          id: "teleport-register-m1",
+          label: "m1",
+          lane: "m1",
+          anchorColumnId: "measure",
+          valueText: m1Value,
+          kind: "bit",
+        },
+      ],
+      routes: [
+        {
+          id: "teleport-route-m0",
+          from: { columnId: "measure", row: 0 },
+          to: { columnId: "corr-z", row: 2 },
+          lane: "m0",
+          kind: "bit",
+        },
+        {
+          id: "teleport-route-m1",
+          from: { columnId: "measure", row: 1 },
+          to: { columnId: "corr-x", row: 2 },
+          lane: "m1",
+          kind: "bit",
+        },
+      ],
+      conditionBadges: [
+        ...(correctionPolicy.value.applyZ
+          ? [{ id: "teleport-badge-z", columnId: "corr-z", row: 2, text: "if m0", kind: "bit" as const }]
+          : []),
+        ...(correctionPolicy.value.applyX
+          ? [{ id: "teleport-badge-x", columnId: "corr-x", row: 2, text: "if m1", kind: "bit" as const }]
+          : []),
+      ],
+    };
+  });
 
   const measurementBits = (outcomes: ReadonlyArray<{ gateId: string; value: 0 | 1 }>): { m0: 0 | 1; m1: 0 | 1 } => {
     const m0 = outcomes.find((entry) => entry.gateId === "measure-q0")!.value;
@@ -219,22 +299,6 @@ export const useTeleportationModel = () => {
     return complex.magnitude_squared(overlap);
   };
 
-  const applyCorrectionsToState = (
-    state: ReturnType<typeof sample_circuit_run>["finalState"],
-    m0: 0 | 1,
-    m1: 0 | 1,
-    policy: TeleportationCorrectionPolicy,
-  ) => {
-    let next = state;
-    if (policy.applyZ && m0 === 1) {
-      next = apply_single_qubit_gate(next, Z, 2, 3);
-    }
-    if (policy.applyX && m1 === 1) {
-      next = apply_single_qubit_gate(next, X, 2, 3);
-    }
-    return next;
-  };
-
   const executeSample = (
     replay?: {
       priorOutcomes: ReadonlyArray<{ gateId: string; value: 0 | 1 }>;
@@ -250,10 +314,9 @@ export const useTeleportationModel = () => {
       replay,
     );
     const bits = measurementBits(sampled.outcomes);
-    const correctedState = applyCorrectionsToState(sampled.finalState, bits.m0, bits.m1, correctionPolicy.value);
-    const distribution = measurement_distribution(correctedState);
+    const distribution = measurement_distribution(sampled.finalState);
     const finalSample = sample_distribution(distribution);
-    const bob = bobQubitFromStateForOutcome(correctedState, bits.m0, bits.m1);
+    const bob = bobQubitFromStateForOutcome(sampled.finalState, bits.m0, bits.m1);
 
     sampledResult.value = {
       basis: finalSample.basis,
@@ -313,6 +376,7 @@ export const useTeleportationModel = () => {
     manualApplyX,
     sampledResult,
     circuitColumns,
+    classicalLayout,
     rows: TELEPORT_ROWS,
     stageSnapshots,
     stageEntanglementModels: entanglement.stageEntanglementModels,

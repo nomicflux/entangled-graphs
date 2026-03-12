@@ -1,5 +1,6 @@
 import type {
   BasisProbability,
+  ClassicalState,
   CircuitColumn,
   GateId,
   Operator,
@@ -7,8 +8,10 @@ import type {
   StateEnsemble,
   WeightedStateBranch,
 } from "../types";
+import { classicalPredicateMatches, writeClassicalBit } from "../classical";
 import * as complex from "../complex";
 import { apply_operator_on_wires, apply_single_qubit_gate, isSingleQubitOperator } from "./core";
+import { X } from "../operator";
 import { measurement_distribution, sample_distribution } from "./measurement";
 
 export type GateResolver = (gate: GateId) => Operator | null;
@@ -20,6 +23,10 @@ export type CircuitMeasurementOutcome = {
   wire: number;
   value: 0 | 1;
   probability: number;
+  writesClassicalBit?: {
+    register: string;
+    index: number;
+  };
 };
 
 export type SamplingReplayOptions = {
@@ -29,6 +36,7 @@ export type SamplingReplayOptions = {
 
 export type SampledCircuitRun = {
   finalState: QubitState;
+  finalClassicalState: ClassicalState;
   finalSample: {
     basis: BasisProbability["basis"];
     probability: number;
@@ -38,11 +46,22 @@ export type SampledCircuitRun = {
 
 const branchEpsilon = 1e-12;
 const isMeasurementGate = (gate: GateId): boolean => gate === "M";
+const isResetGate = (gate: GateId): boolean => gate === "RESET";
 
 const apply_column = (state: QubitState, column: CircuitColumn, resolveGate: GateResolver, qubitCount: number): QubitState => {
   let next = state;
 
   for (const gate of column.gates) {
+    if (isMeasurementGate(gate.gate)) {
+      continue;
+    }
+
+    if (isResetGate(gate.gate)) {
+      const selected = select_measurement_on_wire(next, gate.wires[0]!, qubitCount, 1);
+      next = selected ? reset_state_for_measured_value(selected.state, gate.wires[0]!, qubitCount, 1) : next;
+      continue;
+    }
+
     const operator = resolveGate(gate.gate);
     if (operator === null) {
       continue;
@@ -147,6 +166,13 @@ const sample_measurement_on_wire = (
   };
 };
 
+const reset_state_for_measured_value = (
+  state: QubitState,
+  wire: number,
+  qubitCount: number,
+  value: 0 | 1,
+): QubitState => (value === 0 ? state : apply_single_qubit_gate(state, X, wire, qubitCount));
+
 export const measure_state_on_wire = (
   state: QubitState,
   wire: number,
@@ -189,12 +215,14 @@ const apply_unitary_to_ensemble = (
     return ensemble.map((branch) => ({
       weight: branch.weight,
       state: apply_single_qubit_gate(branch.state, operator, wires[0]!, qubitCount),
+      classicalState: branch.classicalState,
     }));
   }
 
   return ensemble.map((branch) => ({
     weight: branch.weight,
     state: apply_operator_on_wires(branch.state, operator, wires, qubitCount),
+    classicalState: branch.classicalState,
   }));
 };
 
@@ -202,6 +230,7 @@ const apply_measurement_to_ensemble = (
   ensemble: StateEnsemble,
   wire: number,
   qubitCount: number,
+  writesClassicalBit?: { register: string; index: number },
 ): StateEnsemble => {
   const next: WeightedStateBranch[] = [];
 
@@ -212,14 +241,49 @@ const apply_measurement_to_ensemble = (
       if (weightedProbability <= branchEpsilon) {
         continue;
       }
+      const classicalState = writesClassicalBit
+        ? writeClassicalBit(branch.classicalState, writesClassicalBit, outcome.value)
+        : branch.classicalState;
       next.push({
         weight: weightedProbability,
         state: outcome.state,
+        classicalState,
       });
     }
   }
 
-  return normalize_ensemble_weights(next);
+  return next;
+};
+
+const apply_reset_to_ensemble = (
+  ensemble: StateEnsemble,
+  wire: number,
+  qubitCount: number,
+): StateEnsemble => {
+  const next: WeightedStateBranch[] = [];
+
+  for (const branch of ensemble) {
+    const outcomes = measure_state_on_wire(branch.state, wire, qubitCount);
+    if (outcomes.length === 0) {
+      next.push(branch);
+      continue;
+    }
+
+    for (const outcome of outcomes) {
+      const weightedProbability = branch.weight * outcome.weight;
+      if (weightedProbability <= branchEpsilon) {
+        continue;
+      }
+
+      next.push({
+        weight: weightedProbability,
+        state: reset_state_for_measured_value(outcome.state, wire, qubitCount, outcome.value),
+        classicalState: branch.classicalState,
+      });
+    }
+  }
+
+  return next;
 };
 
 const apply_column_to_ensemble = (
@@ -231,17 +295,32 @@ const apply_column_to_ensemble = (
   let next = ensemble;
 
   for (const gate of column.gates) {
+    const matching = next.filter((branch) => classicalPredicateMatches(branch.classicalState, gate.condition));
+    const nonMatching = next.filter((branch) => !classicalPredicateMatches(branch.classicalState, gate.condition));
+
     if (isMeasurementGate(gate.gate)) {
-      next = apply_measurement_to_ensemble(next, gate.wires[0]!, qubitCount);
+      next = [
+        ...apply_measurement_to_ensemble(matching, gate.wires[0]!, qubitCount, gate.writesClassicalBit),
+        ...nonMatching,
+      ];
+      next = normalize_ensemble_weights(next);
+      continue;
+    }
+
+    if (isResetGate(gate.gate)) {
+      next = [...apply_reset_to_ensemble(matching, gate.wires[0]!, qubitCount), ...nonMatching];
+      next = normalize_ensemble_weights(next);
       continue;
     }
 
     const operator = resolveGate(gate.gate);
     if (operator === null) {
+      next = normalize_ensemble_weights([...matching, ...nonMatching]);
       continue;
     }
 
-    next = apply_unitary_to_ensemble(next, operator, gate.wires, qubitCount);
+    next = [...apply_unitary_to_ensemble(matching, operator, gate.wires, qubitCount), ...nonMatching];
+    next = normalize_ensemble_weights(next);
   }
 
   return next;
@@ -275,11 +354,16 @@ export const sample_circuit_run = (
   const replayByGateId = new Map((replay.priorOutcomes ?? []).map((entry) => [entry.gateId, entry.value]));
   let replayLocked = replay.resampleFromGateId !== undefined;
   let current = prepared;
+  let classicalState: ClassicalState = [];
   const outcomes: CircuitMeasurementOutcome[] = [];
 
   for (let columnIndex = 0; columnIndex < columns.length; columnIndex += 1) {
     const column = columns[columnIndex]!;
     for (const gate of column.gates) {
+      if (!classicalPredicateMatches(classicalState, gate.condition)) {
+        continue;
+      }
+
       if (isMeasurementGate(gate.gate)) {
         const shouldReplay = replayLocked && gate.id !== replay.resampleFromGateId;
         const replayedValue = shouldReplay ? replayByGateId.get(gate.id) : undefined;
@@ -295,11 +379,21 @@ export const sample_circuit_run = (
           wire: gate.wires[0]!,
           value: sampled.value,
           probability: sampled.probability,
+          writesClassicalBit: gate.writesClassicalBit,
         });
         current = sampled.state;
+        if (gate.writesClassicalBit) {
+          classicalState = writeClassicalBit(classicalState, gate.writesClassicalBit, sampled.value);
+        }
         if (gate.id === replay.resampleFromGateId) {
           replayLocked = false;
         }
+        continue;
+      }
+
+      if (isResetGate(gate.gate)) {
+        const selected = select_measurement_on_wire(current, gate.wires[0]!, qubitCount, 1);
+        current = selected ? reset_state_for_measured_value(selected.state, gate.wires[0]!, qubitCount, 1) : current;
         continue;
       }
 
@@ -318,7 +412,7 @@ export const sample_circuit_run = (
   }
 
   const finalSample = sample_distribution(measurement_distribution(current), random());
-  return { finalState: current, finalSample, outcomes };
+  return { finalState: current, finalClassicalState: classicalState, finalSample, outcomes };
 };
 
 export function simulate_columns(

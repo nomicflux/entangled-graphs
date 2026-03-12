@@ -33,6 +33,7 @@
       :show-entanglement="false"
       :columns="columns"
       :visible-columns="visibleColumns"
+      :row-specs="rowSpecs"
       :rows="rows"
       :column-labels="columnLabels"
       :palette-groups="paletteGroups"
@@ -105,6 +106,7 @@ const {
   dominantSyndrome,
   syndromeTargetLabel,
   clearInjectedError,
+  rowSpecs,
   rows,
   columns,
   visibleColumns,

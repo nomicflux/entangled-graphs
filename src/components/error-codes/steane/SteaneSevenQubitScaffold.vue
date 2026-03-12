@@ -24,8 +24,8 @@
         </div>
 
         <div class="error-code-summary-grid">
-          <ErrorCodeSummaryCard label="X syndrome" :value="xSyndromeBits" mono />
-          <ErrorCodeSummaryCard label="Z syndrome" :value="zSyndromeBits" mono />
+          <ErrorCodeSummaryCard label="X checks" :value="xSyndromeBits" mono />
+          <ErrorCodeSummaryCard label="Z checks" :value="zSyndromeBits" mono />
         </div>
       </section>
     </div>
@@ -39,6 +39,7 @@
       :show-zero-probability-rows="false"
       :columns="columns"
       :visible-columns="visibleColumns"
+      :row-specs="rowSpecs"
       :rows="rows"
       :column-labels="columnLabels"
       :palette-groups="paletteGroups"
@@ -81,6 +82,7 @@
       :is-cell-locked-at="isCellLockedAt"
       :is-row-locked-at="isRowLockedAt"
       :slot-title="slotTitle"
+      :classical-layout="classicalLayout"
       :select-stage="setSelectedStage"
     >
       <template #controls>
@@ -112,9 +114,11 @@ const {
   xSyndromeBits,
   zSyndromeBits,
   clearInjectedError,
+  rowSpecs,
   rows,
   columns,
   visibleColumns,
+  classicalLayout,
   columnLabels,
   paletteGroups,
   measurementEntries,

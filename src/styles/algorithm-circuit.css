@@ -3,9 +3,7 @@
 }
 
 .algorithm-circuit-columns {
-  grid-auto-columns: minmax(90px, 1fr);
   min-height: 250px;
-  padding-top: 30px;
 }
 
 .algorithm-circuit-column {
@@ -13,13 +11,6 @@
 }
 
 .algorithm-column-label {
-  position: absolute;
-  top: -24px;
-  left: 50%;
-  transform: translateX(-50%);
-  margin: 0;
-  width: 92%;
-  text-align: center;
   font-size: 0.62rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;

@@ -239,6 +239,7 @@ export const H: Operator<1> = scaleOperator(hRaw, 1 / Math.sqrt(2));
 export const S: Operator<1> = makeSingleQubitOperator("S", "S", sEntries);
 export const T: Operator<1> = makeSingleQubitOperator("T", "T", tEntries);
 export const M: Operator<1> = makeSingleQubitOperator("M", "M", identityEntries);
+export const RESET: Operator<1> = makeSingleQubitOperator("RESET", "RESET", identityEntries);
 export const CNOT: Operator<2> = controlledOperator("CNOT", "CNOT", X);
 export const CZ: Operator<2> = controlledOperator("CZ", "CZ", Z);
 export const CP: Operator<2> = controlledOperator("CP", "CP(e^{i*pi/2})", S);
@@ -251,7 +252,7 @@ export const SWAP: Operator<2> = makeOperator("SWAP", "SWAP", 2, [
 export const TOFFOLI: Operator<3> = controlledOperator("TOFFOLI", "TOFFOLI", CNOT);
 export const CSWAP: Operator<3> = controlledOperator("CSWAP", "C-SWAP", SWAP);
 
-export const builtinOperatorIds: readonly BuiltinSingleGateId[] = ["I", "X", "Y", "Z", "H", "S", "T", "M"];
+export const builtinOperatorIds: readonly BuiltinSingleGateId[] = ["I", "X", "Y", "Z", "H", "S", "T", "M", "RESET"];
 export const builtinGateIds: readonly BuiltinGateId[] = [
   "I",
   "X",

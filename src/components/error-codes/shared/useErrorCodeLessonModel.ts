@@ -1,7 +1,9 @@
 import { computed, ref, watch, type ComputedRef } from "vue";
+import { classicalStatesFromEnsemble } from "../../../classical";
 import type {
   CircuitColumn,
   EntanglementLink,
+  FixedPanelClassicalLayout,
   GateId,
   GateInstance,
   QubitRow,
@@ -29,6 +31,7 @@ type ErrorCodeLessonConfig = {
   lessonSteps: ComputedRef<readonly LessonStepSpec[]>;
   columnLabels: ComputedRef<readonly string[]>;
   stageLabels: ComputedRef<readonly string[]>;
+  classicalLayout?: ComputedRef<FixedPanelClassicalLayout>;
   lockReason?: string;
   gateIdPrefix: string;
 };
@@ -39,6 +42,12 @@ const EMPTY_ENTANGLEMENT_MODEL: StageEntanglementModel = {
 };
 
 const EMPTY_COLUMN: CircuitColumn = { gates: [] };
+const EMPTY_CLASSICAL_LAYOUT: FixedPanelClassicalLayout = {
+  lanes: [],
+  registers: [],
+  routes: [],
+  conditionBadges: [],
+};
 
 const editableRowsForColumn = (column: VisibleLessonColumn | undefined): ReadonlySet<QubitRow> =>
   column?.kind === "error" ? new Set(column.editableRows) : new Set<QubitRow>();
@@ -130,6 +139,9 @@ export const useErrorCodeLessonModel = (config: ErrorCodeLessonConfig) => {
       index: visibleStageIndex,
       label: config.stageLabels.value[visibleStageIndex] ?? `t${visibleStageIndex}`,
       ensemble: ensembleSnapshots.value[executionBoundary] ?? ensembleSnapshots.value[ensembleSnapshots.value.length - 1]!,
+      classicalStates: classicalStatesFromEnsemble(
+        ensembleSnapshots.value[executionBoundary] ?? ensembleSnapshots.value[ensembleSnapshots.value.length - 1]!,
+      ),
       isFinal: visibleStageIndex === lastIndex,
     }));
   });
@@ -291,6 +303,7 @@ export const useErrorCodeLessonModel = (config: ErrorCodeLessonConfig) => {
     visibleColumns,
     columns: renderColumns,
     columnLabels: config.columnLabels,
+    classicalLayout: computed(() => config.classicalLayout?.value ?? EMPTY_CLASSICAL_LAYOUT),
     stageSnapshots,
     selectedStageIndex,
     selectedStageSnapshot,
@@ -308,4 +321,3 @@ export const useErrorCodeLessonModel = (config: ErrorCodeLessonConfig) => {
     ...interactions,
   };
 };
-

@@ -1,4 +1,5 @@
 import { computed } from "vue";
+import { classicalStatesFromEnsemble } from "../classical";
 import type {
   CircuitColumn,
   GateCell,
@@ -47,6 +48,7 @@ export const stageSnapshots = computed<StageSnapshot[]>(() => {
     index,
     label: index === 0 ? "Prepared" : index === lastIndex ? "Final" : `After t${index}`,
     ensemble: snapshot,
+    classicalStates: classicalStatesFromEnsemble(snapshot),
     isFinal: index === lastIndex,
   }));
 });

@@ -1,4 +1,5 @@
 import { computed, ref, watch } from "vue";
+import { classicalStatesFromEnsemble } from "../../../classical";
 import type {
   BasisProbability,
   CircuitColumn,
@@ -25,6 +26,7 @@ import type { CircuitGridModelContext } from "../../circuit/model-context";
 import type { CircuitGridLockPolicy } from "../../circuit/lock-policy";
 import type { PaletteEntry, PaletteGroup } from "../../circuit/palette-types";
 import { useCircuitGridInteractionCore } from "../../circuit/useCircuitGridInteractionCore";
+import { dataLessonRowSpecs, primitiveVisibleColumns } from "../../error-codes/shared/lesson-spec";
 import {
   ENTANGLEMENT_SCENARIOS,
   entanglementScenarioBranchSample,
@@ -152,6 +154,10 @@ export const useEntanglementModel = () => {
   const columnLabels = computed<string[]>(() =>
     combinedColumns.value.map((_, index) => scenario.value.columnLabelAt(index)),
   );
+  const visibleColumns = computed(() => primitiveVisibleColumns(combinedColumns.value.length));
+  const rowSpecs = computed(() =>
+    dataLessonRowSpecs(Array.from({ length: scenario.value.qubitCount }, (_, row) => row)),
+  );
 
   const stageLabels = computed<string[]>(() =>
     Array.from({ length: combinedColumns.value.length + 1 }, (_, index) => scenario.value.stageLabelAt(index)),
@@ -179,6 +185,7 @@ export const useEntanglementModel = () => {
       index,
       label: stageLabels.value[index] ?? `t${index}`,
       ensemble: snapshot,
+      classicalStates: classicalStatesFromEnsemble(snapshot),
       isFinal: index === lastIndex,
     }));
   });
@@ -581,6 +588,8 @@ export const useEntanglementModel = () => {
     scenario,
     scenarioOptions,
     columns: combinedColumns,
+    visibleColumns,
+    rowSpecs,
     columnLabels,
     paletteGroups,
     measurementEntries,

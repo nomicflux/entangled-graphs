@@ -114,8 +114,11 @@ test("shor code corrects a single X error", (t) => {
   assert.equal(model.visibleColumns.value.length, model.columns.value.length);
   assert.equal(model.stageSnapshots.value.length, model.visibleColumns.value.length + 1);
   assert.ok(model.recoveryFidelity.value > 0.999999);
+  assert.equal(model.classicalLayout.value.lanes.length, 4);
+  assert.deepEqual(model.classicalLayout.value.registers.map((entry) => entry.label), ["A", "B", "C", "Phase"]);
   assert.equal(model.blockSyndromes.value[1].dominantBits, "10");
   assert.equal(model.phaseSyndrome.value.dominantBits, "00");
+  assert.match(model.classicalLayout.value.conditionBadges[0].text, /^flip q/);
 });
 
 test("shor code corrects a single Z error", (t) => {
@@ -175,6 +178,9 @@ test("steane code keeps a compact six-column lesson and reports no-error diagnos
   assert.equal(model.diagnosisSummary.value, "—");
   assert.equal(model.xSyndromeBits.value, "000");
   assert.equal(model.zSyndromeBits.value, "000");
+  assert.equal(model.classicalLayout.value.lanes.length, 2);
+  assert.deepEqual(model.classicalLayout.value.registers.map((entry) => entry.label), ["Z", "X"]);
+  assert.equal(model.classicalLayout.value.conditionBadges.length, 0);
   assert.ok(near(model.recoveryFidelity.value, 1));
 });
 
@@ -185,9 +191,10 @@ test("steane code corrects a single X error", (t) => {
   assert.equal(model.setInjectedError("X", 4), true);
 
   assert.ok(model.recoveryFidelity.value > 0.999999);
-  assert.equal(model.xSyndromeBits.value, "101");
-  assert.equal(model.zSyndromeBits.value, "000");
+  assert.equal(model.xSyndromeBits.value, "000");
+  assert.equal(model.zSyndromeBits.value, "101");
   assert.equal(model.diagnosisSummary.value, "X @ q4");
+  assert.deepEqual(model.classicalLayout.value.conditionBadges.map((entry) => entry.text), ["X @ q4"]);
 });
 
 test("steane code corrects a single Z error", (t) => {
@@ -197,8 +204,8 @@ test("steane code corrects a single Z error", (t) => {
   assert.equal(model.setInjectedError("Z", 6), true);
 
   assert.ok(model.recoveryFidelity.value > 0.999999);
-  assert.equal(model.xSyndromeBits.value, "000");
-  assert.equal(model.zSyndromeBits.value, "111");
+  assert.equal(model.xSyndromeBits.value, "111");
+  assert.equal(model.zSyndromeBits.value, "000");
   assert.equal(model.diagnosisSummary.value, "Z @ q6");
 });
 

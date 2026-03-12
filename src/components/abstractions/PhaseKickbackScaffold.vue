@@ -85,6 +85,8 @@
       subtitle="Starting steps are fixed for the selected module. Edit only later exploration steps."
       entanglement-key-prefix="kick"
       :columns="columns"
+      :visible-columns="visibleColumns"
+      :row-specs="rowSpecs"
       :rows="rows"
       :column-labels="columnLabels"
       :palette-groups="paletteGroups"
@@ -247,6 +249,8 @@ const {
   module,
   rows,
   columns,
+  visibleColumns,
+  rowSpecs,
   targetPhaseGate,
   setTargetPhaseGate,
   phaseGateChoices,

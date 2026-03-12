@@ -52,6 +52,7 @@
       :show-zero-probability-rows="false"
       :columns="columns"
       :visible-columns="visibleColumns"
+      :row-specs="rowSpecs"
       :rows="rows"
       :column-labels="columnLabels"
       :palette-groups="paletteGroups"
@@ -94,6 +95,7 @@
       :is-cell-locked-at="isCellLockedAt"
       :is-row-locked-at="isRowLockedAt"
       :slot-title="slotTitle"
+      :classical-layout="classicalLayout"
       :select-stage="setSelectedStage"
     >
       <template #controls>
@@ -125,9 +127,11 @@ const {
   blockSyndromes,
   phaseSyndrome,
   clearInjectedError,
+  rowSpecs,
   rows,
   columns,
   visibleColumns,
+  classicalLayout,
   columnLabels,
   paletteGroups,
   measurementEntries,

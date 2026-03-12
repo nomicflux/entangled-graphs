@@ -1,5 +1,5 @@
 import type { BuiltinGateId, BuiltinSingleGateId, GateId, Operator } from "../types";
-import { CNOT, CP, CSWAP, CZ, H, I, M, S, SWAP, T, TOFFOLI, X, Y, Z, builtinGateIds } from "../operator";
+import { CNOT, CP, CSWAP, CZ, H, I, M, RESET, S, SWAP, T, TOFFOLI, X, Y, Z, builtinGateIds } from "../operator";
 import type { CustomOperator } from "../types";
 
 export const builtinOperatorMap: Record<BuiltinGateId, Operator> = {
@@ -11,6 +11,7 @@ export const builtinOperatorMap: Record<BuiltinGateId, Operator> = {
   S,
   T,
   M,
+  RESET,
   CNOT,
   CZ,
   CP,
@@ -20,7 +21,7 @@ export const builtinOperatorMap: Record<BuiltinGateId, Operator> = {
 };
 
 export const isBuiltinSingleGate = (gate: string): gate is BuiltinSingleGateId =>
-  gate === "I" || gate === "X" || gate === "Y" || gate === "Z" || gate === "H" || gate === "S" || gate === "T" || gate === "M";
+  gate === "I" || gate === "X" || gate === "Y" || gate === "Z" || gate === "H" || gate === "S" || gate === "T" || gate === "M" || gate === "RESET";
 
 export const isBuiltinGate = (gate: string): gate is BuiltinGateId =>
   gate === "I" ||
@@ -31,6 +32,7 @@ export const isBuiltinGate = (gate: string): gate is BuiltinGateId =>
   gate === "S" ||
   gate === "T" ||
   gate === "M" ||
+  gate === "RESET" ||
   gate === "CNOT" ||
   gate === "CZ" ||
   gate === "CP" ||
@@ -38,7 +40,7 @@ export const isBuiltinGate = (gate: string): gate is BuiltinGateId =>
   gate === "TOFFOLI" ||
   gate === "CSWAP";
 
-export type GateKind = "unitary" | "measurement";
+export type GateKind = "unitary" | "measurement" | "reset";
 
 const builtinGateKindMap: Record<BuiltinGateId, GateKind> = {
   I: "unitary",
@@ -49,6 +51,7 @@ const builtinGateKindMap: Record<BuiltinGateId, GateKind> = {
   S: "unitary",
   T: "unitary",
   M: "measurement",
+  RESET: "reset",
   CNOT: "unitary",
   CZ: "unitary",
   CP: "unitary",

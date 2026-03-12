@@ -1,5 +1,12 @@
-import { computed, ref, shallowRef } from "vue";
-import type { CircuitColumn, GateId, QubitRow } from "../../../types";
+import { computed, ref } from "vue";
+import { formatClassicalBits, readClassicalRegister } from "../../../classical";
+import type {
+  ClassicalPredicate,
+  CircuitColumn,
+  FixedPanelClassicalLayout,
+  GateId,
+  QubitRow,
+} from "../../../types";
 import * as complex from "../../../complex";
 import { bloch_pair_from_ensemble, tensor_product_qubits } from "../../../quantum";
 import {
@@ -23,13 +30,15 @@ const ZERO_QUBIT = {
 
 const EMPTY_COLUMN: CircuitColumn = { gates: [] };
 const DATA_ROWS = [0, 1, 2, 3, 4, 5, 6] as const;
-const COLLECTOR_ROWS = [4, 5, 6] as const;
+const SYNDROME_ROWS = [7, 8, 9] as const;
+const Z_SYNDROME_REGISTER = { id: "z_syndrome", label: "Z-check bits", size: 3 } as const;
+const X_SYNDROME_REGISTER = { id: "x_syndrome", label: "X-check bits", size: 3 } as const;
 
 const STEANE_SUPPORTS: readonly (readonly QubitRow[])[] = [
   [0, 2, 4, 6],
   [1, 2, 5, 6],
   [3, 4, 5, 6],
-];
+] as const;
 
 const ENCODE_CNOT_PAIRS = [
   [3, 6],
@@ -59,6 +68,12 @@ const DECODE_CNOT_PAIRS = [
   [3, 6],
 ] as const;
 
+const syndromeBitsForRow = (row: QubitRow): string =>
+  STEANE_SUPPORTS.map((supportRows) => (supportRows.includes(row) ? "1" : "0")).join("");
+
+const bitsArray = (bits: string): ReadonlyArray<0 | 1> =>
+  bits.split("").map((bit) => (bit === "1" ? 1 : 0)) as ReadonlyArray<0 | 1>;
+
 const hColumn = (id: string, rows: readonly QubitRow[]): CircuitColumn => ({
   gates: rows.map((row, index) => ({
     id: `${id}-${index + 1}`,
@@ -67,10 +82,7 @@ const hColumn = (id: string, rows: readonly QubitRow[]): CircuitColumn => ({
   })),
 });
 
-const cnotColumn = (
-  id: string,
-  pairs: readonly (readonly [QubitRow, QubitRow])[],
-): CircuitColumn => ({
+const cnotColumn = (id: string, pairs: readonly (readonly [QubitRow, QubitRow])[]): CircuitColumn => ({
   gates: pairs.map(([control, target], index) => ({
     id: `${id}-${index + 1}`,
     gate: "CNOT",
@@ -78,28 +90,51 @@ const cnotColumn = (
   })),
 });
 
-const isDataRow = (row: QubitRow): row is (typeof DATA_ROWS)[number] =>
-  Number.isInteger(row) && row >= 0 && row <= 6;
+const measureColumn = (id: string, registerId: string, rows: readonly QubitRow[]): CircuitColumn => ({
+  gates: rows.map((row, index) => ({
+    id: `${id}-${index + 1}`,
+    gate: "M",
+    wires: [row],
+    writesClassicalBit: { register: registerId, index },
+  })),
+});
 
-const syndromeBitsForRow = (row: QubitRow): string =>
-  STEANE_SUPPORTS.map((supportRows) => (supportRows.includes(row) ? "1" : "0")).join("");
+const resetColumn = (id: string, rows: readonly QubitRow[]): CircuitColumn => ({
+  gates: rows.map((row, index) => ({
+    id: `${id}-${index + 1}`,
+    gate: "RESET",
+    wires: [row],
+  })),
+});
 
-const xorSyndromeBits = (left: string, right: string): string =>
-  left
-    .split("")
-    .map((bit, index) => String(Number(bit) ^ Number(right[index] ?? "0")))
-    .join("");
-
-const makeCheckFamily = (
+const parityExtractionColumns = (
   id: string,
-  basis: CheckBasis,
-): StabilizerCheckFamilySpec => ({
+  supports: readonly (readonly QubitRow[])[],
+  ancillaRows: readonly QubitRow[],
+  direction: "data-to-ancilla" | "ancilla-to-data",
+): CircuitColumn[] =>
+  supports.flatMap((supportRows, checkIndex) =>
+    supportRows.map((supportRow, supportIndex) => ({
+      gates: [
+        {
+          id: `${id}-${checkIndex + 1}-${supportIndex + 1}`,
+          gate: "CNOT",
+          wires:
+            direction === "data-to-ancilla"
+              ? [supportRow, ancillaRows[checkIndex]!]
+              : [ancillaRows[checkIndex]!, supportRow],
+        },
+      ],
+    })),
+  );
+
+const makeCheckFamily = (id: string, basis: CheckBasis): StabilizerCheckFamilySpec => ({
   id,
   basis,
   dataRows: [...DATA_ROWS],
   checks: STEANE_SUPPORTS.map((supportRows, index) => ({
     id: `${id}-${index + 1}`,
-    syndromeRow: COLLECTOR_ROWS[index]!,
+    syndromeRow: SYNDROME_ROWS[index]!,
     supportRows: [...supportRows],
   })),
 });
@@ -107,119 +142,96 @@ const makeCheckFamily = (
 const zCheckFamily = makeCheckFamily("steane-z-check", "Z");
 const xCheckFamily = makeCheckFamily("steane-x-check", "X");
 
-type InjectedError = { gate: GateId; row: QubitRow };
+const registerEquals = (register: string, bits: string): ClassicalPredicate => ({
+  kind: "register-equals",
+  register,
+  value: bitsArray(bits),
+});
 
-const hasXComponent = (gate: GateId): boolean => gate === "X" || gate === "Y";
-const hasZComponent = (gate: GateId): boolean => gate === "Z" || gate === "Y";
+const allOf = (...predicates: ClassicalPredicate[]): ClassicalPredicate => ({
+  kind: "all",
+  predicates,
+});
 
-const rowsWithComponent = (
-  errors: readonly InjectedError[],
-  includesComponent: (gate: GateId) => boolean,
-): ReadonlySet<QubitRow> => {
-  const rows = new Set<QubitRow>();
-  for (const error of errors) {
-    if (isDataRow(error.row) && includesComponent(error.gate)) {
-      rows.add(error.row);
-    }
-  }
-  return rows;
-};
-
-const syndromeBitsFromErrors = (
-  errors: readonly InjectedError[],
-  includesComponent: (gate: GateId) => boolean,
+const syndromeBitsFromSnapshot = (
+  states: ReadonlyArray<{ weight: number; state: ReadonlyArray<{ bit: { register: string; index: number }; value: 0 | 1 }> }> | undefined,
+  register: typeof Z_SYNDROME_REGISTER | typeof X_SYNDROME_REGISTER,
 ): string => {
-  let bits = "000";
-  for (const error of errors) {
-    if (!isDataRow(error.row) || !includesComponent(error.gate)) {
-      continue;
-    }
-    bits = xorSyndromeBits(bits, syndromeBitsForRow(error.row));
-  }
-  return bits;
+  const dominant = [...(states ?? [])].sort((left, right) => right.weight - left.weight)[0];
+  return formatClassicalBits(readClassicalRegister(dominant?.state, register));
 };
 
-const firstSetRow = (rows: ReadonlySet<QubitRow>): QubitRow | null => {
-  const iterator = rows.values().next();
-  return iterator.done ? null : iterator.value;
+const correctionLabel = (xBits: string, zBits: string): string => {
+  const xRow = DATA_ROWS.find((row) => syndromeBitsForRow(row) === zBits) ?? null;
+  const zRow = DATA_ROWS.find((row) => syndromeBitsForRow(row) === xBits) ?? null;
+
+  if (zBits !== "000" && xBits === "000" && xRow !== null) {
+    return `X @ q${xRow}`;
+  }
+  if (xBits !== "000" && zBits === "000" && zRow !== null) {
+    return `Z @ q${zRow}`;
+  }
+  if (xBits !== "000" && zBits !== "000" && xBits === zBits && xRow !== null) {
+    return `Y @ q${xRow}`;
+  }
+  if (xBits === "000" && zBits === "000") {
+    return "—";
+  }
+  return "mixed";
+};
+
+const correctionRow = (diagnosis: string): QubitRow | null => {
+  const match = /q(\d+)/.exec(diagnosis);
+  return match ? Number.parseInt(match[1] ?? "", 10) : null;
+};
+
+const correctionExecutionColumns = (): CircuitColumn[] => {
+  const gates = DATA_ROWS.flatMap((row) => {
+    const bits = syndromeBitsForRow(row);
+    return [
+      {
+        id: `steane-x-correct-${row}`,
+        gate: "X" as const,
+        wires: [row],
+        condition: allOf(registerEquals(Z_SYNDROME_REGISTER.id, bits), registerEquals(X_SYNDROME_REGISTER.id, "000")),
+      },
+      {
+        id: `steane-z-correct-${row}`,
+        gate: "Z" as const,
+        wires: [row],
+        condition: allOf(registerEquals(X_SYNDROME_REGISTER.id, bits), registerEquals(Z_SYNDROME_REGISTER.id, "000")),
+      },
+      {
+        id: `steane-y-correct-${row}`,
+        gate: "Y" as const,
+        wires: [row],
+        condition: allOf(registerEquals(X_SYNDROME_REGISTER.id, bits), registerEquals(Z_SYNDROME_REGISTER.id, bits)),
+      },
+    ];
+  });
+
+  return [
+    ...gates.map((gate) => ({ gates: [gate] })),
+    EMPTY_COLUMN,
+  ];
 };
 
 export const useSteaneSevenQubitModel = () => {
   const selectedPreset = ref<LogicalPresetId>("plus");
-  const modelRef = shallowRef<ReturnType<typeof useErrorCodeLessonModel> | null>(null);
 
   const preparedState = computed(() =>
     tensor_product_qubits([
       logicalPresetById(selectedPreset.value).qubit,
-      ...Array.from({ length: 8 }, () => ZERO_QUBIT),
+      ...Array.from({ length: 9 }, () => ZERO_QUBIT),
     ]),
   );
 
   const rowSpecs = computed<readonly LessonRowSpec[]>(() =>
-    Array.from({ length: 9 }, (_, row) => ({
+    Array.from({ length: 10 }, (_, row) => ({
       row,
-      role: row <= 6 ? "data" : "helper",
+      role: row <= 6 ? "data" : "syndrome",
     })),
   );
-
-  const injectedErrors = computed<readonly InjectedError[]>(() =>
-    modelRef.value?.injectedErrors.value ?? [],
-  );
-
-  const xErrorRows = computed(() => rowsWithComponent(injectedErrors.value, hasXComponent));
-  const zErrorRows = computed(() => rowsWithComponent(injectedErrors.value, hasZComponent));
-
-  const xSyndromeBits = computed(() =>
-    syndromeBitsFromErrors(injectedErrors.value, hasXComponent),
-  );
-  const zSyndromeBits = computed(() =>
-    syndromeBitsFromErrors(injectedErrors.value, hasZComponent),
-  );
-
-  const correctionGate = computed<{ gate: GateId; row: QubitRow } | null>(() => {
-    const xRows = xErrorRows.value;
-    const zRows = zErrorRows.value;
-    const xRow = firstSetRow(xRows);
-    const zRow = firstSetRow(zRows);
-
-    if (xRows.size === 1 && zRows.size === 0 && xRow !== null) {
-      return { gate: "X", row: xRow };
-    }
-    if (xRows.size === 0 && zRows.size === 1 && zRow !== null) {
-      return { gate: "Z", row: zRow };
-    }
-    if (xRows.size === 1 && zRows.size === 1 && xRow !== null && zRow !== null && xRow === zRow) {
-      return { gate: "Y", row: xRow };
-    }
-    return null;
-  });
-
-  const diagnosisSummary = computed(() => {
-    const correction = correctionGate.value;
-    if (correction) {
-      return `${correction.gate} @ q${correction.row}`;
-    }
-    if (xErrorRows.value.size === 0 && zErrorRows.value.size === 0) {
-      return "—";
-    }
-    return "mixed";
-  });
-
-  const correctionColumn = computed<CircuitColumn>(() => {
-    const correction = correctionGate.value;
-    if (!correction) {
-      return EMPTY_COLUMN;
-    }
-    return {
-      gates: [
-        {
-          id: `steane-correct-${correction.gate.toLowerCase()}-${correction.row}`,
-          gate: correction.gate,
-          wires: [correction.row],
-        },
-      ],
-    };
-  });
 
   const lessonSteps = computed<readonly LessonStepSpec[]>(() => [
     {
@@ -240,18 +252,28 @@ export const useSteaneSevenQubitModel = () => {
       id: "steane-z-checks",
       kind: "check-family",
       family: zCheckFamily,
-      executionColumns: [EMPTY_COLUMN],
+      executionColumns: [
+        ...parityExtractionColumns("steane-z-check", STEANE_SUPPORTS, SYNDROME_ROWS, "data-to-ancilla"),
+        measureColumn("steane-z-measure", Z_SYNDROME_REGISTER.id, SYNDROME_ROWS),
+        resetColumn("steane-z-reset", SYNDROME_ROWS),
+      ],
     },
     {
       id: "steane-x-checks",
       kind: "check-family",
       family: xCheckFamily,
-      executionColumns: [EMPTY_COLUMN],
+      executionColumns: [
+        hColumn("steane-x-prep", SYNDROME_ROWS),
+        ...parityExtractionColumns("steane-x-check", STEANE_SUPPORTS, SYNDROME_ROWS, "ancilla-to-data"),
+        hColumn("steane-x-unprep", SYNDROME_ROWS),
+        measureColumn("steane-x-measure", X_SYNDROME_REGISTER.id, SYNDROME_ROWS),
+        resetColumn("steane-x-reset", SYNDROME_ROWS),
+      ],
     },
     {
       id: "steane-correct",
       kind: "primitive-columns",
-      executionColumns: [correctionColumn.value],
+      executionColumns: correctionExecutionColumns(),
     },
     {
       id: "steane-decode",
@@ -273,7 +295,7 @@ export const useSteaneSevenQubitModel = () => {
   ]);
 
   const stageLabels = computed(() => [
-    `Start with ${logicalPresetById(selectedPreset.value).label}|00000000>`,
+    `Start with ${logicalPresetById(selectedPreset.value).label}|000000000>`,
     "After encoding the logical state",
     "After the injected-error stage",
     "After Z-type Hamming checks",
@@ -282,8 +304,69 @@ export const useSteaneSevenQubitModel = () => {
     "After decoding back to q0",
   ]);
 
-  const circuit = useErrorCodeLessonModel({
-    qubitCount: 9,
+  let circuit!: ReturnType<typeof useErrorCodeLessonModel>;
+
+  const classicalLayout = computed<FixedPanelClassicalLayout>(() => {
+    const lastStage = circuit?.stageSnapshots.value[circuit.stageSnapshots.value.length - 1];
+    const zBits = syndromeBitsFromSnapshot(lastStage?.classicalStates, Z_SYNDROME_REGISTER);
+    const xBits = syndromeBitsFromSnapshot(lastStage?.classicalStates, X_SYNDROME_REGISTER);
+    const diagnosis = correctionLabel(xBits, zBits);
+    return {
+      lanes: [
+        { id: "z-syndrome", label: "Z syndrome" },
+        { id: "x-syndrome", label: "X syndrome" },
+      ],
+      registers: [
+        {
+          id: "steane-register-z",
+          label: "Z",
+          lane: "z-syndrome",
+          anchorColumnId: "steane-z-checks",
+          valueText: zBits,
+          kind: "bundle",
+        },
+        {
+          id: "steane-register-x",
+          label: "X",
+          lane: "x-syndrome",
+          anchorColumnId: "steane-x-checks",
+          valueText: xBits,
+          kind: "bundle",
+        },
+      ],
+      routes: [
+        {
+          id: "steane-route-z",
+          from: { columnId: "steane-z-checks", row: 7 },
+          to: { columnId: "steane-correct", row: 7 },
+          lane: "z-syndrome",
+          kind: "bundle",
+        },
+        {
+          id: "steane-route-x",
+          from: { columnId: "steane-x-checks", row: 9 },
+          to: { columnId: "steane-correct", row: 9 },
+          lane: "x-syndrome",
+          kind: "bundle",
+        },
+      ],
+      conditionBadges:
+        diagnosis === "—" || correctionRow(diagnosis) === null
+          ? []
+          : [
+              {
+                id: "steane-badge-correction",
+                columnId: "steane-correct",
+                row: correctionRow(diagnosis)!,
+                text: diagnosis,
+                kind: "bundle",
+              },
+            ],
+    };
+  });
+
+  circuit = useErrorCodeLessonModel({
+    qubitCount: 10,
     rowSpecs,
     allowedErrorGates: ["X", "Y", "Z"],
     paletteTitle: "Error Gates",
@@ -292,27 +375,20 @@ export const useSteaneSevenQubitModel = () => {
     lessonSteps,
     columnLabels,
     stageLabels,
+    classicalLayout,
     gateIdPrefix: "steane-code",
   });
 
-  modelRef.value = circuit;
+  const finalStageSnapshot = computed(() => circuit.stageSnapshots.value[circuit.stageSnapshots.value.length - 1]!);
+  const recoveredLogical = computed(() => bloch_pair_from_ensemble(finalStageSnapshot.value.ensemble)[0] ?? null);
+  const recoveryFidelity = computed(() => logicalPresetFidelity(selectedPreset.value, recoveredLogical.value));
 
-  const finalStageSnapshot = computed(
-    () => circuit.stageSnapshots.value[circuit.stageSnapshots.value.length - 1]!,
-  );
-  const recoveredLogical = computed(
-    () => bloch_pair_from_ensemble(finalStageSnapshot.value.ensemble)[0] ?? null,
-  );
-  const recoveryFidelity = computed(() =>
-    logicalPresetFidelity(selectedPreset.value, recoveredLogical.value),
-  );
+  const xSyndromeBits = computed(() => syndromeBitsFromSnapshot(finalStageSnapshot.value.classicalStates, X_SYNDROME_REGISTER));
+  const zSyndromeBits = computed(() => syndromeBitsFromSnapshot(finalStageSnapshot.value.classicalStates, Z_SYNDROME_REGISTER));
+  const diagnosisSummary = computed(() => correctionLabel(xSyndromeBits.value, zSyndromeBits.value));
 
-  const selectedPresetLabel = computed(
-    () => logicalPresetById(selectedPreset.value).label,
-  );
-  const outputPresetLabel = computed(
-    () => closestLogicalPreset(recoveredLogical.value)?.label ?? "—",
-  );
+  const selectedPresetLabel = computed(() => logicalPresetById(selectedPreset.value).label);
+  const outputPresetLabel = computed(() => closestLogicalPreset(recoveredLogical.value)?.label ?? "—");
 
   return {
     selectedPreset,

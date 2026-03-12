@@ -23,7 +23,77 @@ export type BlochParams = {
 
 export type QubitRow = number;
 
-export type BuiltinSingleGateId = "I" | "X" | "Y" | "Z" | "H" | "S" | "T" | "M";
+export type ClassicalBitRef = {
+  register: string;
+  index: number;
+};
+
+export type ClassicalRegisterSpec = {
+  id: string;
+  label: string;
+  bitLabels?: ReadonlyArray<string>;
+};
+
+export type ClassicalPredicate =
+  | { kind: "bit-equals"; bit: ClassicalBitRef; value: 0 | 1 }
+  | { kind: "register-equals"; register: string; value: ReadonlyArray<0 | 1> }
+  | { kind: "all"; predicates: ReadonlyArray<ClassicalPredicate> };
+
+export type ClassicalBitAssignment = {
+  bit: ClassicalBitRef;
+  value: 0 | 1;
+};
+
+export type ClassicalState = ReadonlyArray<ClassicalBitAssignment>;
+
+export type ClassicalStateBranch = {
+  weight: number;
+  state: ClassicalState;
+};
+
+export type ClassicalOverlayLane = {
+  id: string;
+  label: string;
+};
+
+export type ClassicalRouteAnchor = {
+  columnId: string;
+  row: QubitRow;
+};
+
+export type ClassicalRegisterOverlay = {
+  id: string;
+  label: string;
+  lane: string;
+  anchorColumnId: string;
+  valueText: string;
+  kind?: "bit" | "bundle";
+};
+
+export type ClassicalRouteOverlay = {
+  id: string;
+  from: ClassicalRouteAnchor;
+  to: ClassicalRouteAnchor;
+  lane: string;
+  kind: "bit" | "bundle";
+};
+
+export type ClassicalConditionBadge = {
+  id: string;
+  columnId: string;
+  row: QubitRow;
+  text: string;
+  kind?: "bit" | "bundle";
+};
+
+export type FixedPanelClassicalLayout = {
+  lanes: ReadonlyArray<ClassicalOverlayLane>;
+  registers: ReadonlyArray<ClassicalRegisterOverlay>;
+  routes: ReadonlyArray<ClassicalRouteOverlay>;
+  conditionBadges: ReadonlyArray<ClassicalConditionBadge>;
+};
+
+export type BuiltinSingleGateId = "I" | "X" | "Y" | "Z" | "H" | "S" | "T" | "M" | "RESET";
 export type BuiltinMultiGateId = "CNOT" | "CZ" | "CP" | "SWAP" | "TOFFOLI" | "CSWAP";
 export type BuiltinGateId = BuiltinSingleGateId | BuiltinMultiGateId;
 type CustomGateId = string;
@@ -35,6 +105,8 @@ export type GateInstance = {
   id: string;
   gate: GateId;
   wires: ReadonlyArray<QubitRow>;
+  writesClassicalBit?: ClassicalBitRef;
+  condition?: ClassicalPredicate;
 };
 
 export type CircuitColumn = {
@@ -48,6 +120,7 @@ export type QubitState = Complex[];
 export type WeightedStateBranch = {
   weight: number;
   state: QubitState;
+  classicalState?: ClassicalState;
 };
 export type StateEnsemble = WeightedStateBranch[];
 
@@ -61,6 +134,7 @@ export type StageSnapshot = {
   index: number;
   label: string;
   ensemble: StateEnsemble;
+  classicalStates?: ReadonlyArray<ClassicalStateBranch>;
   isFinal: boolean;
 };
 
