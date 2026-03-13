@@ -2,14 +2,6 @@
   min-width: 0;
 }
 
-.algorithm-circuit-columns {
-  min-height: 250px;
-}
-
-.algorithm-circuit-column {
-  min-height: 220px;
-}
-
 .algorithm-column-label {
   font-size: 0.62rem;
   text-transform: uppercase;

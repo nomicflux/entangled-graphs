@@ -90,121 +90,122 @@
                   'is-parity-z-basis': visibleColumn.kind === 'parity-family' && visibleColumn.basis === 'Z',
                   'is-parity-x-basis': visibleColumn.kind === 'parity-family' && visibleColumn.basis === 'X',
                 }"
-                :style="{ gridTemplateRows: quantumGridTemplateRows }"
               >
-                <svg
-                  v-if="props.showEntanglement"
-                  class="column-entanglement"
-                  viewBox="0 0 100 100"
-                  preserveAspectRatio="none"
-                  aria-hidden="true"
-                >
-                  <rect
-                    v-for="band in props.multipartiteBandsForColumn(colIndex)"
-                    :key="`${props.entanglementKeyPrefix}-band-${colIndex}-${band.id}`"
-                    class="entanglement-multipartite-band"
-                    :x="band.x"
-                    :y="band.y"
-                    :width="band.width"
-                    :height="band.height"
-                    :rx="band.rx"
-                    :style="props.multipartiteBandStyle(band.strength)"
+                <div class="column-quantum-register" :style="quantumRegisterStyle">
+                  <svg
+                    v-if="props.showEntanglement"
+                    class="column-entanglement"
+                    :viewBox="`0 0 100 ${quantumRegisterHeightPx}`"
+                    preserveAspectRatio="none"
+                    aria-hidden="true"
                   >
-                    <title>{{ props.multipartiteTooltip(band.rows, band.strength) }}</title>
-                  </rect>
-                  <path
-                    v-for="(link, linkIndex) in props.entanglementLinksForColumn(colIndex)"
-                    :key="`${props.entanglementKeyPrefix}-${colIndex}-${link.fromRow}-${link.toRow}-${linkIndex}`"
-                    class="entanglement-arc"
-                    :d="props.entanglementArcPath(link)"
-                    :style="props.entanglementArcStyle(link)"
-                  >
-                    <title>{{ props.pairwiseTooltip(link) }}</title>
-                  </path>
-                </svg>
-
-                <div class="column-connectors">
-                  <div
-                    v-for="connector in props.connectorSegments(renderColumnAt(colIndex), colIndex)"
-                    :key="connector.id"
-                    class="column-connector"
-                    :class="[connector.kind, { preview: connector.preview }]"
-                    :style="props.connectorStyle(connector)"
-                  ></div>
-                </div>
-
-                <div v-if="visibleColumn.kind === 'parity-family'" class="parity-family-rails" aria-hidden="true">
-                  <div
-                    v-for="lane in visibleColumn.lanes"
-                    :key="`${visibleColumn.id}-rail-${lane.laneIndex}`"
-                    class="parity-family-rail"
-                    :style="parityRailStyle(lane)"
-                  ></div>
-                </div>
-
-                <div
-                  v-for="row in props.rows"
-                  :key="row"
-                  class="gate-slot"
-                  :class="{
-                    'is-drop-target': props.isDropTarget(colIndex, row),
-                    'is-row-locked': props.isRowLockedAt(colIndex, row),
-                    'is-core-locked': props.isCellLockedAt(colIndex, row),
-                    'is-data-row': rowRole(row) === 'data',
-                    'is-syndrome-row': rowRole(row) === 'syndrome',
-                    'is-helper-row': rowRole(row) === 'helper',
-                  }"
-                  :title="props.slotTitle(colIndex, row)"
-                  @dragover.prevent="props.handleDragOver(colIndex, row)"
-                  @dragleave="props.handleDragLeave(colIndex, row)"
-                  @drop.prevent="props.handleDrop(colIndex, row)"
-                  @mouseenter="props.handleSlotHover(colIndex, row)"
-                  @mousemove="props.handleSlotHover(colIndex, row)"
-                  @mouseleave="props.handleSlotLeave(colIndex, row)"
-                  @click="props.handleSlotClick(colIndex, row, $event)"
-                >
-                  <span class="gate-slot-label">q{{ row }}</span>
-                  <div v-if="visibleColumn.kind === 'parity-family'" class="parity-slot-grid" aria-hidden="true">
-                    <div
-                      v-for="laneIndex in parityLaneIndexes"
-                      :key="`${visibleColumn.id}-row-${row}-lane-${laneIndex}`"
-                      class="parity-slot-lane"
-                      :style="parityLaneStyle(laneIndex)"
+                    <rect
+                      v-for="band in props.multipartiteBandsForColumn(colIndex)"
+                      :key="`${props.entanglementKeyPrefix}-band-${colIndex}-${band.id}`"
+                      class="entanglement-multipartite-band"
+                      :x="band.x"
+                      :y="band.y"
+                      :width="band.width"
+                      :height="band.height"
+                      :rx="band.rx"
+                      :style="props.multipartiteBandStyle(band.strength)"
                     >
-                      <span
-                        v-if="parityNodeKind(visibleColumn, laneIndex, row)"
-                        class="parity-node"
-                        :class="`is-${parityNodeKind(visibleColumn, laneIndex, row)}-node`"
-                      ></span>
-                    </div>
+                      <title>{{ props.multipartiteTooltip(band.rows, band.strength) }}</title>
+                    </rect>
+                    <path
+                      v-for="(link, linkIndex) in props.entanglementLinksForColumn(colIndex)"
+                      :key="`${props.entanglementKeyPrefix}-${colIndex}-${link.fromRow}-${link.toRow}-${linkIndex}`"
+                      class="entanglement-arc"
+                      :d="props.entanglementArcPath(link)"
+                      :style="props.entanglementArcStyle(link)"
+                    >
+                      <title>{{ props.pairwiseTooltip(link) }}</title>
+                    </path>
+                  </svg>
+
+                  <div class="column-connectors">
+                    <div
+                      v-for="connector in props.connectorSegments(renderColumnAt(colIndex), colIndex)"
+                      :key="connector.id"
+                      class="column-connector"
+                      :class="[connector.kind, { preview: connector.preview }]"
+                      :style="props.connectorStyle(connector)"
+                    ></div>
                   </div>
+
+                  <div v-if="visibleColumn.kind === 'parity-family'" class="parity-family-rails" aria-hidden="true">
+                    <div
+                      v-for="lane in visibleColumn.lanes"
+                      :key="`${visibleColumn.id}-rail-${lane.laneIndex}`"
+                      class="parity-family-rail"
+                      :style="parityRailStyle(lane)"
+                    ></div>
+                  </div>
+
                   <div
-                    v-else
-                    class="gate-token"
+                    v-for="row in props.rows"
+                    :key="row"
+                    class="gate-slot"
                     :class="{
-                      empty: props.slotInstance(renderColumnAt(colIndex), row) === null,
-                      draggable: props.isDraggableToken(renderColumnAt(colIndex), row, colIndex),
-                      'is-drag-source': props.isDragSource(colIndex, row),
-                      'is-cnot-control':
-                        props.isCnotControl(renderColumnAt(colIndex), row) || props.isPendingCnotControl(colIndex, row),
-                      'is-cnot-target':
-                        props.isCnotTarget(renderColumnAt(colIndex), row) || props.isPendingCnotTarget(colIndex, row),
-                      'is-toffoli-control':
-                        props.isToffoliControl(renderColumnAt(colIndex), row) || props.isPendingToffoliControl(colIndex, row),
-                      'is-toffoli-target':
-                        props.isToffoliTarget(renderColumnAt(colIndex), row) || props.isPendingToffoliTarget(colIndex, row),
-                      'is-multi-custom-wire':
-                        props.isCustomMultiWire(renderColumnAt(colIndex), row) || props.isPendingMultiWire(colIndex, row),
-                      'is-multi-custom-hover': props.isPendingMultiHover(colIndex, row),
-                      'is-measurement': props.isMeasurementToken(renderColumnAt(colIndex), row),
-                      'is-row-locked-token': props.isRowLockedAt(colIndex, row),
-                      'is-core-locked-token': props.isCellLockedAt(colIndex, row),
+                      'is-drop-target': props.isDropTarget(colIndex, row),
+                      'is-row-locked': props.isRowLockedAt(colIndex, row),
+                      'is-core-locked': props.isCellLockedAt(colIndex, row),
+                      'is-data-row': rowRole(row) === 'data',
+                      'is-syndrome-row': rowRole(row) === 'syndrome',
+                      'is-helper-row': rowRole(row) === 'helper',
                     }"
-                    :draggable="props.isDraggableToken(renderColumnAt(colIndex), row, colIndex)"
-                    @dragstart="props.startCellDrag(colIndex, row, $event)"
-                    @dragend="props.endDrag"
+                    :title="props.slotTitle(colIndex, row)"
+                    @dragover.prevent="props.handleDragOver(colIndex, row)"
+                    @dragleave="props.handleDragLeave(colIndex, row)"
+                    @drop.prevent="props.handleDrop(colIndex, row)"
+                    @mouseenter="props.handleSlotHover(colIndex, row)"
+                    @mousemove="props.handleSlotHover(colIndex, row)"
+                    @mouseleave="props.handleSlotLeave(colIndex, row)"
+                    @click="props.handleSlotClick(colIndex, row, $event)"
                   >
-                    {{ props.tokenFor(renderColumnAt(colIndex), row) }}
+                    <span class="gate-slot-label">q{{ row }}</span>
+                    <div v-if="visibleColumn.kind === 'parity-family'" class="parity-slot-grid" aria-hidden="true">
+                      <div
+                        v-for="laneIndex in parityLaneIndexes"
+                        :key="`${visibleColumn.id}-row-${row}-lane-${laneIndex}`"
+                        class="parity-slot-lane"
+                        :style="parityLaneStyle(laneIndex)"
+                      >
+                        <span
+                          v-if="parityNodeKind(visibleColumn, laneIndex, row)"
+                          class="parity-node"
+                          :class="`is-${parityNodeKind(visibleColumn, laneIndex, row)}-node`"
+                        ></span>
+                      </div>
+                    </div>
+                    <div
+                      v-else
+                      class="gate-token"
+                      :class="{
+                        empty: props.slotInstance(renderColumnAt(colIndex), row) === null,
+                        draggable: props.isDraggableToken(renderColumnAt(colIndex), row, colIndex),
+                        'is-drag-source': props.isDragSource(colIndex, row),
+                        'is-cnot-control':
+                          props.isCnotControl(renderColumnAt(colIndex), row) || props.isPendingCnotControl(colIndex, row),
+                        'is-cnot-target':
+                          props.isCnotTarget(renderColumnAt(colIndex), row) || props.isPendingCnotTarget(colIndex, row),
+                        'is-toffoli-control':
+                          props.isToffoliControl(renderColumnAt(colIndex), row) || props.isPendingToffoliControl(colIndex, row),
+                        'is-toffoli-target':
+                          props.isToffoliTarget(renderColumnAt(colIndex), row) || props.isPendingToffoliTarget(colIndex, row),
+                        'is-multi-custom-wire':
+                          props.isCustomMultiWire(renderColumnAt(colIndex), row) || props.isPendingMultiWire(colIndex, row),
+                        'is-multi-custom-hover': props.isPendingMultiHover(colIndex, row),
+                        'is-measurement': props.isMeasurementToken(renderColumnAt(colIndex), row),
+                        'is-row-locked-token': props.isRowLockedAt(colIndex, row),
+                        'is-core-locked-token': props.isCellLockedAt(colIndex, row),
+                      }"
+                      :draggable="props.isDraggableToken(renderColumnAt(colIndex), row, colIndex)"
+                      @dragstart="props.startCellDrag(colIndex, row, $event)"
+                      @dragend="props.endDrag"
+                    >
+                      {{ props.tokenFor(renderColumnAt(colIndex), row) }}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -309,6 +310,11 @@ import {
   routeRailPathForOverlay,
   rowCenterY,
 } from "./fixed-panel-classical-layout";
+import {
+  quantumGridTemplateRows as quantumGridRows,
+  quantumRegisterHeight,
+  quantumRegisterStyleVars,
+} from "./quantum-register-layout";
 import type { LessonRowSpec, ParityLaneView, VisibleLessonColumn } from "../error-codes/shared/lesson-spec";
 import StageInspector from "../StageInspector.vue";
 import CircuitGatePalette from "./CircuitGatePalette.vue";
@@ -423,7 +429,12 @@ const columnWidthPx = (column: VisibleLessonColumn): number =>
   column.width === "matrix-3" ? MATRIX_COLUMN_WIDTH_PX : REGULAR_COLUMN_WIDTH_PX;
 
 const columnWidths = computed(() => props.visibleColumns.map((column) => columnWidthPx(column)));
-const quantumGridTemplateRows = computed(() => `repeat(${props.rows.length}, ${CIRCUIT_SLOT_HEIGHT_PX}px)`);
+const quantumGridTemplateRows = computed(() => quantumGridRows(props.rows.length, CIRCUIT_SLOT_HEIGHT_PX));
+const quantumRegisterHeightPx = computed(() => quantumRegisterHeight(props.rows.length, CIRCUIT_SLOT_HEIGHT_PX));
+const quantumRegisterStyle = computed<Record<string, string>>(() => ({
+  ...quantumRegisterStyleVars(props.rows.length, CIRCUIT_SLOT_HEIGHT_PX),
+  gridTemplateRows: quantumGridTemplateRows.value,
+}));
 const panelGridTemplateColumns = computed(() => fixedGridTemplateColumns(columnWidths.value));
 const contentPaddingX = computed(() => fixedPanelContentPadding(props.classicalLayout));
 const panelContentWidth = computed(() => fixedPanelContentWidth(columnWidths.value, props.classicalLayout));

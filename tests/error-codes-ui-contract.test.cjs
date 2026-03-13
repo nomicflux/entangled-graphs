@@ -23,11 +23,13 @@ test("error-code scaffolds keep a distinct output panel without a separate error
 test("lesson circuit panel supports shared parity-family visual columns", () => {
   const panel = readSource("src/components/circuit/LessonCircuitPanel.vue");
   const layout = readSource("src/components/circuit/fixed-panel-classical-layout.ts");
+  const geometry = readSource("src/components/circuit/quantum-register-layout.ts");
 
   assert.match(panel, /visibleColumns/);
   assert.match(panel, /parity-family/);
   assert.match(panel, /parity-family-rails/);
   assert.match(panel, /parity-slot-grid/);
+  assert.match(panel, /column-quantum-register/);
   assert.match(panel, /classical-route-overlay/);
   assert.match(panel, /classical-band-spacer/);
   assert.match(panel, /circuit-scroll-viewport/);
@@ -37,6 +39,7 @@ test("lesson circuit panel supports shared parity-family visual columns", () => 
   assert.match(panel, /visibleColumns: readonly VisibleLessonColumn\[\]/);
   assert.match(panel, /rowSpecs: readonly LessonRowSpec\[\]/);
   assert.doesNotMatch(panel, /resolvedVisibleColumns/);
+  assert.match(geometry, /--circuit-quantum-height/);
   assert.match(panel, /rowSpecs/);
 });
 
@@ -51,6 +54,7 @@ test("fixed algorithm panel supports classical wire overlays and teleportation u
   assert.match(panel, /circuit-header-row/);
   assert.match(panel, /circuit-scroll-viewport/);
   assert.match(panel, /panelContentWidth/);
+  assert.match(panel, /column-quantum-register/);
   assert.match(teleport, /:classical-layout="props\.classicalLayout"/);
   assert.doesNotMatch(teleport, /placeholderToken/);
   assert.match(model, /writesClassicalBit/);
@@ -132,4 +136,15 @@ test("stage inspector defaults to showing zero-probability rows and shor/steane 
   assert.match(panel, /:show-zero-probability-rows="props\.showZeroProbabilityRows"/);
   assert.match(shor, /:show-zero-probability-rows="false"/);
   assert.match(steane, /:show-zero-probability-rows="false"/);
+});
+
+test("shared entanglement geometry no longer uses percentage-normalized viewbox math", () => {
+  const entanglement = readSource("src/components/circuit/useCircuitGridEntanglement.ts");
+  const fixedEntanglement = readSource("src/components/algorithms/shared/useAlgorithmEntanglement.ts");
+  const connectors = readSource("src/components/circuit/useCircuitGridConnectors.ts");
+
+  assert.doesNotMatch(entanglement, /rowCenterViewBox/);
+  assert.doesNotMatch(fixedEntanglement, /rowCenterViewBox/);
+  assert.doesNotMatch(connectors, /%/);
+  assert.match(connectors, /quantumRowCenterY/);
 });

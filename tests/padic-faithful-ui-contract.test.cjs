@@ -60,8 +60,11 @@ test("faithful workbench keeps operator and sovm primary labels", () => {
   assert.match(circuit, /CNOT_TARGET/);
   assert.match(circuit, /column-connectors/);
   assert.match(circuit, /column-connector cnot/);
+  assert.match(circuit, /column-quantum-register/);
+  assert.match(circuit, /quantumRowCenterY/);
   assert.match(circuit, /connectorSegments\(columnIndex\)/);
   assert.match(circuit, /connectorStyle\(connector\)/);
+  assert.doesNotMatch(circuit, /minmax\(56px, 1fr\)/);
   assert.match(circuit, /isPendingCnotTarget/);
   assert.match(circuit, /@mouseleave="handleSlotLeave\(columnIndex, row\)"/);
   assert.match(circuit, /setFaithfulColumnGate\(columnIndex, rowIndex, null\)/);

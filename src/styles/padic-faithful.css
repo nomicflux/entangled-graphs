@@ -25,10 +25,6 @@
   border-radius: 16px;
 }
 
-.padic-faithful-column-center .padic-circuit-panel .circuit-columns {
-  min-height: 220px;
-}
-
 .padic-faithful-controls {
   display: flex;
   flex-wrap: wrap;

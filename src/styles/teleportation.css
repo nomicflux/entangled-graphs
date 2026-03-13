@@ -55,12 +55,7 @@
 
 .teleport-circuit-columns {
   grid-auto-columns: minmax(82px, 1fr);
-  min-height: 250px;
   padding-top: 30px;
-}
-
-.teleport-circuit-column {
-  min-height: 220px;
 }
 
 .teleport-column-label {

@@ -1,6 +1,7 @@
 import type { ComputedRef, Ref } from "vue";
 import type { CircuitColumn, QubitRow } from "../../types";
 import type { ConnectorSegment, PendingPlacement } from "./grid-interaction-types";
+import { quantumRowCenterY } from "./quantum-register-layout";
 
 export type GridConnectorDeps = {
   rows: ComputedRef<QubitRow[]>;
@@ -89,15 +90,13 @@ export const useCircuitGridConnectors = ({ rows, pendingPlacement }: GridConnect
     ];
   };
 
-  const rowCenterPercent = (row: number): number => ((row + 0.5) / rows.value.length) * 100;
-
   const connectorStyle = (segment: ConnectorSegment): Record<string, string> => {
-    const start = rowCenterPercent(Math.min(segment.fromRow, segment.toRow));
-    const end = rowCenterPercent(Math.max(segment.fromRow, segment.toRow));
+    const start = quantumRowCenterY(Math.min(segment.fromRow, segment.toRow));
+    const end = quantumRowCenterY(Math.max(segment.fromRow, segment.toRow));
 
     return {
-      top: `${start}%`,
-      height: `${Math.max(0, end - start)}%`,
+      top: `${start}px`,
+      height: `${Math.max(0, end - start)}px`,
     };
   };
 

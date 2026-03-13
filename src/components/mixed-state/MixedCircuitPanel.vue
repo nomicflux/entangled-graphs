@@ -69,81 +69,87 @@
           v-for="(column, colIndex) in gridColumns"
           :key="colIndex"
           class="circuit-column"
-          :style="{ gridTemplateRows: `repeat(${rows.length}, minmax(56px, 1fr))` }"
         >
-          <svg class="column-entanglement" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-            <rect
-              v-for="(group, groupIndex) in correlationGroupsForColumn(colIndex)"
-              :key="`group-${colIndex}-${groupIndex}`"
-              class="mixed-correlation-band"
-              :x="group.x"
-              :y="group.y"
-              :width="group.width"
-              :height="group.height"
-              :rx="group.rx"
-            />
-            <path
-              v-for="overlay in pairCorrelationsForColumn(colIndex)"
-              :key="`pair-${colIndex}-${overlay.fromRow}-${overlay.toRow}`"
-              class="mixed-correlation-arc"
-              :d="correlationArcPath(overlay)"
-              :style="correlationArcStyle(overlay)"
+          <div class="column-quantum-register" :style="quantumRegisterStyle">
+            <svg
+              class="column-entanglement"
+              :viewBox="`0 0 100 ${quantumRegisterHeightPx}`"
+              preserveAspectRatio="none"
+              aria-hidden="true"
             >
-              <title>{{ correlationTooltip(overlay) }}</title>
-            </path>
-          </svg>
+              <rect
+                v-for="(group, groupIndex) in correlationGroupsForColumn(colIndex)"
+                :key="`group-${colIndex}-${groupIndex}`"
+                class="mixed-correlation-band"
+                :x="group.x"
+                :y="group.y"
+                :width="group.width"
+                :height="group.height"
+                :rx="group.rx"
+              />
+              <path
+                v-for="overlay in pairCorrelationsForColumn(colIndex)"
+                :key="`pair-${colIndex}-${overlay.fromRow}-${overlay.toRow}`"
+                class="mixed-correlation-arc"
+                :d="correlationArcPath(overlay)"
+                :style="correlationArcStyle(overlay)"
+              >
+                <title>{{ correlationTooltip(overlay) }}</title>
+              </path>
+            </svg>
 
-          <div class="column-connectors">
-            <div
-              v-for="connector in connectorSegments(column, colIndex)"
-              :key="connector.id"
-              class="column-connector"
-              :class="[connector.kind, { preview: connector.preview }]"
-              :style="connectorStyle(connector)"
-            ></div>
-          </div>
+            <div class="column-connectors">
+              <div
+                v-for="connector in connectorSegments(column, colIndex)"
+                :key="connector.id"
+                class="column-connector"
+                :class="[connector.kind, { preview: connector.preview }]"
+                :style="connectorStyle(connector)"
+              ></div>
+            </div>
 
-          <div
-            v-for="row in rows"
-            :key="row"
-            class="gate-slot"
-            :class="{
-              'is-drop-target': isDropTarget(colIndex, row),
-              'is-row-locked': isRowLockedAt(colIndex, row),
-              'is-core-locked': isCellLockedAt(colIndex, row),
-            }"
-            :title="slotTitle(colIndex, row)"
-            @dragover.prevent="handleDragOver(colIndex, row)"
-            @dragleave="handleDragLeave(colIndex, row)"
-            @drop.prevent="handleDrop(colIndex, row)"
-            @mouseenter="handleSlotHover(colIndex, row)"
-            @mousemove="handleSlotHover(colIndex, row)"
-            @mouseleave="handleSlotLeave(colIndex, row)"
-            @click="handleSlotClick(colIndex, row, $event)"
-          >
-            <span class="gate-slot-label">q{{ row }}</span>
             <div
-              class="gate-token"
+              v-for="row in rows"
+              :key="row"
+              class="gate-slot"
               :class="{
-                empty: slotInstance(column, row) === null,
-                draggable: isDraggableToken(column, row, colIndex),
-                'is-drag-source': isDragSource(colIndex, row),
-                'is-cnot-control': isCnotControl(column, row) || isPendingCnotControl(colIndex, row),
-                'is-cnot-target': isCnotTarget(column, row) || isPendingCnotTarget(colIndex, row),
-                'is-toffoli-control': isToffoliControl(column, row) || isPendingToffoliControl(colIndex, row),
-                'is-toffoli-target': isToffoliTarget(column, row) || isPendingToffoliTarget(colIndex, row),
-                'is-multi-custom-wire': isCustomMultiWire(column, row) || isPendingMultiWire(colIndex, row),
-                'is-multi-custom-hover': isPendingMultiHover(colIndex, row),
-                'is-measurement': isMeasurementToken(column, row),
-                'is-row-locked-token': isRowLockedAt(colIndex, row),
-                'is-core-locked-token': isCellLockedAt(colIndex, row),
-                'mixed-noise-token': isNoiseToken(column, row),
+                'is-drop-target': isDropTarget(colIndex, row),
+                'is-row-locked': isRowLockedAt(colIndex, row),
+                'is-core-locked': isCellLockedAt(colIndex, row),
               }"
-              :draggable="isDraggableToken(column, row, colIndex)"
-              @dragstart="startCellDrag(colIndex, row, $event)"
-              @dragend="endDrag"
+              :title="slotTitle(colIndex, row)"
+              @dragover.prevent="handleDragOver(colIndex, row)"
+              @dragleave="handleDragLeave(colIndex, row)"
+              @drop.prevent="handleDrop(colIndex, row)"
+              @mouseenter="handleSlotHover(colIndex, row)"
+              @mousemove="handleSlotHover(colIndex, row)"
+              @mouseleave="handleSlotLeave(colIndex, row)"
+              @click="handleSlotClick(colIndex, row, $event)"
             >
-              {{ tokenFor(column, row) }}
+              <span class="gate-slot-label">q{{ row }}</span>
+              <div
+                class="gate-token"
+                :class="{
+                  empty: slotInstance(column, row) === null,
+                  draggable: isDraggableToken(column, row, colIndex),
+                  'is-drag-source': isDragSource(colIndex, row),
+                  'is-cnot-control': isCnotControl(column, row) || isPendingCnotControl(colIndex, row),
+                  'is-cnot-target': isCnotTarget(column, row) || isPendingCnotTarget(colIndex, row),
+                  'is-toffoli-control': isToffoliControl(column, row) || isPendingToffoliControl(colIndex, row),
+                  'is-toffoli-target': isToffoliTarget(column, row) || isPendingToffoliTarget(colIndex, row),
+                  'is-multi-custom-wire': isCustomMultiWire(column, row) || isPendingMultiWire(colIndex, row),
+                  'is-multi-custom-hover': isPendingMultiHover(colIndex, row),
+                  'is-measurement': isMeasurementToken(column, row),
+                  'is-row-locked-token': isRowLockedAt(colIndex, row),
+                  'is-core-locked-token': isCellLockedAt(colIndex, row),
+                  'mixed-noise-token': isNoiseToken(column, row),
+                }"
+                :draggable="isDraggableToken(column, row, colIndex)"
+                @dragstart="startCellDrag(colIndex, row, $event)"
+                @dragend="endDrag"
+              >
+                {{ tokenFor(column, row) }}
+              </div>
             </div>
           </div>
         </div>
@@ -207,6 +213,14 @@ import {
 import { availableBuiltinGatesForQubitCount, operatorArityForGate } from "../../state/operators";
 import type { CircuitGridModelContext } from "../circuit/model-context";
 import type { PaletteEntry, PaletteGroup } from "../circuit/palette-types";
+import {
+  quantumGridTemplateRows,
+  quantumRegisterHeight,
+  quantumRegisterStyleVars,
+  quantumRowBottomY,
+  quantumRowCenterY,
+  quantumRowTopY,
+} from "../circuit/quantum-register-layout";
 import CircuitGatePalette from "../circuit/CircuitGatePalette.vue";
 import { useCircuitGridInteractions } from "../circuit/useCircuitGridInteractions";
 import MixedCircuitStageSnapshots from "./MixedCircuitStageSnapshots.vue";
@@ -387,6 +401,13 @@ const stageVisualModels = computed(() =>
   mixedStageSnapshots.value.map((snapshot) => deriveDensityStageVisualModel(snapshot.rho)),
 );
 
+const quantumGridTemplate = computed(() => quantumGridTemplateRows(mixedQubitCount.value));
+const quantumRegisterHeightPx = computed(() => quantumRegisterHeight(mixedQubitCount.value));
+const quantumRegisterStyle = computed<Record<string, string>>(() => ({
+  ...quantumRegisterStyleVars(mixedQubitCount.value),
+  gridTemplateRows: quantumGridTemplate.value,
+}));
+
 const {
   rows,
   placementHint,
@@ -439,9 +460,8 @@ const correlationGroupsForColumn = (columnIndex: number) =>
   (stageVisualModels.value[columnIndex + 1]?.correlationGroups ?? []).map((group) => {
     const startRow = Math.min(...group);
     const endRow = Math.max(...group);
-    const step = 100 / Math.max(rows.value.length, 1);
-    const y = startRow * step + 8;
-    const bottom = (endRow + 1) * step - 8;
+    const y = quantumRowTopY(startRow) + 8;
+    const bottom = quantumRowBottomY(endRow) - 8;
 
     return {
       x: 8,
@@ -452,11 +472,9 @@ const correlationGroupsForColumn = (columnIndex: number) =>
     };
   });
 
-const rowCenter = (row: number): number => ((row + 0.5) / Math.max(rows.value.length, 1)) * 100;
-
 const correlationArcPath = (overlay: PairCorrelationOverlay): string => {
-  const y1 = rowCenter(overlay.fromRow);
-  const y2 = rowCenter(overlay.toRow);
+  const y1 = quantumRowCenterY(Math.min(overlay.fromRow, overlay.toRow));
+  const y2 = quantumRowCenterY(Math.max(overlay.fromRow, overlay.toRow));
   const controlX = 16 + Math.abs(y2 - y1) * 0.24;
   return `M 20 ${y1} C ${controlX} ${y1}, ${controlX} ${y2}, 20 ${y2}`;
 };

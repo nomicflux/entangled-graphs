@@ -2,6 +2,7 @@ import { computed, type ComputedRef } from "vue";
 import type { EntanglementLink, QubitRow, StageEntanglementModel } from "../../types";
 import { entanglement_delta_links } from "../../quantum";
 import { entanglementArcStyle, multipartiteBandStyle, multipartiteTooltip, pairwiseTooltip } from "./entanglement-display";
+import { pairwiseEntanglementArcPath } from "./entanglement-geometry";
 import { multipartiteBandsForStageColumn } from "./entanglement-overlays";
 import type { MultipartiteBand } from "./grid-interaction-types";
 
@@ -28,21 +29,10 @@ export const useCircuitGridEntanglement = (
 
   const multipartiteBandsForColumn = (columnIndex: number): MultipartiteBand[] => [...(multipartiteBandsByColumn.value[columnIndex] ?? [])];
 
-  const rowCenterViewBox = (row: number): number => ((row + 0.5) / rows.value.length) * 100;
-
-  const entanglementArcPath = (link: EntanglementLink): string => {
-    const startY = rowCenterViewBox(Math.min(link.fromRow, link.toRow));
-    const endY = rowCenterViewBox(Math.max(link.fromRow, link.toRow));
-    const midY = (startY + endY) * 0.5;
-    const startX = 24;
-    const controlX = 16 - (link.strength * 6);
-    return `M ${startX} ${startY} Q ${controlX} ${midY} ${startX} ${endY}`;
-  };
-
   return {
     entanglementLinksForColumn,
     multipartiteBandsForColumn,
-    entanglementArcPath,
+    entanglementArcPath: pairwiseEntanglementArcPath,
     entanglementArcStyle,
     multipartiteBandStyle,
     pairwiseTooltip,

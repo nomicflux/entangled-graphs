@@ -41,40 +41,41 @@
           v-for="(column, columnIndex) in pAdicFaithfulState.columns"
           :key="`padic-column-${columnIndex}`"
           class="circuit-column"
-          :style="{ gridTemplateRows: `repeat(${rows.length}, minmax(56px, 1fr))` }"
         >
-          <div class="column-connectors">
-            <div
-              v-for="connector in connectorSegments(columnIndex)"
-              :key="connector.id"
-              class="column-connector cnot"
-              :class="{ preview: connector.preview }"
-              :style="connectorStyle(connector)"
-            ></div>
-          </div>
+          <div class="column-quantum-register" :style="quantumRegisterStyle">
+            <div class="column-connectors">
+              <div
+                v-for="connector in connectorSegments(columnIndex)"
+                :key="connector.id"
+                class="column-connector cnot"
+                :class="{ preview: connector.preview }"
+                :style="connectorStyle(connector)"
+              ></div>
+            </div>
 
-          <div
-            v-for="row in rows"
-            :key="`padic-slot-${columnIndex}-${row}`"
-            class="gate-slot"
-            :class="{ 'is-drop-target': isDropTarget(columnIndex, row) }"
-            @dragover.prevent="handleDragOver(columnIndex, row)"
-            @dragleave="handleDragLeave(columnIndex, row)"
-            @drop.prevent="handleDrop(columnIndex, row)"
-            @mouseenter="handleSlotHover(columnIndex, row)"
-            @mousemove="handleSlotHover(columnIndex, row)"
-            @mouseleave="handleSlotLeave(columnIndex, row)"
-            @click="handleSlotClick($event, columnIndex, row)"
-          >
-            <span class="gate-slot-label">q{{ row }}</span>
             <div
-              class="gate-token"
-              :class="tokenClasses(column.gates[row] ?? null, columnIndex, row)"
-              :draggable="isDraggableToken(column.gates[row] ?? null)"
-              @dragstart="startCellDrag(columnIndex, row, $event)"
-              @dragend="endDrag"
+              v-for="row in rows"
+              :key="`padic-slot-${columnIndex}-${row}`"
+              class="gate-slot"
+              :class="{ 'is-drop-target': isDropTarget(columnIndex, row) }"
+              @dragover.prevent="handleDragOver(columnIndex, row)"
+              @dragleave="handleDragLeave(columnIndex, row)"
+              @drop.prevent="handleDrop(columnIndex, row)"
+              @mouseenter="handleSlotHover(columnIndex, row)"
+              @mousemove="handleSlotHover(columnIndex, row)"
+              @mouseleave="handleSlotLeave(columnIndex, row)"
+              @click="handleSlotClick($event, columnIndex, row)"
             >
-              {{ tokenLabel(column.gates[row] ?? null, columnIndex, row) }}
+              <span class="gate-slot-label">q{{ row }}</span>
+              <div
+                class="gate-token"
+                :class="tokenClasses(column.gates[row] ?? null, columnIndex, row)"
+                :draggable="isDraggableToken(column.gates[row] ?? null)"
+                @dragstart="startCellDrag(columnIndex, row, $event)"
+                @dragend="endDrag"
+              >
+                {{ tokenLabel(column.gates[row] ?? null, columnIndex, row) }}
+              </div>
             </div>
           </div>
         </div>
@@ -88,6 +89,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { quantumGridTemplateRows, quantumRegisterStyleVars, quantumRowCenterY } from "../circuit/quantum-register-layout";
 import {
   addFaithfulColumn,
   pAdicFaithfulState,
@@ -104,6 +106,11 @@ type SingleGate = "I" | "X" | "Z" | "H" | "M";
 const rows = computed(() =>
   Array.from({ length: pAdicFaithfulState.qubitCount }, (_, index) => index),
 );
+const quantumGridTemplate = computed(() => quantumGridTemplateRows(rows.value.length));
+const quantumRegisterStyle = computed<Record<string, string>>(() => ({
+  ...quantumRegisterStyleVars(rows.value.length),
+  gridTemplateRows: quantumGridTemplate.value,
+}));
 
 type PAdicDragSource = {
   columnIndex: number;
@@ -395,16 +402,13 @@ const connectorSegments = (columnIndex: number): ReadonlyArray<PAdicCnotConnecto
   ];
 };
 
-const rowCenterPercent = (row: number): number =>
-  ((row + 0.5) / rows.value.length) * 100;
-
 const connectorStyle = (segment: PAdicCnotConnector): Record<string, string> => {
-  const start = rowCenterPercent(Math.min(segment.fromRow, segment.toRow));
-  const end = rowCenterPercent(Math.max(segment.fromRow, segment.toRow));
+  const start = quantumRowCenterY(Math.min(segment.fromRow, segment.toRow));
+  const end = quantumRowCenterY(Math.max(segment.fromRow, segment.toRow));
 
   return {
-    top: `${start}%`,
-    height: `${Math.max(0, end - start)}%`,
+    top: `${start}px`,
+    height: `${Math.max(0, end - start)}px`,
   };
 };
 

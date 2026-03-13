@@ -39,6 +39,17 @@ test("free-form workbench exposes pure and mixed subtabs with persisted selectio
   assert.match(source, /writeFreeFormSectionToStorage/);
 });
 
+test("free-form circuit panel binds entanglement and connectors to a dedicated quantum register wrapper", () => {
+  const panel = readSource("src/components/CircuitPanel.vue");
+  const css = readSource("src/styles/circuit-grid.css");
+
+  assert.match(panel, /column-quantum-register/);
+  assert.match(panel, /quantumRegisterStyle/);
+  assert.match(panel, /viewBox="`0 0 100 \$\{quantumRegisterHeightPx\}`"/);
+  assert.match(css, /\.column-quantum-register/);
+  assert.doesNotMatch(panel, /minmax\(56px, 1fr\)/);
+});
+
 test("pure and mixed stores stay isolated", () => {
   const originalMixedInputs = clonePreparedInputs(mixedStore.mixedState.preparedInputs);
   const originalMixedColumns = cloneMixedColumns(mixedStore.mixedState.columns);

@@ -1,6 +1,7 @@
 import { computed, type ComputedRef } from "vue";
 import type { EntanglementLink, QubitRow, StateEnsemble } from "../../../types";
 import { entanglement_delta_links, entanglement_links_from_ensemble, stage_entanglement_models_from_snapshots } from "../../../quantum";
+import { pairwiseEntanglementArcPath } from "../../circuit/entanglement-geometry";
 import { entanglementArcStyle, pairwiseTooltip } from "../../circuit/entanglement-display";
 
 type UseAlgorithmEntanglementInput = {
@@ -22,21 +23,10 @@ export const useAlgorithmEntanglement = ({ ensembleSnapshots, rows }: UseAlgorit
 
   const entanglementLinksForColumn = (columnIndex: number): EntanglementLink[] => [...(entanglementLinksByColumn.value[columnIndex] ?? [])];
 
-  const rowCenterViewBox = (row: number): number => ((row + 0.5) / rows.length) * 100;
-
-  const entanglementArcPath = (link: EntanglementLink): string => {
-    const startY = rowCenterViewBox(Math.min(link.fromRow, link.toRow));
-    const endY = rowCenterViewBox(Math.max(link.fromRow, link.toRow));
-    const midY = (startY + endY) * 0.5;
-    const startX = 24;
-    const controlX = 16 - (link.strength * 6);
-    return `M ${startX} ${startY} Q ${controlX} ${midY} ${startX} ${endY}`;
-  };
-
   return {
     stageEntanglementModels,
     entanglementLinksForColumn,
-    entanglementArcPath,
+    entanglementArcPath: pairwiseEntanglementArcPath,
     entanglementArcStyle,
     pairwiseTooltip,
   };

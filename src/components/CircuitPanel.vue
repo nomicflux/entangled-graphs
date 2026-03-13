@@ -34,88 +34,89 @@
           v-for="(column, colIndex) in state.columns"
           :key="colIndex"
           class="circuit-column"
-          :style="{ gridTemplateRows: `repeat(${rows.length}, minmax(56px, 1fr))` }"
         >
-          <svg
-            class="column-entanglement"
-            viewBox="0 0 100 100"
-            preserveAspectRatio="none"
-            aria-hidden="true"
-          >
-            <rect
-              v-for="band in multipartiteBandsForColumn(colIndex)"
-              :key="`band-${colIndex}-${band.id}`"
-              class="entanglement-multipartite-band"
-              :x="band.x"
-              :y="band.y"
-              :width="band.width"
-              :height="band.height"
-              :rx="band.rx"
-              :style="multipartiteBandStyle(band.strength)"
+          <div class="column-quantum-register" :style="quantumRegisterStyle">
+            <svg
+              class="column-entanglement"
+              :viewBox="`0 0 100 ${quantumRegisterHeightPx}`"
+              preserveAspectRatio="none"
+              aria-hidden="true"
             >
-              <title>{{ multipartiteTooltip(band.rows, band.strength) }}</title>
-            </rect>
-            <path
-              v-for="(link, linkIndex) in entanglementLinksForColumn(colIndex)"
-              :key="`${colIndex}-${link.fromRow}-${link.toRow}-${linkIndex}`"
-              class="entanglement-arc"
-              :d="entanglementArcPath(link)"
-              :style="entanglementArcStyle(link)"
-            >
-              <title>{{ pairwiseTooltip(link) }}</title>
-            </path>
-          </svg>
+              <rect
+                v-for="band in multipartiteBandsForColumn(colIndex)"
+                :key="`band-${colIndex}-${band.id}`"
+                class="entanglement-multipartite-band"
+                :x="band.x"
+                :y="band.y"
+                :width="band.width"
+                :height="band.height"
+                :rx="band.rx"
+                :style="multipartiteBandStyle(band.strength)"
+              >
+                <title>{{ multipartiteTooltip(band.rows, band.strength) }}</title>
+              </rect>
+              <path
+                v-for="(link, linkIndex) in entanglementLinksForColumn(colIndex)"
+                :key="`${colIndex}-${link.fromRow}-${link.toRow}-${linkIndex}`"
+                class="entanglement-arc"
+                :d="entanglementArcPath(link)"
+                :style="entanglementArcStyle(link)"
+              >
+                <title>{{ pairwiseTooltip(link) }}</title>
+              </path>
+            </svg>
 
-          <div class="column-connectors">
-            <div
-              v-for="connector in connectorSegments(column, colIndex)"
-              :key="connector.id"
-              class="column-connector"
-              :class="[connector.kind, { preview: connector.preview }]"
-              :style="connectorStyle(connector)"
-            ></div>
-          </div>
+            <div class="column-connectors">
+              <div
+                v-for="connector in connectorSegments(column, colIndex)"
+                :key="connector.id"
+                class="column-connector"
+                :class="[connector.kind, { preview: connector.preview }]"
+                :style="connectorStyle(connector)"
+              ></div>
+            </div>
 
-          <div
-            v-for="row in rows"
-            :key="row"
-            class="gate-slot"
-            :class="{
-              'is-drop-target': isDropTarget(colIndex, row),
-              'is-row-locked': isRowLockedAt(colIndex, row),
-              'is-core-locked': isCellLockedAt(colIndex, row),
-            }"
-            :title="slotTitle(colIndex, row)"
-            @dragover.prevent="handleDragOver(colIndex, row)"
-            @dragleave="handleDragLeave(colIndex, row)"
-            @drop.prevent="handleDrop(colIndex, row)"
-            @mouseenter="handleSlotHover(colIndex, row)"
-            @mousemove="handleSlotHover(colIndex, row)"
-            @mouseleave="handleSlotLeave(colIndex, row)"
-            @click="handleSlotClick(colIndex, row, $event)"
-          >
-            <span class="gate-slot-label">q{{ row }}</span>
             <div
-              class="gate-token"
+              v-for="row in rows"
+              :key="row"
+              class="gate-slot"
               :class="{
-                empty: slotInstance(column, row) === null,
-                draggable: isDraggableToken(column, row, colIndex),
-                'is-drag-source': isDragSource(colIndex, row),
-                'is-cnot-control': isCnotControl(column, row) || isPendingCnotControl(colIndex, row),
-                'is-cnot-target': isCnotTarget(column, row) || isPendingCnotTarget(colIndex, row),
-                'is-toffoli-control': isToffoliControl(column, row) || isPendingToffoliControl(colIndex, row),
-                'is-toffoli-target': isToffoliTarget(column, row) || isPendingToffoliTarget(colIndex, row),
-                'is-multi-custom-wire': isCustomMultiWire(column, row) || isPendingMultiWire(colIndex, row),
-                'is-multi-custom-hover': isPendingMultiHover(colIndex, row),
-                'is-measurement': isMeasurementToken(column, row),
-                'is-row-locked-token': isRowLockedAt(colIndex, row),
-                'is-core-locked-token': isCellLockedAt(colIndex, row),
+                'is-drop-target': isDropTarget(colIndex, row),
+                'is-row-locked': isRowLockedAt(colIndex, row),
+                'is-core-locked': isCellLockedAt(colIndex, row),
               }"
-              :draggable="isDraggableToken(column, row, colIndex)"
-              @dragstart="startCellDrag(colIndex, row, $event)"
-              @dragend="endDrag"
+              :title="slotTitle(colIndex, row)"
+              @dragover.prevent="handleDragOver(colIndex, row)"
+              @dragleave="handleDragLeave(colIndex, row)"
+              @drop.prevent="handleDrop(colIndex, row)"
+              @mouseenter="handleSlotHover(colIndex, row)"
+              @mousemove="handleSlotHover(colIndex, row)"
+              @mouseleave="handleSlotLeave(colIndex, row)"
+              @click="handleSlotClick(colIndex, row, $event)"
             >
-              {{ tokenFor(column, row) }}
+              <span class="gate-slot-label">q{{ row }}</span>
+              <div
+                class="gate-token"
+                :class="{
+                  empty: slotInstance(column, row) === null,
+                  draggable: isDraggableToken(column, row, colIndex),
+                  'is-drag-source': isDragSource(colIndex, row),
+                  'is-cnot-control': isCnotControl(column, row) || isPendingCnotControl(colIndex, row),
+                  'is-cnot-target': isCnotTarget(column, row) || isPendingCnotTarget(colIndex, row),
+                  'is-toffoli-control': isToffoliControl(column, row) || isPendingToffoliControl(colIndex, row),
+                  'is-toffoli-target': isToffoliTarget(column, row) || isPendingToffoliTarget(colIndex, row),
+                  'is-multi-custom-wire': isCustomMultiWire(column, row) || isPendingMultiWire(colIndex, row),
+                  'is-multi-custom-hover': isPendingMultiHover(colIndex, row),
+                  'is-measurement': isMeasurementToken(column, row),
+                  'is-row-locked-token': isRowLockedAt(colIndex, row),
+                  'is-core-locked-token': isCellLockedAt(colIndex, row),
+                }"
+                :draggable="isDraggableToken(column, row, colIndex)"
+                @dragstart="startCellDrag(colIndex, row, $event)"
+                @dragend="endDrag"
+              >
+                {{ tokenFor(column, row) }}
+              </div>
             </div>
           </div>
         </div>
@@ -185,6 +186,11 @@ import CircuitSingleCustomModal from "./circuit/CircuitSingleCustomModal.vue";
 import CircuitBlockCustomModal from "./circuit/CircuitBlockCustomModal.vue";
 import { blockMatrix2x2, type SingleQubitMatrixEntries } from "../operator";
 import type { PaletteEntry, PaletteGroup } from "./circuit/palette-types";
+import {
+  quantumGridTemplateRows,
+  quantumRegisterHeight,
+  quantumRegisterStyleVars,
+} from "./circuit/quantum-register-layout";
 import { useCircuitGridInteractions } from "./circuit/useCircuitGridInteractions";
 
 const paletteBuiltinGates: readonly GateId[] = [
@@ -296,6 +302,13 @@ const {
   isRowLockedAt,
   slotTitle,
 } = useCircuitGridInteractions();
+
+const quantumGridTemplate = computed(() => quantumGridTemplateRows(rows.value.length));
+const quantumRegisterHeightPx = computed(() => quantumRegisterHeight(rows.value.length));
+const quantumRegisterStyle = computed<Record<string, string>>(() => ({
+  ...quantumRegisterStyleVars(rows.value.length),
+  gridTemplateRows: quantumGridTemplate.value,
+}));
 
 const selectGate = (gate: GateId) => {
   const next = state.selectedGate === gate ? null : gate;

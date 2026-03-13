@@ -58,59 +58,65 @@
                 v-for="(column, colIndex) in columns"
                 :key="column.id"
                 class="circuit-column algorithm-circuit-column"
-                :style="{ gridTemplateRows: quantumGridTemplateRows }"
               >
-                <svg class="column-entanglement" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-                  <rect
-                    v-for="band in multipartiteBandsForColumn(colIndex)"
-                    :key="`alg-band-${colIndex}-${band.id}`"
-                    class="entanglement-multipartite-band"
-                    :x="band.x"
-                    :y="band.y"
-                    :width="band.width"
-                    :height="band.height"
-                    :rx="band.rx"
-                    :style="multipartiteBandStyle(band.strength)"
+                <div class="column-quantum-register" :style="quantumRegisterStyle">
+                  <svg
+                    class="column-entanglement"
+                    :viewBox="`0 0 100 ${quantumRegisterHeightPx}`"
+                    preserveAspectRatio="none"
+                    aria-hidden="true"
                   >
-                    <title>{{ multipartiteTooltip(band.rows, band.strength) }}</title>
-                  </rect>
-                  <path
-                    v-for="(link, linkIndex) in entanglementLinksForColumn(colIndex)"
-                    :key="`${colIndex}-${link.fromRow}-${link.toRow}-${linkIndex}`"
-                    class="entanglement-arc"
-                    :d="entanglementArcPath(link)"
-                    :style="entanglementArcStyle(link)"
-                  >
-                    <title>{{ pairwiseTooltip(link) }}</title>
-                  </path>
-                </svg>
+                    <rect
+                      v-for="band in multipartiteBandsForColumn(colIndex)"
+                      :key="`alg-band-${colIndex}-${band.id}`"
+                      class="entanglement-multipartite-band"
+                      :x="band.x"
+                      :y="band.y"
+                      :width="band.width"
+                      :height="band.height"
+                      :rx="band.rx"
+                      :style="multipartiteBandStyle(band.strength)"
+                    >
+                      <title>{{ multipartiteTooltip(band.rows, band.strength) }}</title>
+                    </rect>
+                    <path
+                      v-for="(link, linkIndex) in entanglementLinksForColumn(colIndex)"
+                      :key="`${colIndex}-${link.fromRow}-${link.toRow}-${linkIndex}`"
+                      class="entanglement-arc"
+                      :d="entanglementArcPath(link)"
+                      :style="entanglementArcStyle(link)"
+                    >
+                      <title>{{ pairwiseTooltip(link) }}</title>
+                    </path>
+                  </svg>
 
-                <div class="column-connectors">
-                  <div
-                    v-for="connector in connectorSegments(column)"
-                    :key="connector.id"
-                    class="column-connector"
-                    :class="connector.kind"
-                    :style="connectorStyle(connector)"
-                  ></div>
-                </div>
+                  <div class="column-connectors">
+                    <div
+                      v-for="connector in connectorSegments(column)"
+                      :key="connector.id"
+                      class="column-connector"
+                      :class="connector.kind"
+                      :style="connectorStyle(connector)"
+                    ></div>
+                  </div>
 
-                <div v-for="row in rows" :key="row" class="gate-slot is-teleport-locked" :title="slotTitle">
-                  <span class="gate-slot-label">q{{ row }}</span>
-                  <div
-                    class="gate-token"
-                    :class="{
-                      empty: slotInstance(column, row) === null && tokenText(column, row) === '',
-                      'is-cnot-control': isCnotControl(column, row),
-                      'is-cnot-target': isCnotTarget(column, row),
-                      'is-toffoli-control': isToffoliControl(column, row),
-                      'is-toffoli-target': isToffoliTarget(column, row),
-                      'is-measurement': isMeasurementToken(column, row),
-                      'is-multi-custom-wire': isMultiWire(column, row),
-                      'is-teleport-classical': slotInstance(column, row) === null && tokenText(column, row) !== '',
-                    }"
-                  >
-                    {{ tokenText(column, row) }}
+                  <div v-for="row in rows" :key="row" class="gate-slot is-teleport-locked" :title="slotTitle">
+                    <span class="gate-slot-label">q{{ row }}</span>
+                    <div
+                      class="gate-token"
+                      :class="{
+                        empty: slotInstance(column, row) === null && tokenText(column, row) === '',
+                        'is-cnot-control': isCnotControl(column, row),
+                        'is-cnot-target': isCnotTarget(column, row),
+                        'is-toffoli-control': isToffoliControl(column, row),
+                        'is-toffoli-target': isToffoliTarget(column, row),
+                        'is-measurement': isMeasurementToken(column, row),
+                        'is-multi-custom-wire': isMultiWire(column, row),
+                        'is-teleport-classical': slotInstance(column, row) === null && tokenText(column, row) !== '',
+                      }"
+                    >
+                      {{ tokenText(column, row) }}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -202,6 +208,11 @@ import {
   routeRailPathForOverlay,
   rowCenterY,
 } from "../../circuit/fixed-panel-classical-layout";
+import {
+  quantumGridTemplateRows as quantumGridRows,
+  quantumRegisterHeight,
+  quantumRegisterStyleVars,
+} from "../../circuit/quantum-register-layout";
 import type { MultipartiteBand } from "../../circuit/grid-interaction-types";
 import StageInspector from "../../StageInspector.vue";
 import CircuitStageSnapshots from "../../circuit/CircuitStageSnapshots.vue";
@@ -303,7 +314,12 @@ const connectorSegments = (column: AlgorithmColumn): ConnectorSegment[] =>
     return [];
   });
 
-const quantumGridTemplateRows = computed(() => `repeat(${props.rows.length}, ${CIRCUIT_SLOT_HEIGHT_PX}px)`);
+const quantumGridTemplateRows = computed(() => quantumGridRows(props.rows.length, CIRCUIT_SLOT_HEIGHT_PX));
+const quantumRegisterHeightPx = computed(() => quantumRegisterHeight(props.rows.length, CIRCUIT_SLOT_HEIGHT_PX));
+const quantumRegisterStyle = computed<Record<string, string>>(() => ({
+  ...quantumRegisterStyleVars(props.rows.length, CIRCUIT_SLOT_HEIGHT_PX),
+  gridTemplateRows: quantumGridTemplateRows.value,
+}));
 const panelGridTemplateColumns = computed(() =>
   fixedGridTemplateColumns(props.columns.map(() => REGULAR_COLUMN_WIDTH_PX)),
 );

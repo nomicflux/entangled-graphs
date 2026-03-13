@@ -46,9 +46,9 @@
 .circuit-columns {
   display: grid;
   gap: 24px;
-  min-height: 220px;
   border-radius: 12px;
   box-sizing: border-box;
+  align-items: start;
 }
 
 .classical-route-overlay {
@@ -127,10 +127,17 @@
 
 .circuit-column {
   position: relative;
-  display: grid;
-  gap: 0;
-  align-items: center;
   width: 100%;
+  min-width: 0;
+}
+
+.column-quantum-register {
+  position: relative;
+  display: grid;
+  grid-template-rows: repeat(var(--circuit-row-count), var(--circuit-row-height));
+  gap: 0;
+  height: var(--circuit-quantum-height);
+  min-height: var(--circuit-quantum-height);
 }
 
 .column-entanglement {

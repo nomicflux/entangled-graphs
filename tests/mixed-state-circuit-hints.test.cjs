@@ -16,5 +16,8 @@ test("mixed-state circuit groups noise gates with new-gate strength controls and
 
   assert.match(source, /mixed-noise-group/);
   assert.match(source, /New Noise Gate Strength/);
+  assert.match(source, /column-quantum-register/);
+  assert.match(source, /quantumRowCenterY/);
+  assert.doesNotMatch(source, /minmax\(56px, 1fr\)/);
   assert.match(constantsSource, /\[0,\s*0\.1,\s*0\.25,\s*0\.5\]/);
 });

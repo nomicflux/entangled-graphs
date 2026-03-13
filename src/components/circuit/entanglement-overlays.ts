@@ -1,4 +1,5 @@
 import type { QubitRow, StageEntanglementModel } from "../../types";
+import { multipartiteBandBottomY, multipartiteBandTopY } from "./entanglement-geometry";
 import type { MultipartiteBand } from "./grid-interaction-types";
 
 export const multipartiteBandsForStageColumn = (
@@ -21,8 +22,8 @@ export const multipartiteBandsForStageColumn = (
     .map((component) => {
       const minRow = Math.min(...component.rows);
       const maxRow = Math.max(...component.rows);
-      const top = ((minRow / rowCount) * 100) + 3.5;
-      const bottom = (((maxRow + 1) / rowCount) * 100) - 3.5;
+      const top = multipartiteBandTopY(minRow);
+      const bottom = multipartiteBandBottomY(maxRow);
       return {
         id: component.rows.join("-"),
         rows: component.rows as ReadonlyArray<QubitRow>,

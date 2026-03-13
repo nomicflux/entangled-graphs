@@ -1,10 +1,15 @@
 import type { ClassicalRouteAnchor, ClassicalRouteOverlay, FixedPanelClassicalLayout } from "../../types";
+import {
+  CIRCUIT_ROW_HEIGHT_PX,
+  quantumRegisterHeight,
+  quantumRowCenterY,
+} from "./quantum-register-layout";
 
 export const REGULAR_COLUMN_WIDTH_PX = 96;
 export const MATRIX_COLUMN_WIDTH_PX = 156;
 export const COLUMN_GAP_PX = 24;
 export const CIRCUIT_HEADER_HEIGHT_PX = 52;
-export const CIRCUIT_SLOT_HEIGHT_PX = 56;
+export const CIRCUIT_SLOT_HEIGHT_PX = CIRCUIT_ROW_HEIGHT_PX;
 export const CLASSICAL_BAND_BASE_HEIGHT_PX = 40;
 export const CLASSICAL_LANE_HEIGHT_PX = 28;
 export const CLASSICAL_ROUTE_RAIL_OFFSET_PX = 3;
@@ -45,17 +50,17 @@ export const fixedPanelContentWidth = (columnWidths: readonly number[], layout: 
   fixedPanelBodyWidth(columnWidths) + (fixedPanelContentPadding(layout) * 2);
 
 export const fixedPanelBodyHeight = (rowCount: number, laneCount: number): number =>
-  rowCount * CIRCUIT_SLOT_HEIGHT_PX + classicalBandHeight(laneCount);
+  quantumRegisterHeight(rowCount, CIRCUIT_SLOT_HEIGHT_PX) + classicalBandHeight(laneCount);
 
 export const classicalBandHeight = (laneCount: number): number =>
   laneCount === 0 ? 0 : CLASSICAL_BAND_BASE_HEIGHT_PX + laneCount * CLASSICAL_LANE_HEIGHT_PX;
 
-export const rowCenterY = (row: number): number => row * CIRCUIT_SLOT_HEIGHT_PX + (CIRCUIT_SLOT_HEIGHT_PX * 0.5);
+export const rowCenterY = (row: number): number => quantumRowCenterY(row, CIRCUIT_SLOT_HEIGHT_PX);
 
 export const laneCenterY = (rowCount: number, laneIndex: number): number =>
-  rowCount * CIRCUIT_SLOT_HEIGHT_PX + 20 + laneIndex * CLASSICAL_LANE_HEIGHT_PX;
+  quantumRegisterHeight(rowCount, CIRCUIT_SLOT_HEIGHT_PX) + 20 + laneIndex * CLASSICAL_LANE_HEIGHT_PX;
 
-export const quantumRegisterBottomY = (rowCount: number): number => rowCount * CIRCUIT_SLOT_HEIGHT_PX;
+export const quantumRegisterBottomY = (rowCount: number): number => quantumRegisterHeight(rowCount, CIRCUIT_SLOT_HEIGHT_PX);
 
 const sideSign = (side: "left" | "right" | undefined): number => (side === "left" ? -1 : 1);
 
