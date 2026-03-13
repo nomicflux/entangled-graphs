@@ -27,6 +27,7 @@ export type LessonStepSpec =
       id: string;
       kind: "primitive-columns";
       executionColumns: readonly CircuitColumn[];
+      visibleProjection?: PrimitiveLessonProjection;
     }
   | {
       id: string;
@@ -39,6 +40,10 @@ export type LessonStepSpec =
       family: StabilizerCheckFamilySpec;
       executionColumns: readonly CircuitColumn[];
     };
+
+export type PrimitiveLessonProjection =
+  | { kind: "last-execution-column" }
+  | { kind: "active-conditioned-gates" };
 
 export type ParityLaneView = {
   laneIndex: number;

@@ -1,5 +1,5 @@
 import { computed, ref, watch, type ComputedRef } from "vue";
-import { classicalStatesFromEnsemble } from "../../../classical";
+import { classicalPredicateMatches, classicalStatesFromEnsemble } from "../../../classical";
 import type {
   CircuitColumn,
   EntanglementLink,
@@ -67,30 +67,6 @@ export const useErrorCodeLessonModel = (config: ErrorCodeLessonConfig) => {
     visibleColumnsFromLessonSteps(config.lessonSteps.value),
   );
 
-  const renderColumns = computed<readonly CircuitColumn[]>(() => {
-    const columns: CircuitColumn[] = [];
-
-    for (const step of config.lessonSteps.value) {
-      if (step.kind === "primitive-columns") {
-        const renderColumn = step.executionColumns[step.executionColumns.length - 1] ?? EMPTY_COLUMN;
-        columns.push(renderColumn);
-        continue;
-      }
-
-      if (step.kind === "error-injection") {
-        columns.push(errorColumns.value[0] ?? EMPTY_COLUMN);
-        continue;
-      }
-
-      const laneGroupCount = Math.max(1, Math.ceil(step.family.checks.length / 3));
-      for (let index = 0; index < laneGroupCount; index += 1) {
-        columns.push(EMPTY_COLUMN);
-      }
-    }
-
-    return columns;
-  });
-
   const errorColumnIndex = computed(() => visibleColumns.value.findIndex((column) => column.kind === "error"));
   const errorEditableRows = computed(() => editableRowsForColumn(visibleColumns.value[errorColumnIndex.value]));
 
@@ -149,6 +125,47 @@ export const useErrorCodeLessonModel = (config: ErrorCodeLessonConfig) => {
   const selectedStageSnapshot = computed<StageSnapshot>(() =>
     stageSnapshots.value[selectedStageIndex.value] ?? stageSnapshots.value[0]!,
   );
+
+  const dominantSelectedClassicalState = computed(() =>
+    [...(selectedStageSnapshot.value.classicalStates ?? [])]
+      .sort((left, right) => right.weight - left.weight)[0]
+      ?.state,
+  );
+
+  const projectPrimitiveColumn = (step: Extract<LessonStepSpec, { kind: "primitive-columns" }>): CircuitColumn => {
+    const projection = step.visibleProjection?.kind ?? "last-execution-column";
+    if (projection === "active-conditioned-gates") {
+      return {
+        gates: step.executionColumns
+          .flatMap((column) => column.gates)
+          .filter((gate) => gate.condition && classicalPredicateMatches(dominantSelectedClassicalState.value, gate.condition)),
+      };
+    }
+    return step.executionColumns[step.executionColumns.length - 1] ?? EMPTY_COLUMN;
+  };
+
+  const renderColumns = computed<readonly CircuitColumn[]>(() => {
+    const columns: CircuitColumn[] = [];
+
+    for (const step of config.lessonSteps.value) {
+      if (step.kind === "primitive-columns") {
+        columns.push(projectPrimitiveColumn(step));
+        continue;
+      }
+
+      if (step.kind === "error-injection") {
+        columns.push(errorColumns.value[0] ?? EMPTY_COLUMN);
+        continue;
+      }
+
+      const laneGroupCount = Math.max(1, Math.ceil(step.family.checks.length / 3));
+      for (let index = 0; index < laneGroupCount; index += 1) {
+        columns.push(EMPTY_COLUMN);
+      }
+    }
+
+    return columns;
+  });
 
   const stageEntanglementLinks = computed<ReadonlyArray<ReadonlyArray<EntanglementLink>>>(() =>
     Array.from({ length: stageSnapshots.value.length }, () => []),

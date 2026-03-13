@@ -19,6 +19,20 @@ const createScopedModel = (factory) => {
   };
 };
 
+const visibleColumnIndex = (model, columnId) => {
+  const index = model.visibleColumns.value.findIndex((column) => column.id === columnId);
+  assert.notEqual(index, -1, `Missing visible column: ${columnId}`);
+  return index;
+};
+
+const visibleColumnGates = (model, columnId) => model.columns.value[visibleColumnIndex(model, columnId)]?.gates ?? [];
+
+const classicalRouteById = (model, routeId) => {
+  const route = model.classicalLayout.value.routes.find((entry) => entry.id === routeId);
+  assert.ok(route, `Missing classical route: ${routeId}`);
+  return route;
+};
+
 test("bit-flip repetition preserves the logical state when no error is injected", (t) => {
   const { model, stop } = createScopedModel(useBitFlipRepetitionModel);
   t.after(stop);
@@ -118,7 +132,20 @@ test("shor code corrects a single X error", (t) => {
   assert.deepEqual(model.classicalLayout.value.registers.map((entry) => entry.label), ["A", "B", "C", "Phase"]);
   assert.equal(model.blockSyndromes.value[1].dominantBits, "10");
   assert.equal(model.phaseSyndrome.value.dominantBits, "00");
-  assert.match(model.classicalLayout.value.conditionBadges[0].text, /^flip q/);
+  assert.equal(model.classicalLayout.value.conditionBadges.length, 0);
+  assert.deepEqual(
+    visibleColumnGates(model, "shor-bit-correct").map((gate) => [gate.gate, gate.wires[0]]),
+    [["X", 4]],
+  );
+  assert.equal(classicalRouteById(model, "shor-route-shor_block_a").to.kind, "below-register");
+  assert.equal(classicalRouteById(model, "shor-route-shor_block_c").to.kind, "below-register");
+  assert.equal(classicalRouteById(model, "shor-route-phase").to.kind, "below-register");
+  assert.deepEqual(classicalRouteById(model, "shor-route-shor_block_b").to, {
+    kind: "gate",
+    columnId: "shor-bit-correct",
+    row: 4,
+    entrySide: "left",
+  });
 });
 
 test("shor code corrects a single Z error", (t) => {
@@ -129,6 +156,16 @@ test("shor code corrects a single Z error", (t) => {
 
   assert.ok(model.recoveryFidelity.value > 0.999999);
   assert.equal(model.phaseSyndrome.value.dominantBits, "01");
+  assert.deepEqual(
+    visibleColumnGates(model, "shor-phase-correct").map((gate) => [gate.gate, gate.wires[0]]),
+    [["X", 6]],
+  );
+  assert.deepEqual(classicalRouteById(model, "shor-route-phase").to, {
+    kind: "gate",
+    columnId: "shor-phase-correct",
+    row: 6,
+    entrySide: "right",
+  });
 });
 
 test("shor code combines bit and phase syndromes for a Y error", (t) => {
@@ -181,6 +218,9 @@ test("steane code keeps a compact six-column lesson and reports no-error diagnos
   assert.equal(model.classicalLayout.value.lanes.length, 2);
   assert.deepEqual(model.classicalLayout.value.registers.map((entry) => entry.label), ["Z", "X"]);
   assert.equal(model.classicalLayout.value.conditionBadges.length, 0);
+  assert.equal(visibleColumnGates(model, "steane-correct").length, 0);
+  assert.equal(classicalRouteById(model, "steane-route-z").to.kind, "below-register");
+  assert.equal(classicalRouteById(model, "steane-route-x").to.kind, "below-register");
   assert.ok(near(model.recoveryFidelity.value, 1));
 });
 
@@ -194,7 +234,23 @@ test("steane code corrects a single X error", (t) => {
   assert.equal(model.xSyndromeBits.value, "000");
   assert.equal(model.zSyndromeBits.value, "101");
   assert.equal(model.diagnosisSummary.value, "X @ q4");
-  assert.deepEqual(model.classicalLayout.value.conditionBadges.map((entry) => entry.text), ["X @ q4"]);
+  assert.equal(model.classicalLayout.value.conditionBadges.length, 0);
+  assert.deepEqual(
+    visibleColumnGates(model, "steane-correct").map((gate) => [gate.gate, gate.wires[0]]),
+    [["X", 4]],
+  );
+  assert.deepEqual(classicalRouteById(model, "steane-route-z").to, {
+    kind: "gate",
+    columnId: "steane-correct",
+    row: 4,
+    entrySide: "left",
+  });
+  assert.deepEqual(classicalRouteById(model, "steane-route-x").to, {
+    kind: "gate",
+    columnId: "steane-correct",
+    row: 4,
+    entrySide: "right",
+  });
 });
 
 test("steane code corrects a single Z error", (t) => {
@@ -207,6 +263,10 @@ test("steane code corrects a single Z error", (t) => {
   assert.equal(model.xSyndromeBits.value, "111");
   assert.equal(model.zSyndromeBits.value, "000");
   assert.equal(model.diagnosisSummary.value, "Z @ q6");
+  assert.deepEqual(
+    visibleColumnGates(model, "steane-correct").map((gate) => [gate.gate, gate.wires[0]]),
+    [["Z", 6]],
+  );
 });
 
 test("steane code combines syndromes for a single Y error", (t) => {
@@ -219,6 +279,22 @@ test("steane code combines syndromes for a single Y error", (t) => {
   assert.equal(model.xSyndromeBits.value, "010");
   assert.equal(model.zSyndromeBits.value, "010");
   assert.equal(model.diagnosisSummary.value, "Y @ q1");
+  assert.deepEqual(
+    visibleColumnGates(model, "steane-correct").map((gate) => [gate.gate, gate.wires[0]]),
+    [["Y", 1]],
+  );
+  assert.deepEqual(classicalRouteById(model, "steane-route-z").to, {
+    kind: "gate",
+    columnId: "steane-correct",
+    row: 1,
+    entrySide: "left",
+  });
+  assert.deepEqual(classicalRouteById(model, "steane-route-x").to, {
+    kind: "gate",
+    columnId: "steane-correct",
+    row: 1,
+    entrySide: "right",
+  });
 });
 
 test("steane code keeps helper rows locked for error injection", (t) => {
@@ -239,4 +315,30 @@ test("steane code marks mixed diagnosis and fails outside the single-error regim
   assert.equal(model.injectedErrors.value.length, 2);
   assert.equal(model.diagnosisSummary.value, "mixed");
   assert.ok(model.recoveryFidelity.value < 0.01);
+  assert.equal(visibleColumnGates(model, "steane-correct").length, 0);
+  assert.equal(classicalRouteById(model, "steane-route-z").to.kind, "below-register");
+  assert.equal(classicalRouteById(model, "steane-route-x").to.kind, "below-register");
+});
+
+test("steane and shor only project visible correction gates once the selected stage has enough syndrome data", (t) => {
+  const steaneScoped = createScopedModel(useSteaneSevenQubitModel);
+  const shorScoped = createScopedModel(useShorNineQubitModel);
+  t.after(() => {
+    steaneScoped.stop();
+    shorScoped.stop();
+  });
+
+  steaneScoped.model.selectedPreset.value = "plus";
+  shorScoped.model.selectedPreset.value = "plus";
+  assert.equal(steaneScoped.model.setInjectedError("X", 4), true);
+  assert.equal(shorScoped.model.setInjectedError("X", 4), true);
+
+  steaneScoped.model.setSelectedStage(3);
+  shorScoped.model.setSelectedStage(6);
+
+  assert.equal(visibleColumnGates(steaneScoped.model, "steane-correct").length, 0);
+  assert.equal(classicalRouteById(steaneScoped.model, "steane-route-z").to.kind, "below-register");
+  assert.equal(classicalRouteById(steaneScoped.model, "steane-route-x").to.kind, "below-register");
+  assert.equal(visibleColumnGates(shorScoped.model, "shor-bit-correct").length, 0);
+  assert.equal(classicalRouteById(shorScoped.model, "shor-route-shor_block_b").to.kind, "below-register");
 });

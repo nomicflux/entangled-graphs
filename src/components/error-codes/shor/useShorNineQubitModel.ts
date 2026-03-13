@@ -276,6 +276,7 @@ export const useShorNineQubitModel = () => {
       id: "shor-bit-correct",
       kind: "primitive-columns",
       executionColumns: withinBlockCorrectionColumns(),
+      visibleProjection: { kind: "active-conditioned-gates" },
     },
     {
       id: "shor-phase-prep",
@@ -296,6 +297,7 @@ export const useShorNineQubitModel = () => {
       id: "shor-phase-correct",
       kind: "primitive-columns",
       executionColumns: phaseCorrectionColumns(),
+      visibleProjection: { kind: "active-conditioned-gates" },
     },
   ]);
 
@@ -333,10 +335,31 @@ export const useShorNineQubitModel = () => {
   let circuit!: ReturnType<typeof useErrorCodeLessonModel>;
 
   const classicalLayout = computed<FixedPanelClassicalLayout>(() => {
-    const lastStage = circuit?.stageSnapshots.value[circuit.stageSnapshots.value.length - 1];
-    const blockBits = BLOCKS.map((block) => dominantRegisterBits(lastStage?.classicalStates, { id: block.register, size: 2 }));
-    const phaseBits = dominantRegisterBits(lastStage?.classicalStates, PHASE_REGISTER);
+    const selectedStage = circuit?.selectedStageSnapshot.value;
+    const blockBits = BLOCKS.map((block) => dominantRegisterBits(selectedStage?.classicalStates, { id: block.register, size: 2 }));
+    const phaseBits = dominantRegisterBits(selectedStage?.classicalStates, PHASE_REGISTER);
     const phaseBlockIndex = phaseBlockFromBits(phaseBits);
+    const blockRoutes: FixedPanelClassicalLayout["routes"] = BLOCKS.map((block, blockIndex) => {
+      const wireLabel = blockWireLabel(blockIndex, wireInBlockFromBits(blockBits[blockIndex] ?? "??"));
+      const belowRegisterSide = blockIndex === 0 ? "left" : "right";
+      const gateEntrySide = blockIndex === 2 ? "right" : "left";
+
+      return {
+        id: `shor-route-${block.register}`,
+        from: { columnId: "shor-bit-check-2", row: blockIndex % 2 === 0 ? 9 : 10 },
+        to:
+          wireLabel === null
+            ? { kind: "below-register", columnId: "shor-bit-correct", side: belowRegisterSide }
+            : {
+                kind: "gate",
+                columnId: "shor-bit-correct",
+                row: Number.parseInt(wireLabel.slice(1), 10),
+                entrySide: gateEntrySide,
+              },
+        lane: `block-${block.label.slice(-1).toLowerCase()}`,
+        kind: "bundle",
+      };
+    });
 
     return {
       lanes: [
@@ -364,48 +387,24 @@ export const useShorNineQubitModel = () => {
         },
       ],
       routes: [
-        ...BLOCKS.map((block, blockIndex) => ({
-          id: `shor-route-${block.register}`,
-          from: { columnId: "shor-bit-check-2", row: blockIndex % 2 === 0 ? 9 : 10 },
-          to: { columnId: "shor-bit-correct", row: block.leader },
-          lane: `block-${block.label.slice(-1).toLowerCase()}`,
-          kind: "bundle" as const,
-        })),
+        ...blockRoutes,
         {
           id: "shor-route-phase",
           from: { columnId: "shor-phase-check-2", row: 10 },
-          to: { columnId: "shor-phase-correct", row: phaseBlockIndex === null ? 10 : BLOCKS[phaseBlockIndex]!.leader },
+          to:
+            phaseBlockIndex === null
+              ? { kind: "below-register", columnId: "shor-phase-correct", side: "right" }
+              : {
+                  kind: "gate",
+                  columnId: "shor-phase-correct",
+                  row: BLOCKS[phaseBlockIndex]!.leader,
+                  entrySide: "right",
+                },
           lane: "phase",
           kind: "bundle" as const,
         },
       ],
-      conditionBadges: [
-        ...BLOCKS.flatMap((block, blockIndex) => {
-          const wireLabel = blockWireLabel(blockIndex, wireInBlockFromBits(blockBits[blockIndex] ?? "??"));
-          return wireLabel
-            ? [
-                {
-                  id: `shor-badge-${block.register}`,
-                  columnId: "shor-bit-correct",
-                  row: Number.parseInt(wireLabel.slice(1), 10),
-                  text: `flip ${wireLabel}`,
-                  kind: "bundle" as const,
-                },
-              ]
-            : [];
-        }),
-        ...(phaseBlockIndex === null
-          ? []
-          : [
-              {
-                id: "shor-badge-phase",
-                columnId: "shor-phase-correct",
-                row: BLOCKS[phaseBlockIndex]!.leader,
-                text: `phase ${BLOCKS[phaseBlockIndex]!.label}`,
-                kind: "bundle" as const,
-              },
-            ]),
-      ],
+      conditionBadges: [],
     };
   });
 

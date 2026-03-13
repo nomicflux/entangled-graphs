@@ -56,10 +56,27 @@ export type ClassicalOverlayLane = {
   label: string;
 };
 
-export type ClassicalRouteAnchor = {
-  columnId: string;
-  row: QubitRow;
-};
+export type ClassicalRouteEntrySide = "left" | "right";
+
+export type ClassicalRouteAnchor =
+  | {
+      kind?: "row";
+      columnId: string;
+      row: QubitRow;
+    }
+  | {
+      kind: "gate";
+      columnId: string;
+      row: QubitRow;
+      entrySide?: ClassicalRouteEntrySide;
+      entryOffset?: number;
+    }
+  | {
+      kind: "below-register";
+      columnId: string;
+      side?: ClassicalRouteEntrySide;
+      breakoutOffset?: number;
+    };
 
 export type ClassicalRegisterOverlay = {
   id: string;

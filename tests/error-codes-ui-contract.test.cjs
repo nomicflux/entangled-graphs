@@ -22,6 +22,7 @@ test("error-code scaffolds keep a distinct output panel without a separate error
 
 test("lesson circuit panel supports shared parity-family visual columns", () => {
   const panel = readSource("src/components/circuit/LessonCircuitPanel.vue");
+  const layout = readSource("src/components/circuit/fixed-panel-classical-layout.ts");
 
   assert.match(panel, /visibleColumns/);
   assert.match(panel, /parity-family/);
@@ -29,6 +30,10 @@ test("lesson circuit panel supports shared parity-family visual columns", () => 
   assert.match(panel, /parity-slot-grid/);
   assert.match(panel, /classical-route-overlay/);
   assert.match(panel, /classical-band-spacer/);
+  assert.match(panel, /circuit-scroll-viewport/);
+  assert.match(panel, /panelContentWidth/);
+  assert.match(layout, /routeRailPathForOverlay/);
+  assert.match(layout, /route\.to\.kind === "below-register"/);
   assert.match(panel, /visibleColumns: readonly VisibleLessonColumn\[\]/);
   assert.match(panel, /rowSpecs: readonly LessonRowSpec\[\]/);
   assert.doesNotMatch(panel, /resolvedVisibleColumns/);
@@ -44,6 +49,8 @@ test("fixed algorithm panel supports classical wire overlays and teleportation u
   assert.match(panel, /classicalLayout/);
   assert.match(panel, /classical-route-rail/);
   assert.match(panel, /circuit-header-row/);
+  assert.match(panel, /circuit-scroll-viewport/);
+  assert.match(panel, /panelContentWidth/);
   assert.match(teleport, /:classical-layout="props\.classicalLayout"/);
   assert.doesNotMatch(teleport, /placeholderToken/);
   assert.match(model, /writesClassicalBit/);
@@ -66,6 +73,20 @@ test("steane and shor scaffolds thread row specs and classical layout into the l
     assert.match(source, /:row-specs="rowSpecs"/);
     assert.match(source, /:classical-layout="classicalLayout"/);
   }
+});
+
+test("steane and shor project real visible correction gates and route ambiguous cases below the register", () => {
+  const steane = readSource("src/components/error-codes/steane/useSteaneSevenQubitModel.ts");
+  const shor = readSource("src/components/error-codes/shor/useShorNineQubitModel.ts");
+
+  assert.match(steane, /visibleProjection: \{ kind: "active-conditioned-gates" \}/);
+  assert.match(shor, /visibleProjection: \{ kind: "active-conditioned-gates" \}/);
+  assert.match(steane, /kind: "gate"/);
+  assert.match(steane, /kind: "below-register"/);
+  assert.match(shor, /kind: "gate"/);
+  assert.match(shor, /kind: "below-register"/);
+  assert.match(steane, /conditionBadges: \[\]/);
+  assert.match(shor, /conditionBadges: \[\]/);
 });
 
 test("abstraction scaffolds also pass explicit visible columns and row specs into the lesson panel", () => {

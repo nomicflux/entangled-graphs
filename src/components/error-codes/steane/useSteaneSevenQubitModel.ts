@@ -180,11 +180,6 @@ const correctionLabel = (xBits: string, zBits: string): string => {
   return "mixed";
 };
 
-const correctionRow = (diagnosis: string): QubitRow | null => {
-  const match = /q(\d+)/.exec(diagnosis);
-  return match ? Number.parseInt(match[1] ?? "", 10) : null;
-};
-
 const correctionExecutionColumns = (): CircuitColumn[] => {
   const gates = DATA_ROWS.flatMap((row) => {
     const bits = syndromeBitsForRow(row);
@@ -274,6 +269,7 @@ export const useSteaneSevenQubitModel = () => {
       id: "steane-correct",
       kind: "primitive-columns",
       executionColumns: correctionExecutionColumns(),
+      visibleProjection: { kind: "active-conditioned-gates" },
     },
     {
       id: "steane-decode",
@@ -307,10 +303,35 @@ export const useSteaneSevenQubitModel = () => {
   let circuit!: ReturnType<typeof useErrorCodeLessonModel>;
 
   const classicalLayout = computed<FixedPanelClassicalLayout>(() => {
-    const lastStage = circuit?.stageSnapshots.value[circuit.stageSnapshots.value.length - 1];
-    const zBits = syndromeBitsFromSnapshot(lastStage?.classicalStates, Z_SYNDROME_REGISTER);
-    const xBits = syndromeBitsFromSnapshot(lastStage?.classicalStates, X_SYNDROME_REGISTER);
-    const diagnosis = correctionLabel(xBits, zBits);
+    const selectedStage = circuit?.selectedStageSnapshot.value;
+    const zBits = syndromeBitsFromSnapshot(selectedStage?.classicalStates, Z_SYNDROME_REGISTER);
+    const xBits = syndromeBitsFromSnapshot(selectedStage?.classicalStates, X_SYNDROME_REGISTER);
+    const correctionColumnIndex = circuit?.visibleColumns.value.findIndex((column) => column.id === "steane-correct") ?? -1;
+    const activeCorrectionGate = correctionColumnIndex >= 0 ? (circuit?.columns.value[correctionColumnIndex]?.gates[0] ?? null) : null;
+    const correctionRow = activeCorrectionGate?.wires[0] ?? null;
+    const routes: FixedPanelClassicalLayout["routes"] = [
+      {
+        id: "steane-route-z",
+        from: { columnId: "steane-z-checks", row: 7 },
+        to:
+          correctionRow === null
+            ? { kind: "below-register", columnId: "steane-correct", side: "left" }
+            : { kind: "gate", columnId: "steane-correct", row: correctionRow, entrySide: "left" },
+        lane: "z-syndrome",
+        kind: "bundle",
+      },
+      {
+        id: "steane-route-x",
+        from: { columnId: "steane-x-checks", row: 9 },
+        to:
+          correctionRow === null
+            ? { kind: "below-register", columnId: "steane-correct", side: "right" }
+            : { kind: "gate", columnId: "steane-correct", row: correctionRow, entrySide: "right" },
+        lane: "x-syndrome",
+        kind: "bundle",
+      },
+    ];
+
     return {
       lanes: [
         { id: "z-syndrome", label: "Z syndrome" },
@@ -334,34 +355,8 @@ export const useSteaneSevenQubitModel = () => {
           kind: "bundle",
         },
       ],
-      routes: [
-        {
-          id: "steane-route-z",
-          from: { columnId: "steane-z-checks", row: 7 },
-          to: { columnId: "steane-correct", row: 7 },
-          lane: "z-syndrome",
-          kind: "bundle",
-        },
-        {
-          id: "steane-route-x",
-          from: { columnId: "steane-x-checks", row: 9 },
-          to: { columnId: "steane-correct", row: 9 },
-          lane: "x-syndrome",
-          kind: "bundle",
-        },
-      ],
-      conditionBadges:
-        diagnosis === "—" || correctionRow(diagnosis) === null
-          ? []
-          : [
-              {
-                id: "steane-badge-correction",
-                columnId: "steane-correct",
-                row: correctionRow(diagnosis)!,
-                text: diagnosis,
-                kind: "bundle",
-              },
-            ],
+      routes,
+      conditionBadges: [],
     };
   });
 
