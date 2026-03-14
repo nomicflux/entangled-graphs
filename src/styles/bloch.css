@@ -1,128 +1,236 @@
 .bloch-pair {
   display: grid;
-  grid-template-columns: 1fr;
+}
+
+.bloch-pair-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.bloch-pair.size-md .bloch-pair-grid {
+  grid-template-columns: repeat(auto-fit, minmax(126px, 1fr));
+}
+
+.bloch-pair.compact .bloch-pair-grid {
   gap: 10px;
 }
 
-.bloch-card {
+.bloch-sphere-card {
   display: grid;
+  justify-items: center;
+  gap: 6px;
+  min-width: 0;
 }
 
-.bloch-composite {
+.bloch-sphere-meta {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  text-align: center;
+}
+
+.bloch-sphere-label,
+.bloch-sphere-certainty {
+  font-family: "IBM Plex Mono", monospace;
+  line-height: 1;
+}
+
+.bloch-sphere-label {
+  font-size: 0.64rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(240, 244, 255, 0.92);
+}
+
+.bloch-sphere-certainty {
+  font-size: 0.58rem;
+  color: rgba(191, 204, 224, 0.78);
+}
+
+.bloch-pair.compact .bloch-sphere-certainty {
+  display: none;
+}
+
+.bloch-sphere {
+  position: relative;
   display: grid;
   place-items: center;
+  width: 100%;
 }
 
-.bloch-orb {
-  width: 72px;
-  height: 72px;
-  border-radius: 999px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  position: relative;
-  overflow: hidden;
-  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.06), transparent 62%);
+.bloch-sphere-svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
 }
 
-.bloch-pair.size-sm .bloch-orb {
-  width: 58px;
-  height: 58px;
+.bloch-pair.size-sm .bloch-sphere-svg {
+  max-width: 88px;
 }
 
-.bloch-orb-axis {
-  position: absolute;
-  inset: 50% 14% auto 14%;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.22);
+.bloch-pair.size-md .bloch-sphere-svg,
+.bloch-preview .bloch-sphere-svg {
+  max-width: 114px;
 }
 
-.bloch-sector-fills {
-  position: absolute;
-  inset: 0;
-  border-radius: 999px;
+.bloch-sphere-shadow {
+  fill: rgba(4, 9, 20, 0.34);
+  filter: blur(3px);
+}
+
+.bloch-sphere-shell {
+  stroke: rgba(205, 223, 255, 0.3);
+  stroke-width: 1;
+}
+
+.bloch-sphere-core-glow {
+  opacity: 0.6;
+}
+
+.bloch-probability-ambient {
+  mix-blend-mode: screen;
+}
+
+.bloch-probability-lobe {
+  mix-blend-mode: screen;
+  transform-origin: center;
+}
+
+.bloch-probability-lobe.is-zero {
+  filter: saturate(110%);
+}
+
+.bloch-probability-lobe.is-one {
+  filter: saturate(104%);
+}
+
+.bloch-basis-anchors {
   pointer-events: none;
 }
 
-.bloch-sector-divider {
-  position: absolute;
-  left: 50%;
-  top: 0;
-  width: 1px;
-  height: 50%;
-  transform-origin: 50% 100%;
-  background: rgba(255, 255, 255, 0.2);
-  pointer-events: none;
+.bloch-basis-anchor-line {
+  fill: none;
+  stroke: rgba(226, 236, 255, 0.42);
+  stroke-width: 0.82;
+  stroke-linecap: round;
 }
 
-.bloch-sector-label {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  color: rgba(240, 242, 255, 0.9);
+.bloch-basis-anchor-dot {
+  fill: rgba(228, 239, 255, 0.74);
+}
+
+.bloch-basis-anchor-text {
+  fill: rgba(226, 236, 255, 0.74);
   font-family: "IBM Plex Mono", monospace;
-  font-size: 0.58rem;
-  line-height: 1;
-  letter-spacing: 0.03em;
-  text-transform: lowercase;
-  pointer-events: none;
-  user-select: none;
+  font-size: 5px;
+  letter-spacing: 0.04em;
 }
 
-.bloch-zero-cloud,
-.bloch-one-cloud,
-.bloch-phase-indicator,
-.bloch-uncertainty-cloud {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  pointer-events: none;
+.bloch-basis-anchors.is-compact .bloch-basis-anchor-text {
+  font-size: 4.2px;
 }
 
-.bloch-phase-indicator {
-  height: 2px;
-  border-radius: 999px;
-  transform-origin: 50% 50%;
+.bloch-sphere-rim {
+  fill: none;
+  stroke: rgba(225, 236, 255, 0.72);
+  stroke-width: 1.18;
 }
 
-.bloch-zero-cloud {
-  border-radius: 999px;
-  background: radial-gradient(circle, var(--cloud-core) 0%, var(--cloud-mid) 36%, var(--cloud-outer) 68%, transparent 100%);
-  box-shadow: 0 0 10px var(--cloud-glow);
-  mix-blend-mode: screen;
+.bloch-shell-reflection {
+  fill: none;
+  stroke: rgba(239, 246, 255, 0.24);
+  stroke-width: 0.9;
 }
 
-.bloch-one-cloud {
-  border-radius: 999px;
-  background: radial-gradient(circle, var(--cloud-core) 0%, var(--cloud-mid) 36%, var(--cloud-outer) 68%, transparent 100%);
-  box-shadow: 0 0 10px var(--cloud-glow);
-  mix-blend-mode: screen;
+.bloch-shell-sheen {
+  fill: none;
+  stroke: rgba(241, 247, 255, 0.18);
+  stroke-width: 1.22;
+  stroke-linecap: round;
 }
 
-.bloch-uncertainty-cloud {
-  transform: translate(-50%, -50%);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.14), transparent 72%);
+.bloch-grid {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.bloch-pair.compact .bloch-composite {
-  gap: 6px;
+.bloch-grid-front {
+  stroke: rgba(227, 237, 255, 0.7);
+  stroke-width: 1.25;
 }
 
-.bloch-pair.size-sm .bloch-sector-label {
-  font-size: 0.52rem;
+.bloch-grid-back {
+  stroke: rgba(174, 194, 228, 0.24);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
 }
 
-.bloch-pair.animated .bloch-uncertainty-cloud {
-  animation: cloudPulse 2s ease-in-out infinite;
+.bloch-guide {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-@keyframes cloudPulse {
-  0% {
-    transform: translate(-50%, -50%) scale(1);
-  }
-  50% {
-    transform: translate(-50%, -50%) scale(1.08);
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(1);
-  }
+.bloch-guide-phi {
+  stroke: rgba(252, 165, 255, 0.82);
+  stroke-width: 2;
+}
+
+.bloch-guide-theta {
+  stroke: rgba(102, 245, 214, 0.88);
+  stroke-width: 2.2;
+}
+
+.bloch-vector-line {
+  fill: none;
+  stroke: rgba(255, 245, 196, 0.76);
+  stroke-width: 1.65;
+  stroke-linecap: round;
+  filter: none;
+}
+
+.bloch-vector-line.is-hidden-side {
+  stroke: rgba(255, 248, 186, 0.54);
+  stroke-dasharray: 4 3;
+}
+
+.bloch-endpoint {
+  fill: rgba(233, 238, 248, 0.88);
+  stroke: rgba(21, 34, 56, 0.58);
+  stroke-width: 0.72;
+}
+
+.bloch-endpoint.is-hidden-side {
+  opacity: 0.56;
+}
+
+.bloch-sphere.with-guides .bloch-probability-lobe {
+  filter: saturate(94%);
+}
+
+.bloch-sphere.animated .bloch-grid,
+.bloch-sphere.animated .bloch-guide,
+.bloch-sphere.animated .bloch-vector-line,
+.bloch-sphere.animated .bloch-endpoint,
+.bloch-sphere.animated .bloch-probability-lobe,
+.bloch-sphere.animated .bloch-probability-ambient,
+.bloch-sphere.animated .bloch-shell-reflection,
+.bloch-sphere.animated .bloch-shell-sheen {
+  transition:
+    d 180ms ease,
+    cx 180ms ease,
+    cy 180ms ease,
+    r 180ms ease,
+    rx 180ms ease,
+    ry 180ms ease,
+    opacity 180ms ease,
+    fill 180ms ease,
+    stroke 180ms ease;
+}
+
+.bloch-pair.compact .bloch-sphere-label {
+  font-size: 0.55rem;
 }

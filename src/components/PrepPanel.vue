@@ -16,15 +16,14 @@
     </div>
 
     <div class="qubit-grid">
-      <div v-for="(q, index) in state.preparedBloch" :key="index" class="qubit-card">
+        <div v-for="(q, index) in state.preparedBloch" :key="index" class="qubit-card">
         <div class="qubit-top">
           <div>
             <h3>Q{{ index }}</h3>
             <p class="muted">Bloch parameters</p>
           </div>
           <div class="bloch-preview">
-            <div class="bloch-circle"></div>
-            <div class="bloch-dot" :style="dotStyle(q)"></div>
+            <BlochSphereGlyph :vector="previewVector(q)" :guides="q" :label="`q${index}`" size="md" />
           </div>
         </div>
 
@@ -74,16 +73,20 @@
 
 <script setup lang="ts">
 import type { BlochParams } from "../types";
+import BlochSphereGlyph from "./BlochSphereGlyph.vue";
+import { blochAnglesToVector } from "./bloch-geometry";
 import { addQubit, preparedDistribution, preparedQubits, qubitCount, removeQubit, setQubitCount, state } from "../state";
 
 const amplitudes = preparedQubits;
-const previewRadius = 26;
 
-const dotStyle = (q: BlochParams) => {
-  const x = Math.sin(q.theta) * Math.cos(q.phi) * previewRadius;
-  const y = Math.sin(q.theta) * Math.sin(q.phi) * previewRadius;
+const previewVector = (q: BlochParams) => {
+  const vector = blochAnglesToVector(q.theta, q.phi);
   return {
-    transform: `translate(${x}px, ${-y}px)`,
+    ...vector,
+    p0: Math.cos(q.theta / 2) ** 2,
+    p1: Math.sin(q.theta / 2) ** 2,
+    certainty: 1,
+    uncertainty: 0,
   };
 };
 

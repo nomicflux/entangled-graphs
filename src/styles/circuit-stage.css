@@ -7,10 +7,12 @@
 
 .snapshot-card {
   appearance: none;
+  display: grid;
+  align-content: start;
   background: rgba(7, 12, 26, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 12px;
-  padding: 10px;
+  padding: 12px 12px 11px;
   color: var(--text);
   text-align: left;
   cursor: pointer;
@@ -30,17 +32,39 @@
 }
 
 .snapshot-hint {
-  margin: -4px 0 8px;
+  margin: -4px 0 4px;
   font-size: 0.72rem;
   color: var(--muted);
 }
 
+.snapshot-visual {
+  margin: 4px 0 12px;
+  padding: 4px 0 2px;
+}
+
+.snapshot-visual .bloch-pair-grid {
+  gap: 12px;
+}
+
+.snapshot-distribution {
+  margin-top: 2px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: grid;
+  gap: 4px;
+}
+
 .snapshot-row {
-  margin: 0 0 5px;
+  margin: 0;
   display: flex;
   justify-content: space-between;
   font-family: "IBM Plex Mono", monospace;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
+  color: rgba(214, 223, 239, 0.84);
+}
+
+.snapshot-row span:last-child {
+  color: rgba(240, 244, 255, 0.96);
 }
 
 .stage-inspector {
@@ -73,6 +97,14 @@
   margin: 0 0 10px;
   color: var(--muted);
   font-size: 0.78rem;
+}
+
+.stage-inspector .bloch-pair {
+  margin: 4px 0 10px;
+}
+
+.stage-inspector .bloch-pair-grid {
+  gap: 18px;
 }
 
 .stage-probability {

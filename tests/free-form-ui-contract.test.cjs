@@ -50,6 +50,28 @@ test("free-form circuit panel binds entanglement and connectors to a dedicated q
   assert.doesNotMatch(panel, /minmax\(56px, 1fr\)/);
 });
 
+test("pure-state Bloch visuals use the shared 3d sphere glyph across prep and stage surfaces", () => {
+  const pairView = readSource("src/components/BlochPairView.vue");
+  const prepPanel = readSource("src/components/PrepPanel.vue");
+  const stageView = readSource("src/components/StageStateView.vue");
+  const snapshots = readSource("src/components/circuit/CircuitStageSnapshots.vue");
+  const css = readSource("src/styles/bloch.css");
+
+  assert.match(pairView, /BlochSphereGlyph/);
+  assert.match(pairView, /bloch-sphere-card/);
+  assert.doesNotMatch(pairView, /bloch-orb-composite/);
+  assert.match(prepPanel, /BlochSphereGlyph/);
+  assert.match(prepPanel, /:guides="q"/);
+  assert.match(stageView, /renderPair/);
+  assert.match(snapshots, /size="sm"/);
+  assert.match(readSource("src/components/BlochSphereGlyph.vue"), /bloch-probability-lobe/);
+  assert.match(readSource("src/components/BlochSphereGlyph.vue"), /bloch-basis-anchor/);
+  assert.match(css, /\.bloch-grid-back/);
+  assert.match(css, /\.bloch-vector-line/);
+  assert.match(css, /\.bloch-probability-lobe/);
+  assert.match(css, /\.bloch-sphere-shell/);
+});
+
 test("pure and mixed stores stay isolated", () => {
   const originalMixedInputs = clonePreparedInputs(mixedStore.mixedState.preparedInputs);
   const originalMixedColumns = cloneMixedColumns(mixedStore.mixedState.columns);
